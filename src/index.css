@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body {
+  background-color: #0E1520;
+  color: #E6EAF2;
+  font-family: "Segoe UI", Inter, system-ui, sans-serif;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #0E1520; }
+::-webkit-scrollbar-thumb { background: #22304A; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #2c3e5c; }
+
+.info-icon { display:inline-block; font-size:13px; color:#6B85AD; cursor:help; }
+.info-icon:hover { color:#3DA5F4; }
