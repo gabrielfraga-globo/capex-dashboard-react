@@ -41,11 +41,11 @@ export default function App() {
       if (filtros.aprovador && p.aprovador !== filtros.aprovador) return false;
       if (filtros.status && p.status !== filtros.status) return false;
       if (filtros.busca && !p.nome.toLowerCase().includes(filtros.busca.toLowerCase())) return false;
-      if (p.pctExecucao !== null) {
+      if ((filtros.execucaoMin !== 0 || filtros.execucaoMax !== 100) && p.pctExecucao !== null) {
         const pct = p.pctExecucao * 100;
         if (pct < filtros.execucaoMin || pct > filtros.execucaoMax) return false;
       }
-      if (p.pctComprometimento !== null) {
+      if ((filtros.comprometimentoMin !== 0 || filtros.comprometimentoMax !== 100) && p.pctComprometimento !== null) {
         const pct = p.pctComprometimento * 100;
         if (pct < filtros.comprometimentoMin || pct > filtros.comprometimentoMax) return false;
       }

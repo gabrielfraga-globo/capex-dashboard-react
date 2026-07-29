@@ -204,8 +204,8 @@ function buildProjetos(
     n4: string;
     nomeLB: string;
     aprovador: string | null;
-    realizado2026: number; emPagamento2026: number;
-    realizado2027: number; emPagamento2027: number;
+    orcamento2026: number; realizado2026: number; emPagamento2026: number;
+    orcamento2027: number; realizado2027: number; emPagamento2027: number;
     compromissos: number[]; // valores vistos, para checar consistência
   };
   const realMap = new Map<string, Agg>();
@@ -213,11 +213,11 @@ function buildProjetos(
     const key = `${normalizeKey(r.n4)}|${normalizeKey(r.nomeLB)}`;
     let agg = realMap.get(key);
     if (!agg) {
-      agg = { n4: r.n4, nomeLB: r.nomeLB, aprovador: r.aprovador, realizado2026: 0, emPagamento2026: 0, realizado2027: 0, emPagamento2027: 0, compromissos: [] };
+      agg = { n4: r.n4, nomeLB: r.nomeLB, aprovador: r.aprovador, orcamento2026: 0, realizado2026: 0, emPagamento2026: 0, orcamento2027: 0, realizado2027: 0, emPagamento2027: 0, compromissos: [] };
       realMap.set(key, agg);
     }
-    if (r.ano === "2026") { agg.realizado2026 += r.realizado; agg.emPagamento2026 += r.emPagamento; }
-    else { agg.realizado2027 += r.realizado; agg.emPagamento2027 += r.emPagamento; }
+    if (r.ano === "2026") { agg.orcamento2026 += r.orcamento; agg.realizado2026 += r.realizado; agg.emPagamento2026 += r.emPagamento; }
+    else { agg.orcamento2027 += r.orcamento; agg.realizado2027 += r.realizado; agg.emPagamento2027 += r.emPagamento; }
     agg.compromissos.push(r.compromisso);
     if (!agg.aprovador && r.aprovador) agg.aprovador = r.aprovador;
   }
@@ -252,6 +252,16 @@ function buildProjetos(
       }
     }
 
+    // Orçamento por período: a aba Realizado é a fonte primária (cobre 205 dos 209 projetos
+    // e é a mesma fonte já validada contra o Status Report). A aba Orçamento só é usada como
+    // fallback para os 4 projetos que existem exclusivamente nela (ex.: Pré-Produção) — assim
+    // nenhuma linha de orçamento é omitida por um projeto existir em só uma das duas abas.
+    const orcamento2026 = r ? r.orcamento2026 : o?.total2026 ?? null;
+    const orcamento2027 = r ? r.orcamento2027 : o?.total2027 ?? null;
+    const orcamentoPlurianualBruto = o?.totalGeral ?? null;
+    const orcamentoPlurianual =
+      orcamentoPlurianualBruto ?? (orcamento2026 !== null || orcamento2027 !== null ? (orcamento2026 ?? 0) + (orcamento2027 ?? 0) : null);
+
     projetos.push({
       id: key,
       nome,
@@ -260,9 +270,9 @@ function buildProjetos(
       gestor: gestor?.nome ?? null,
       gestorEmail: gestor?.email ?? null,
       aprovador: r?.aprovador ?? null,
-      orcamentoPlurianual: o?.totalGeral ?? null,
-      orcamento2026: o?.total2026 ?? null,
-      orcamento2027: o?.total2027 ?? null,
+      orcamentoPlurianual,
+      orcamento2026,
+      orcamento2027,
       h1_2026: o ? o.meses2026.slice(0, 6).reduce((a, b) => a + b, 0) : null,
       h2_2026: o ? o.meses2026.slice(6, 12).reduce((a, b) => a + b, 0) : null,
       realizado2026: r ? r.realizado2026 : null,
