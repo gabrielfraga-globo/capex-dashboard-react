@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProjetoMetricas } from "../types";
-import { Card, RiskBadge, SectionHeader, Button } from "./ui/primitives";
+import { RiskBadge, Button } from "./ui/primitives";
 import { fmtBRL, fmtPct } from "../lib/format";
 
 const columnHelper = createColumnHelper<ProjetoMetricas>();
@@ -80,18 +80,15 @@ export function ProjectsTable({ lista, onSelect }: { lista: ProjetoMetricas[]; o
   const copyToClipboard = () => navigator.clipboard.writeText(toCsv(lista));
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <SectionHeader title="Tabela Detalhada" tooltip="Clique no cabeçalho para ordenar. Clique em uma linha para abrir o detalhamento do projeto." />
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={copyToClipboard} className="text-xs">Copiar</Button>
-          <Button variant="default" onClick={exportCsv} className="flex items-center gap-1 text-xs">
-            <Download size={13} /> Exportar CSV
-          </Button>
-        </div>
+    <div>
+      <div className="flex items-center justify-end mb-3 gap-2">
+        <Button variant="outline" onClick={copyToClipboard} className="text-xs">Copiar</Button>
+        <Button variant="default" onClick={exportCsv} className="flex items-center gap-1 text-xs">
+          <Download size={13} /> Exportar CSV
+        </Button>
       </div>
 
-      <Card className="overflow-x-auto p-0">
+      <div className="overflow-x-auto rounded-md border border-border">
         <table className="w-full text-xs">
           <thead>
             {table.getHeaderGroups().map((hg) => (
@@ -152,7 +149,7 @@ export function ProjectsTable({ lista, onSelect }: { lista: ProjetoMetricas[]; o
             </button>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

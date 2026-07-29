@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ProjetoMetricas } from "../types";
-import { Card, RiskBadge, SectionHeader } from "./ui/primitives";
+import { RiskBadge } from "./ui/primitives";
 import { fmtBRL, fmtPct } from "../lib/format";
 
 type RankingKey = "faltaComprometer" | "menorExecucao" | "maiorAEmitir" | "maiorEstouro" | "participacaoRisco";
@@ -44,8 +44,7 @@ export function Rankings({ lista, onSelect }: { lista: ProjetoMetricas[]; onSele
   const ranked = useMemo(() => getRanked(lista, tab).slice(0, 10), [lista, tab]);
 
   return (
-    <div className="mb-6">
-      <SectionHeader title="Projetos Prioritários" tooltip="Rankings dos projetos que mais exigem atenção, sob diferentes dimensões de risco." />
+    <div>
       <div className="flex flex-wrap gap-2 mb-3">
         {RANKINGS.map((r) => (
           <button
@@ -59,29 +58,27 @@ export function Rankings({ lista, onSelect }: { lista: ProjetoMetricas[]; onSele
           </button>
         ))}
       </div>
-      <Card>
-        {ranked.length === 0 ? (
-          <p className="text-sm text-text-muted">Nenhum projeto nesta categoria para os filtros atuais.</p>
-        ) : (
-          <div className="divide-y divide-border-subtle">
-            {ranked.map((p, i) => (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p)}
-                className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-card-alt/60 rounded px-2 transition-colors"
-              >
-                <span className="text-text-faint text-xs w-5">{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-text truncate">{p.nome}</p>
-                  <p className="text-[11px] text-text-muted">{p.n4Curta} · {p.gestor ?? "sem gestor"}</p>
-                </div>
-                <span className="text-sm font-bold text-text">{valueFor(p, tab)}</span>
-                <RiskBadge status={p.status} />
-              </button>
-            ))}
-          </div>
-        )}
-      </Card>
+      {ranked.length === 0 ? (
+        <p className="text-sm text-text-muted">Nenhum projeto nesta categoria para os filtros atuais.</p>
+      ) : (
+        <div className="divide-y divide-border-subtle">
+          {ranked.map((p, i) => (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p)}
+              className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-card-alt/60 rounded px-2 transition-colors"
+            >
+              <span className="text-text-faint text-xs w-5">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-text truncate">{p.nome}</p>
+                <p className="text-[11px] text-text-muted">{p.n4Curta} · {p.gestor ?? "sem gestor"}</p>
+              </div>
+              <span className="text-sm font-bold text-text">{valueFor(p, tab)}</span>
+              <RiskBadge status={p.status} />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

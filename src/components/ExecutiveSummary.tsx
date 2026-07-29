@@ -1,82 +1,103 @@
 import { useMemo } from "react";
 import type { Periodo, ProjetoMetricas } from "../types";
-import { KpiCard, StatusCard } from "./ui/primitives";
-import { fmtBRL, fmtPct } from "../lib/format";
+import { KpiCard } from "./ui/primitives";
+import { fmtBRL } from "../lib/format";
+import { generateExecutiveSummary, generateRiskSummary, generateTopOffenders, generateInsights } from "../lib/insights";
+import { RiskBadge } from "./ui/primitives";
 
-export function ExecutiveSummary({ lista, periodo }: { lista: ProjetoMetricas[]; periodo: Periodo }) {
-  const s = useMemo(() => {
-    const orcamentoPeriodo = sum(lista, (p) => p.orcamentoPeriodo);
-    const orcamentoPlurianual = sum(lista, (p) => p.orcamentoPlurianual);
-    const executado = sum(lista, (p) => p.executado);
-    const compromisso = sum(lista, (p) => p.compromisso);
-    const aEmitir = sum(lista, (p) => p.aEmitir);
-    const valorComprometidoTotal = executado + compromisso;
-    const pctExecucao = orcamentoPeriodo > 0 ? executado / orcamentoPeriodo : null;
-    const pctComprometimento = orcamentoPeriodo > 0 ? compromisso / orcamentoPeriodo : null;
-    const desvioPlurianual = orcamentoPlurianual > 0 ? valorComprometidoTotal - orcamentoPlurianual : null;
+const HEALTH_STYLES: Record<string, string> = {
+  estouro: "bg-gradient-to-br from-risk-critico to-red-900 text-white",
+  baixo: "bg-gradient-to-br from-risk-alto to-orange-800 text-white",
+  execucao: "bg-gradient-to-br from-risk-medio to-amber-700 text-amber-950",
+  financeiro: "bg-gradient-to-br from-slate-600 to-slate-800 text-white",
+};
 
-    const nEstouro = lista.filter((p) => p.status === "Estouro").length;
-    const nBaixoComprom = lista.filter((p) => p.status === "Baixo comprometimento").length;
-    const nBaixaExec = lista.filter((p) => p.status === "Baixa execução").length;
-    const nOK = lista.filter((p) => p.status === "OK").length;
-    const nSemDados = lista.filter((p) => p.status === "Dados insuficientes").length;
-
-    return {
-      orcamentoPeriodo, orcamentoPlurianual, executado, compromisso, aEmitir,
-      pctExecucao, pctComprometimento, desvioPlurianual,
-      nEstouro, nBaixoComprom, nBaixaExec, nOK, nSemDados,
-    };
-  }, [lista]);
+export function ExecutiveSummary({
+  lista,
+  periodo,
+  onSelect,
+}: {
+  lista: ProjetoMetricas[];
+  periodo: Periodo;
+  onSelect: (p: ProjetoMetricas) => void;
+}) {
+  const resumo = useMemo(() => generateExecutiveSummary(lista), [lista]);
+  const risco = useMemo(() => generateRiskSummary(lista), [lista]);
+  const ofensores = useMemo(() => generateTopOffenders(lista, 5), [lista]);
+  const insights = useMemo(() => generateInsights(lista), [lista]);
 
   const periodoLabel = { "2026": "2026", "2027": "2027", "Todos": "2026–2027" }[periodo];
-  const nRisco = s.nEstouro + s.nBaixoComprom + s.nBaixaExec;
-
-  const frase = useMemo(() => {
-    if (s.nEstouro > 0) {
-      return `A carteira ${periodoLabel} tem ${s.nEstouro} projeto(s) em estouro plurianual — prioridade máxima de revisão orçamentária.`;
-    }
-    if (s.pctExecucao !== null && s.pctExecucao < 0.4) {
-      return `Execução de apenas ${fmtPct(s.pctExecucao)} do orçamento ${periodoLabel} — risco relevante para o caixa do período.`;
-    }
-    if (nRisco > 0) {
-      return `${nRisco} projeto(s) exigem atenção na carteira ${periodoLabel}, concentrados em baixo comprometimento e baixa execução.`;
-    }
-    return `Carteira ${periodoLabel} sem riscos críticos identificados nos filtros atuais.`;
-  }, [s, nRisco, periodoLabel]);
 
   return (
-    <div className="mb-6">
-      <p className="text-sm font-semibold text-text mb-3 border-l-2 border-accent pl-3">{frase}</p>
+    <div className="mb-5">
+      <p className="text-base font-bold text-text mb-4">{resumo.headline}</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
-        <KpiCard label={`Orçamento ${periodoLabel}`} value={fmtBRL(s.orcamentoPeriodo)} sub={`${lista.length} projetos`} />
-        <KpiCard label="Orçamento Plurianual" value={fmtBRL(s.orcamentoPlurianual)} sub="2026 + 2027" tooltip="Orçamento total aprovado do projeto, somando 2026 e 2027." />
-        <KpiCard label="Executado" value={fmtBRL(s.executado)} sub={fmtPct(s.pctExecucao)} tooltip="Realizado + Em Pagamento do período selecionado." />
-        <KpiCard label="Compromisso" value={fmtBRL(s.compromisso)} sub={fmtPct(s.pctComprometimento)} tooltip="Valor total contratado/PO emitida — não fracionado por ano." />
-        <KpiCard label="A Emitir" value={fmtBRL(s.aEmitir)} sub="Orçamento do período − Compromisso" tooltip="Saldo do orçamento do período sem contrato firmado." />
-      </div>
-
+      {/* Financeiro — 4 KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <StatusCard status="Estouro" n={s.nEstouro} label="🔴 Estouro" sub="Executado+Compromisso > plurianual" />
-        <StatusCard status="Baixo comprometimento" n={s.nBaixoComprom} label="🟠 Baixo Comprometimento" sub="< 80% do orçamento comprometido" />
-        <StatusCard status="Baixa execução" n={s.nBaixaExec} label="🟡 Baixa Execução" sub="< 40% executado no período" />
-        <StatusCard status="OK" n={s.nOK} label="🟢 OK" sub="Sem risco identificado" />
+        <KpiCard label={`Orçamento ${periodoLabel}`} value={fmtBRL(resumo.orcamentoPeriodo)} />
+        <KpiCard label="Compromisso" value={fmtBRL(resumo.compromisso)} />
+        <KpiCard label="Realizado" value={fmtBRL(resumo.executado)} sub={resumo.pctExecucao !== null ? `${(resumo.pctExecucao * 100).toFixed(0)}% executado` : undefined} />
+        <KpiCard label="A Emitir" value={fmtBRL(resumo.aEmitir)} />
       </div>
 
-      {s.desvioPlurianual !== null && s.desvioPlurianual > 0 && (
-        <div className="text-xs text-red-300 bg-risk-critico/10 border border-risk-critico/40 rounded-md px-3 py-2">
-          Desvio plurianual agregado: <b>{fmtBRL(s.desvioPlurianual)}</b> acima do orçamento aprovado.
+      {/* Saúde da carteira — 4 chips */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className={`rounded-card p-3.5 shadow-card ${HEALTH_STYLES.estouro}`}>
+          <div className="text-2xl font-extrabold">{risco.estouro.n}</div>
+          <div className="text-[12px] font-bold">🔴 Estouro</div>
         </div>
-      )}
-      {s.nSemDados > 0 && (
-        <div className="text-xs text-text-muted mt-2">
-          ⚪ {s.nSemDados} projeto(s) com dados insuficientes para classificação neste período.
+        <div className={`rounded-card p-3.5 shadow-card ${HEALTH_STYLES.baixo}`}>
+          <div className="text-2xl font-extrabold">{risco.baixoComprometimento.n}</div>
+          <div className="text-[12px] font-bold">🟠 Baixo Comprometimento</div>
         </div>
-      )}
+        <div className={`rounded-card p-3.5 shadow-card ${HEALTH_STYLES.execucao}`}>
+          <div className="text-2xl font-extrabold">{risco.baixaExecucao.n}</div>
+          <div className="text-[12px] font-bold">🟡 Baixa Execução</div>
+        </div>
+        <div className={`rounded-card p-3.5 shadow-card ${HEALTH_STYLES.financeiro}`}>
+          <div className="text-xl font-extrabold">{fmtBRL(risco.riscoFinanceiroTotal, true)}</div>
+          <div className="text-[12px] font-bold">💰 Risco Financeiro</div>
+        </div>
+      </div>
+
+      {/* Destaques: Top 5 ofensores + Top 3 insights */}
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="rounded-card border border-border bg-card p-3.5">
+          <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-2">Top 5 Ofensores</p>
+          <div className="space-y-1">
+            {ofensores.length === 0 ? (
+              <p className="text-xs text-text-faint">Nenhum ofensor relevante nos filtros atuais.</p>
+            ) : (
+              ofensores.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => onSelect(p)}
+                  className="w-full flex items-center justify-between gap-2 text-left text-xs rounded px-1.5 py-1 hover:bg-card-alt transition-colors"
+                >
+                  <span className="text-text truncate">{i + 1}. {p.nome}</span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <span className="text-text-muted">{fmtBRL(p.faltaComprometer ?? p.desvioPlurianual ?? 0, true)}</span>
+                    <RiskBadge status={p.status} />
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-card border border-border bg-card p-3.5">
+          <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-2">Top 3 Insights</p>
+          <div className="space-y-1.5">
+            {insights.length === 0 ? (
+              <p className="text-xs text-text-faint">Sem insights relevantes nos filtros atuais.</p>
+            ) : (
+              insights.map((ins, i) => (
+                <p key={i} className="text-xs text-text leading-snug">{ins}</p>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
-
-function sum(lista: ProjetoMetricas[], fn: (p: ProjetoMetricas) => number | null): number {
-  return lista.reduce((a, p) => a + (fn(p) ?? 0), 0);
 }

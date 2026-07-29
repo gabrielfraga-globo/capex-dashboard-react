@@ -282,8 +282,7 @@ function buildProjetos(
 // Entrada pública
 // ----------------------------------------------------------------------------
 
-export async function parseExcelFile(file: File): Promise<RelatorioParsing> {
-  const buf = await file.arrayBuffer();
+export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string): Promise<RelatorioParsing> {
   const wb = XLSX.read(buf, { type: "array", cellDates: false });
 
   const ignoradas: LinhaIgnorada[] = [];
@@ -309,8 +308,13 @@ export async function parseExcelFile(file: File): Promise<RelatorioParsing> {
     projetosSoOrcamento: soOrcamento,
     projetosSoRealizado: soRealizado,
     dataBase: new Date().toLocaleDateString("pt-BR"),
-    nomeArquivo: file.name,
+    nomeArquivo,
     atualizadoEm: new Date().toLocaleString("pt-BR"),
     statusReportValores,
   };
+}
+
+export async function parseExcelFile(file: File): Promise<RelatorioParsing> {
+  const buf = await file.arrayBuffer();
+  return parseWorkbookBuffer(buf, file.name);
 }

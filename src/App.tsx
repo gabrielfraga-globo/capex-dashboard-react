@@ -1,24 +1,33 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ProjetoMetricas, RelatorioParsing } from "./types";
 import { useFilterStore } from "./store/filterStore";
 import { computeMetricas, withParticipacaoRisco } from "./lib/metrics";
-import { FileUpload } from "./components/FileUpload";
+import { loadPortfolioData } from "./lib/dataSource";
 import { FilterBar } from "./components/FilterBar";
 import { ContextBar } from "./components/ContextBar";
 import { ExecutiveSummary } from "./components/ExecutiveSummary";
-import { InsightsPanel } from "./components/InsightsPanel";
-import { Diagnostics } from "./components/Diagnostics";
+import { RiskMatrix } from "./components/RiskMatrix";
+import { PlataformasEmAtencao, StatusDistribution } from "./components/Diagnostics";
 import { Rankings } from "./components/Rankings";
 import { ActionPlan } from "./components/ActionPlan";
 import { ProjectsTable } from "./components/ProjectsTable";
 import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { ValidationPanel } from "./components/ValidationPanel";
-import { RotateCcw } from "lucide-react";
+import { BentoCard } from "./components/ui/bento";
+import { Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 
 export default function App() {
   const [parsed, setParsed] = useState<RelatorioParsing | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
+  const [modoAuditoria, setModoAuditoria] = useState(false);
   const filtros = useFilterStore();
+
+  useEffect(() => {
+    loadPortfolioData()
+      .then(setParsed)
+      .catch((e) => setLoadError(e instanceof Error ? e.message : "Falha ao carregar os dados da carteira."));
+  }, []);
 
   const todasMetricas = useMemo(() => {
     if (!parsed) return [];
@@ -30,7 +39,6 @@ export default function App() {
       if (filtros.plataforma && p.n4Curta !== filtros.plataforma) return false;
       if (filtros.gestor && p.gestor !== filtros.gestor) return false;
       if (filtros.aprovador && p.aprovador !== filtros.aprovador) return false;
-      if (filtros.projeto && p.nome !== filtros.projeto) return false;
       if (filtros.status && p.status !== filtros.status) return false;
       if (filtros.busca && !p.nome.toLowerCase().includes(filtros.busca.toLowerCase())) return false;
       if (p.pctExecucao !== null) {
@@ -55,43 +63,101 @@ export default function App() {
     return metricasFiltradas.filter((p) => p.n4Curta === selected.n4Curta && p.id !== selected.id);
   }, [selected, metricasFiltradas]);
 
+  const periodoLabel = { "2026": "Orçamento 2026", "2027": "Orçamento 2027", "Todos": "Consolidado 2026–2027" }[filtros.periodo];
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg px-4">
+        <div className="max-w-md text-center">
+          <AlertTriangle className="mx-auto text-risk-critico mb-3" size={32} />
+          <p className="text-text font-semibold mb-1">Não foi possível carregar a carteira</p>
+          <p className="text-text-muted text-sm">{loadError}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!parsed) {
-    return <FileUpload onLoaded={setParsed} />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="flex flex-col items-center gap-3 text-text-muted">
+          <Loader2 className="animate-spin text-accent" size={28} />
+          <span className="text-sm">Carregando carteira…</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text px-4 md:px-8 py-6 max-w-[1500px] mx-auto">
-      <header className="flex items-center justify-between mb-4">
+    <div className="min-h-screen bg-bg text-text px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
+      <header className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-xl font-bold">📊 Carteira CAPEX — Plataformas de Produção</h1>
-          <p className="text-xs text-text-muted">Dashboard executivo de fluxo de caixa</p>
+          <h1 className="text-lg font-bold">📊 Radar Executivo — Carteira CAPEX</h1>
+          <p className="text-[11px] text-text-muted">Plataformas de Produção</p>
         </div>
         <button
-          onClick={() => setParsed(null)}
-          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text rounded-md border border-border px-3 py-1.5"
+          onClick={() => setModoAuditoria((v) => !v)}
+          className={`flex items-center gap-1.5 text-xs rounded-md border px-3 py-1.5 transition-colors ${
+            modoAuditoria ? "border-accent text-accent bg-accent/10" : "border-border text-text-muted hover:text-text"
+          }`}
         >
-          <RotateCcw size={13} /> Carregar outro arquivo
+          <ShieldCheck size={13} /> Modo Auditoria
         </button>
       </header>
 
-      <ContextBar
-        parsed={parsed}
-        filtros={filtros}
-        totalFiltrado={metricasFiltradas.length}
-        totalGeral={todasMetricas.length}
-      />
+      <ContextBar parsed={parsed} totalFiltrado={metricasFiltradas.length} totalGeral={todasMetricas.length} periodoLabel={periodoLabel} />
+
+      <div className="flex gap-2 mb-4">
+        {(["2026", "2027", "Todos"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => filtros.setPeriodo(p)}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+              filtros.periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+            }`}
+          >
+            {p === "Todos" ? "🗂️ Todos os anos" : `📅 ${p}`}
+          </button>
+        ))}
+      </div>
+
       <FilterBar projetos={parsed.projetos} />
 
-      <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} />
-      <InsightsPanel lista={metricasFiltradas} />
-      <Diagnostics lista={metricasFiltradas} periodo={filtros.periodo} />
-      <Rankings lista={metricasFiltradas} onSelect={setSelected} />
-      <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
-      <ProjectsTable lista={metricasFiltradas} onSelect={setSelected} />
-      <ValidationPanel metricas2026={metricas2026} parsed={parsed} totalGeralProjetos={parsed.projetos.length} />
+      {/* Camada 1 — Resumo Executivo */}
+      <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} onSelect={setSelected} />
+
+      {/* Camada 2 — Matriz de risco (protagonista, sempre visível) + Bento Grid recolhível */}
+      <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
+
+      <div className="space-y-3 mb-6">
+        <BentoCard title="Plataformas em Atenção" icon="🏗️">
+          <PlataformasEmAtencao lista={metricasFiltradas} />
+        </BentoCard>
+
+        <BentoCard title="Distribuição de Status" icon="🩺">
+          <StatusDistribution lista={metricasFiltradas} />
+        </BentoCard>
+
+        <BentoCard title="Projetos Prioritários" icon="🎯">
+          <Rankings lista={metricasFiltradas} onSelect={setSelected} />
+        </BentoCard>
+
+        <BentoCard title="Plano de Ação" icon="✅">
+          <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
+        </BentoCard>
+
+        <BentoCard title="Detalhamento Completo" icon="📋" tooltip="Tabela completa, ordenável e exportável — para o time de Performance.">
+          <ProjectsTable lista={metricasFiltradas} onSelect={setSelected} />
+        </BentoCard>
+      </div>
+
+      {/* Modo Auditoria — dados de qualidade, só quando explicitamente solicitado */}
+      {modoAuditoria && (
+        <ValidationPanel metricas2026={metricas2026} parsed={parsed} totalGeralProjetos={parsed.projetos.length} />
+      )}
 
       <footer className="text-center text-[11px] text-text-faint py-4">
-        Processamento 100% local no navegador — nenhum dado enviado a servidores externos · Dashboard executivo · Uso interno
+        Processamento local · Dashboard executivo · Uso interno
       </footer>
 
       <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={() => setSelected(null)} />
