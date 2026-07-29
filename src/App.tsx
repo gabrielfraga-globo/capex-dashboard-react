@@ -123,19 +123,17 @@ export default function App() {
 
       <FilterBar projetos={parsed.projetos} />
 
-      {/* Camada 1 — Resumo Executivo */}
+      {/* Camada 1 — Resumo Executivo (sempre visível) */}
       <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} onSelect={setSelected} />
 
-      {/* Camada 2 — Matriz de risco (protagonista, sempre visível) + Bento Grid recolhível */}
-      <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
-
+      {/* Camada 2 — Bento Grid recolhível */}
       <div className="space-y-3 mb-6">
         <BentoCard title="Plataformas em Atenção" icon="🏗️">
           <PlataformasEmAtencao lista={metricasFiltradas} />
         </BentoCard>
 
-        <BentoCard title="Distribuição de Status" icon="🩺">
-          <StatusDistribution lista={metricasFiltradas} />
+        <BentoCard title="Matriz de Risco" icon="🧭" defaultOpen>
+          <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
         </BentoCard>
 
         <BentoCard title="Projetos Prioritários" icon="🎯">
@@ -144,6 +142,10 @@ export default function App() {
 
         <BentoCard title="Plano de Ação" icon="✅">
           <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
+        </BentoCard>
+
+        <BentoCard title="Distribuição de Status" icon="🩺">
+          <StatusDistribution lista={metricasFiltradas} />
         </BentoCard>
 
         <BentoCard title="Detalhamento Completo" icon="📋" tooltip="Tabela completa, ordenável e exportável — para o time de Performance.">

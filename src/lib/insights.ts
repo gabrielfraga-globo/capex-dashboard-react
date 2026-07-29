@@ -3,14 +3,16 @@ import { fmtBRL } from "./format";
 
 // ============================================================================
 // Funções puras e reaproveitáveis: alimentam o dashboard hoje e, no futuro,
-// o e-mail executivo mensal e o agente Copilot — sem duplicar lógica.
+// o e-mail executivo mensal e o agente Copilot — mesma lógica, mesmos números,
+// em todos os consumidores.
 // ============================================================================
 
 export interface RiskSummary {
   estouro: { n: number; valor: number };
   baixoComprometimento: { n: number; valor: number };
   baixaExecucao: { n: number; valor: number };
-  riscoFinanceiroTotal: number; // desvio plurianual + falta comprometer, somados
+  riscoFinanceiroTotal: number; // desvio plurianual + falta comprometer, somados (R$)
+  totalAEmitir: number;
 }
 
 export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
@@ -22,12 +24,14 @@ export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
     (acc, p) => acc + Math.max(p.desvioPlurianual ?? 0, 0) + Math.max(p.faltaComprometer ?? 0, 0),
     0
   );
+  const totalAEmitir = lista.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
 
   return {
     estouro: { n: estourados.length, valor: estourados.reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0) },
     baixoComprometimento: { n: baixoComprom.length, valor: baixoComprom.reduce((a, p) => a + (p.faltaComprometer ?? 0), 0) },
     baixaExecucao: { n: baixaExec.length, valor: baixaExec.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0) },
     riscoFinanceiroTotal,
+    totalAEmitir,
   };
 }
 
@@ -65,13 +69,12 @@ export function generateExecutiveSummary(lista: ProjetoMetricas[]): ExecutiveSum
   return { headline, orcamentoPeriodo, orcamentoPlurianual, executado, compromisso, aEmitir, pctExecucao };
 }
 
+/** Ranking de ofensores por SCORE PROPORCIONAL (não valor absoluto) — ver metrics.ts::calculateRiskScore. */
 export function generateTopOffenders(lista: ProjetoMetricas[], n = 5): ProjetoMetricas[] {
   return [...lista]
-    .map((p) => ({ p, score: Math.max(p.desvioPlurianual ?? 0, 0) * 2 + Math.max(p.faltaComprometer ?? 0, 0) }))
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, n)
-    .map((x) => x.p);
+    .filter((p) => p.riscoScore > 0)
+    .sort((a, b) => b.riscoScore - a.riscoScore)
+    .slice(0, n);
 }
 
 export interface AcaoAgrupada {
@@ -91,43 +94,83 @@ export function generateActionPlan(lista: ProjetoMetricas[]): AcaoAgrupada[] {
   return Array.from(map.entries())
     .map(([acao, projetos]) => ({
       acao,
-      projetos: projetos.sort((a, b) => (b.faltaComprometer ?? b.desvioPlurianual ?? 0) - (a.faltaComprometer ?? a.desvioPlurianual ?? 0)),
+      projetos: projetos.sort((a, b) => b.riscoScore - a.riscoScore),
       total: projetos.length,
     }))
     .sort((a, b) => b.total - a.total);
 }
 
-/** Insights executivos — no máximo 1 frase cada, sempre com número + impacto direto. */
-export function generateInsights(lista: ProjetoMetricas[]): string[] {
+export interface PlatformHighlight {
+  plataforma: string;
+  orcamento: number;
+  executado: number;
+  compromisso: number;
+  aEmitir: number;
+  pctExecucao: number | null;
+  pctComprometimento: number | null;
+  nRisco: number; // nº de projetos em risco (qualquer status ≠ OK/Dados insuficientes)
+  riscoScoreMedio: number;
+}
+
+/** Destaques por plataforma — base tanto do cartão "Plataformas em Atenção" quanto de insights. */
+export function generatePlatformHighlights(lista: ProjetoMetricas[]): PlatformHighlight[] {
+  const map = new Map<string, ProjetoMetricas[]>();
+  for (const p of lista) {
+    const arr = map.get(p.n4Curta) ?? [];
+    arr.push(p);
+    map.set(p.n4Curta, arr);
+  }
+  return Array.from(map.entries())
+    .map(([plataforma, projetos]) => {
+      const orcamento = projetos.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
+      const executado = projetos.reduce((a, p) => a + (p.executado ?? 0), 0);
+      const compromisso = projetos.reduce((a, p) => a + (p.compromisso ?? 0), 0);
+      const aEmitir = projetos.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
+      const nRisco = projetos.filter((p) => p.status !== "OK" && p.status !== "Dados insuficientes").length;
+      const riscoScoreMedio = projetos.length > 0 ? projetos.reduce((a, p) => a + p.riscoScore, 0) / projetos.length : 0;
+      return {
+        plataforma, orcamento, executado, compromisso, aEmitir,
+        pctExecucao: orcamento > 0 ? executado / orcamento : null,
+        pctComprometimento: orcamento > 0 ? compromisso / orcamento : null,
+        nRisco, riscoScoreMedio,
+      };
+    })
+    .sort((a, b) => b.orcamento - a.orcamento);
+}
+
+/** Insights executivos — no máximo 1 frase cada, 3 a 5 no total, com número + impacto direto. */
+export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
   const out: string[] = [];
   const risco = generateRiskSummary(lista);
-  const totalAEmitir = lista.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
+  const plataformas = generatePlatformHighlights(lista);
 
+  if (risco.totalAEmitir > 0) {
+    out.push(`💰 ${fmtBRL(risco.totalAEmitir, true)} aguardam contratação.`);
+  }
   if (risco.estouro.n > 0) {
-    out.push(`🔴 ${fmtBRL(risco.estouro.valor, true)} em risco de estouro (${risco.estouro.n} projetos).`);
-  }
-  if (risco.baixoComprometimento.n > 0) {
-    out.push(`🟠 ${risco.baixoComprometimento.n} projetos possuem baixo comprometimento (${fmtBRL(risco.baixoComprometimento.valor, true)}).`);
+    out.push(`🔴 ${risco.estouro.n} projetos apresentam risco de estouro.`);
   }
 
-  const porPlataforma = new Map<string, number>();
-  for (const p of lista) porPlataforma.set(p.n4Curta, (porPlataforma.get(p.n4Curta) ?? 0) + Math.max(p.aEmitir ?? 0, 0));
-  const top = [...porPlataforma.entries()].sort((a, b) => b[1] - a[1])[0];
-  if (top && totalAEmitir > 0) {
-    const pct = ((top[1] / totalAEmitir) * 100).toFixed(0);
-    out.push(`📊 ${top[0]} concentra ${pct}% do saldo a emitir da carteira.`);
+  const topPlat = plataformas[0];
+  const totalAEmitirPlats = plataformas.reduce((a, p) => a + p.aEmitir, 0);
+  if (topPlat && totalAEmitirPlats > 0 && topPlat.aEmitir > 0) {
+    const pct = ((topPlat.aEmitir / totalAEmitirPlats) * 100).toFixed(0);
+    out.push(`📊 ${topPlat.plataforma} concentra ${pct}% do saldo a emitir.`);
   }
 
   const ofensores = generateTopOffenders(lista, 5);
-  if (ofensores.length >= 5) {
+  if (ofensores.length >= 5 && risco.riscoFinanceiroTotal > 0) {
     const top5Risco = ofensores.reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0) + Math.max(p.faltaComprometer ?? 0, 0), 0);
-    const pct = risco.riscoFinanceiroTotal > 0 ? ((top5Risco / risco.riscoFinanceiroTotal) * 100).toFixed(0) : "0";
-    out.push(`🎯 Os 5 maiores ofensores concentram ${pct}% da exposição financeira.`);
+    const pct = ((top5Risco / risco.riscoFinanceiroTotal) * 100).toFixed(0);
+    out.push(`🎯 Os cinco maiores ofensores representam ${pct}% da exposição financeira.`);
   }
 
+  if (risco.baixoComprometimento.n > 0) {
+    out.push(`🟠 ${risco.baixoComprometimento.n} projetos possuem baixo comprometimento (${fmtBRL(risco.baixoComprometimento.valor, true)}).`);
+  }
   if (risco.baixaExecucao.n > 0) {
-    out.push(`🟡 ${risco.baixaExecucao.n} projetos com execução abaixo de 40% — risco para o caixa corrente.`);
+    out.push(`🟡 ${risco.baixaExecucao.n} projetos com execução abaixo de 40%.`);
   }
 
-  return out.slice(0, 3);
+  return out.slice(0, 5);
 }

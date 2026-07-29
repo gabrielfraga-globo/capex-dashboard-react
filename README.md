@@ -109,3 +109,72 @@ O que mudou foi **onde e como isso aparece**, não o cálculo em si.
 - [x] `npm run preview` servindo `index.html` (200) e `data/carteira.xlsx` (200)
 - [x] Checksum do arquivo bundled idêntico ao arquivo de origem
 - [ ] Teste manual em navegador real (recomenda-se antes da reunião com a diretoria)
+
+## Correções de regra de negócio (revisão da área de Performance)
+
+### 1. "A Emitir" corrigido
+Fórmula anterior (incorreta): `Orçamento − Compromisso`.
+**Fórmula correta, agora implementada em `metrics.ts`**: `Orçamento − Compromisso − Realizado`.
+Validado: `Realizado + Compromisso + A Emitir = Orçamento` exatamente, para 100% dos
+projetos (script `scripts/validate-business-rules.mjs`). Todas as funções que usavam
+o saldo a emitir (ofensores, risco financeiro, exposição, plano de ação) foram
+atualizadas para a mesma definição.
+
+> Nota de transparência: a fórmula não subtrai "Em Pagamento" — seguindo literalmente
+> a regra informada. Se "Em Pagamento" também devesse reduzir o saldo a emitir, é um
+> ajuste de uma linha em `metrics.ts`.
+
+### 2. Score de risco proporcional
+Antes, o ranking de "ofensores" usava valor absoluto (R$), o que fazia um projeto de
+R$10M com R$8M a emitir parecer igual a um de R$100M com R$8M a emitir — mesmo o
+primeiro sendo claramente mais arriscado proporcionalmente.
+
+Novo `calculateRiskScore()` em `metrics.ts` (0 a 1, Estouro sempre = 1):
+```
+score = (0.30·(1−%Comprometido) + 0.25·(1−%Executado) + 0.25·(%AEmitir) + 0.20·porte)
+        × fatorUrgência(meses restantes do período)
+```
+`porte` usa escala logarítmica (não deixa 1 projeto gigante dominar o ranking, mas
+ainda conta). `fatorUrgência` aumenta conforme o período se aproxima do fim (o mesmo
+% de risco em novembro é mais grave que em fevereiro).
+
+### 3. Insights — 3 a 5 por padrão
+`generateExecutiveInsights()` volta a gerar de 3 a 5 frases (era só 3), mantendo o
+limite de 1 linha cada.
+
+### 4. Matriz de Risco corrigida
+- Eixos trocados: **X = % Comprometimento, Y = % Execução** (estava invertido).
+- Domínio fixo 0–100%, com piso de materialidade de R$ 50 mil — projetos com
+  orçamento menor que isso geravam percentuais de milhares de % (denominador
+  minúsculo) e distorciam a escala inteira. Esses projetos continuam contando
+  normalmente em todos os KPIs e na tabela; só não entram nesse gráfico específico.
+- Para os poucos casos legítimos acima de 100% (ex.: compromisso multi-ano
+  comparado a um único período), o ponto é fixado visualmente em 100% mas o
+  tooltip mostra o valor real, sem esconder a informação.
+- Quadrantes com rótulo (🟢 OK / 🟡 Executado sem compromisso / 🟡 Comprometido mas
+  pouco executado / 🔴 Baixa execução e comprometimento), usando os mesmos limiares
+  já usados nas regras de risco (80% comprometimento, 40% execução).
+- Projetos em Estouro recebem contorno branco para destaque visual específico.
+
+### 5. "Progresso por Plataforma" → composição 100% empilhada
+Substituído o gráfico de barras agrupadas (difícil de ler) por uma barra 100%
+empilhada por plataforma: Executado + Comprometido + A Emitir, cada uma como fatia
+do orçamento — o diretor vê de imediato quem já gastou, quem já contratou e quem
+ainda depende de contratação, sem interpretar percentuais isolados.
+
+### 6. Bento Grid — Matriz de Risco volta a ser um cartão
+A Matriz de Risco deixou de ser um componente "hero" fixo e voltou a ser um cartão
+da Camada 2 — mas **expandido por padrão** (`defaultOpen`), enquanto os demais
+(Plataformas em Atenção, Projetos Prioritários, Plano de Ação, Distribuição de
+Status, Detalhamento Completo) continuam fechados por padrão.
+
+### 7. Funções reutilizáveis (nomes exatos para o futuro Copilot)
+`lib/insights.ts` agora exporta exatamente:
+```ts
+generateExecutiveInsights(lista) → string[]           // 3-5 frases, 1 linha cada
+generateTopOffenders(lista, n)   → ProjetoMetricas[]   // ranqueado por riscoScore
+generateRiskSummary(lista)       → RiskSummary
+generatePlatformHighlights(lista)→ PlatformHighlight[] // novo — base do cartão de plataformas
+```
+Um script de e-mail mensal ou o agente Copilot pode importar essas mesmas funções e
+consumir exatamente os mesmos números que aparecem no dashboard.

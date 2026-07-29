@@ -70,6 +70,7 @@ export interface ProjetoBase {
 export interface ProjetoMetricas extends ProjetoBase {
   periodo: Periodo;
   orcamentoPeriodo: number | null;
+  realizadoPeriodo: number | null; // Realizado (sozinho, sem Em Pagamento) já resolvido para o período selecionado
   executado: number | null; // realizado + em pagamento (do período)
   pctExecucao: number | null;
   pctComprometimento: number | null;
@@ -79,6 +80,7 @@ export interface ProjetoMetricas extends ProjetoBase {
   pctOrcamentoPlurianual: number | null;
   desvioPlurianual: number | null;
   participacaoRisco: number | null; // preenchido depois, no nível da carteira
+  riscoScore: number; // score proporcional 0-1 (ver metrics.ts::calculateRiskScore) — usado para ranquear ofensores
   status: StatusRisco;
   acaoRecomendada: string;
   ritmoNecessario: number | null; // valor restante / meses restantes do período

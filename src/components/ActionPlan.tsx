@@ -25,7 +25,7 @@ export function ActionPlan({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
               >
                 <span className="text-text truncate">{p.nome}</span>
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-text-muted">{fmtBRL(p.faltaComprometer ?? p.desvioPlurianual ?? 0, true)}</span>
+                  <span className="text-text-muted">{fmtBRL(p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0), true)}</span>
                   <RiskBadge status={p.status} />
                 </span>
               </button>

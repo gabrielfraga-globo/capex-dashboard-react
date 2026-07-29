@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { Periodo, ProjetoMetricas } from "../types";
 import { KpiCard } from "./ui/primitives";
 import { fmtBRL } from "../lib/format";
-import { generateExecutiveSummary, generateRiskSummary, generateTopOffenders, generateInsights } from "../lib/insights";
+import { generateExecutiveSummary, generateRiskSummary, generateTopOffenders, generateExecutiveInsights } from "../lib/insights";
 import { RiskBadge } from "./ui/primitives";
 
 const HEALTH_STYLES: Record<string, string> = {
@@ -24,7 +24,7 @@ export function ExecutiveSummary({
   const resumo = useMemo(() => generateExecutiveSummary(lista), [lista]);
   const risco = useMemo(() => generateRiskSummary(lista), [lista]);
   const ofensores = useMemo(() => generateTopOffenders(lista, 5), [lista]);
-  const insights = useMemo(() => generateInsights(lista), [lista]);
+  const insights = useMemo(() => generateExecutiveInsights(lista), [lista]);
 
   const periodoLabel = { "2026": "2026", "2027": "2027", "Todos": "2026–2027" }[periodo];
 
@@ -76,7 +76,7 @@ export function ExecutiveSummary({
                 >
                   <span className="text-text truncate">{i + 1}. {p.nome}</span>
                   <span className="flex items-center gap-2 shrink-0">
-                    <span className="text-text-muted">{fmtBRL(p.faltaComprometer ?? p.desvioPlurianual ?? 0, true)}</span>
+                    <span className="text-text-muted">{fmtBRL(p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0), true)}</span>
                     <RiskBadge status={p.status} />
                   </span>
                 </button>
@@ -86,7 +86,7 @@ export function ExecutiveSummary({
         </div>
 
         <div className="rounded-card border border-border bg-card p-3.5">
-          <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-2">Top 3 Insights</p>
+          <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-2">Insights Executivos</p>
           <div className="space-y-1.5">
             {insights.length === 0 ? (
               <p className="text-xs text-text-faint">Sem insights relevantes nos filtros atuais.</p>

@@ -26,26 +26,33 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
       cur.orcamento += p.orcamentoPeriodo ?? 0;
       cur.executado += p.executado ?? 0;
       cur.compromisso += p.compromisso ?? 0;
-      cur.aEmitir += p.aEmitir ?? 0;
+      cur.aEmitir += Math.max(p.aEmitir ?? 0, 0);
       map.set(p.n4Curta, cur);
     }
     return Array.from(map.values()).sort((a, b) => b.orcamento - a.orcamento);
   }, [lista]);
 
-  const progressoPlataforma = useMemo(
+  // Barra 100% empilhada: Realizado + Comprometido + A Emitir = Orçamento (por construção da fórmula).
+  const composicao = useMemo(
     () =>
-      porPlataforma.map((p) => ({
-        plataforma: p.plataforma,
-        pctExecucao: p.orcamento > 0 ? (p.executado / p.orcamento) * 100 : 0,
-        pctComprometimento: p.orcamento > 0 ? (p.compromisso / p.orcamento) * 100 : 0,
-      })),
-    [porPlataforma]
+      porPlataforma.map((p) => {
+        const realizadoLista = lista.filter((x) => x.n4Curta === p.plataforma);
+        const realizado = realizadoLista.reduce((a, x) => a + (x.realizadoPeriodo ?? 0), 0);
+        return {
+          plataforma: p.plataforma,
+          orcamento: p.orcamento,
+          pctRealizado: p.orcamento > 0 ? (realizado / p.orcamento) * 100 : 0,
+          pctComprometido: p.orcamento > 0 ? (p.compromisso / p.orcamento) * 100 : 0,
+          pctAEmitir: p.orcamento > 0 ? (p.aEmitir / p.orcamento) * 100 : 0,
+        };
+      }),
+    [porPlataforma, lista]
   );
 
   return (
     <div className="grid lg:grid-cols-2 gap-4">
       <div>
-        <p className="text-xs font-semibold text-text-muted mb-2">Orçamento × Executado × Compromisso × A Emitir</p>
+        <p className="text-xs font-semibold text-text-muted mb-2">Orçamento × Executado × Compromisso × A Emitir (R$)</p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={porPlataforma} layout="vertical" margin={{ left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#22304A" horizontal={false} />
@@ -62,18 +69,20 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold text-text-muted mb-2">Progresso por Plataforma (%)</p>
+        <p className="text-xs font-semibold text-text-muted mb-2">Composição do Orçamento por Plataforma (%)</p>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={progressoPlataforma}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#22304A" />
-            <XAxis dataKey="plataforma" stroke="#8CA0BF" fontSize={10} interval={0} angle={-15} textAnchor="end" height={55} />
-            <YAxis tickFormatter={(v) => `${v}%`} stroke="#8CA0BF" fontSize={11} />
-            <Tooltip formatter={(v: any) => `${Number(v).toFixed(1)}%`} {...chartTooltipStyle} />
+          <BarChart data={composicao} layout="vertical" margin={{ left: 20 }} stackOffset="expand">
+            <CartesianGrid strokeDasharray="3 3" stroke="#22304A" horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#8CA0BF" fontSize={11} />
+            <YAxis type="category" dataKey="plataforma" stroke="#8CA0BF" fontSize={11} width={130} />
+            <Tooltip formatter={(v: any) => `${Number(v).toFixed(0)}%`} {...chartTooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="pctExecucao" name="% Execução" fill="#7FD1B9" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="pctComprometimento" name="% Comprometimento" fill="#E0B429" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9" />
+            <Bar dataKey="pctComprometido" name="Comprometido" stackId="a" fill="#E0B429" />
+            <Bar dataKey="pctAEmitir" name="A Emitir" stackId="a" fill="#E0672E" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
+        <p className="text-[11px] text-text-faint mt-1">Cada barra soma 100% do orçamento do período da plataforma.</p>
       </div>
     </div>
   );
