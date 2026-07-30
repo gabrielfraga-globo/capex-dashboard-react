@@ -6,8 +6,9 @@ import { loadPortfolioData } from "./lib/dataSource";
 import { FilterBar } from "./components/FilterBar";
 import { ContextBar } from "./components/ContextBar";
 import { ExecutiveSummary } from "./components/ExecutiveSummary";
+import { Destaques } from "./components/Destaques";
 import { RiskMatrix } from "./components/RiskMatrix";
-import { PlataformasEmAtencao, StatusDistribution } from "./components/Diagnostics";
+import { DistribuicaoFinanceiraPlataforma } from "./components/Diagnostics";
 import { Rankings } from "./components/Rankings";
 import { ActionPlan } from "./components/ActionPlan";
 import { ProjectsTable } from "./components/ProjectsTable";
@@ -123,20 +124,24 @@ export default function App() {
 
       <FilterBar projetos={parsed.projetos} />
 
-      {/* Camada 1 — Resumo Executivo (sempre visível) */}
-      <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} onSelect={setSelected} />
+      {/* Primeira dobra — só 5 respostas: orçamento, executado, emitido, a emitir, saúde geral */}
+      <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} />
 
-      {/* Camada 2 — Bento Grid recolhível */}
+      {/* Tudo mais: recolhido por padrão, explicado só sob demanda */}
       <div className="space-y-3 mb-6">
-        <BentoCard title="Plataformas em Atenção" icon="🏗️">
-          <PlataformasEmAtencao lista={metricasFiltradas} />
+        <BentoCard title="Destaques" icon="🎯">
+          <Destaques lista={metricasFiltradas} onSelect={setSelected} />
         </BentoCard>
 
-        <BentoCard title="Matriz de Risco" icon="🧭" defaultOpen>
+        <BentoCard title="Matriz de Risco" icon="🧭">
           <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
         </BentoCard>
 
-        <BentoCard title="Projetos Prioritários" icon="🎯">
+        <BentoCard title="Distribuição Financeira por Plataforma" icon="🏗️">
+          <DistribuicaoFinanceiraPlataforma lista={metricasFiltradas} />
+        </BentoCard>
+
+        <BentoCard title="Projetos Prioritários" icon="📋">
           <Rankings lista={metricasFiltradas} onSelect={setSelected} />
         </BentoCard>
 
@@ -144,16 +149,11 @@ export default function App() {
           <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
         </BentoCard>
 
-        <BentoCard title="Distribuição de Status" icon="🩺">
-          <StatusDistribution lista={metricasFiltradas} />
-        </BentoCard>
-
-        <BentoCard title="Detalhamento Completo" icon="📋" tooltip="Tabela completa, ordenável e exportável — para o time de Performance.">
+        <BentoCard title="Detalhamento Completo" icon="🗂️" tooltip="Tabela completa, ordenável e exportável.">
           <ProjectsTable lista={metricasFiltradas} onSelect={setSelected} />
         </BentoCard>
       </div>
 
-      {/* Modo Auditoria — dados de qualidade, só quando explicitamente solicitado */}
       {modoAuditoria && (
         <ValidationPanel metricas2026={metricas2026} parsed={parsed} totalGeralProjetos={parsed.projetos.length} />
       )}

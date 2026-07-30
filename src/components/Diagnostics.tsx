@@ -8,9 +8,7 @@ import { fmtBRL } from "../lib/format";
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
   "Risco de Não Realização": "#E0672E",
-  "Atenção": "#E0B429",
-  "Coberto": "#2A9D6F",
-  "Revisão Financeira": "#5B7FDE",
+  "Normal": "#2A9D6F",
   "Dados insuficientes": "#475569",
 };
 
@@ -19,7 +17,7 @@ const chartTooltipStyle = {
   labelStyle: { color: "#8CA0BF" },
 };
 
-export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
+export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetricas[] }) {
   const porPlataforma = useMemo(() => {
     const map = new Map<string, { plataforma: string; orcamento: number; executado: number; compromisso: number; aEmitir: number }>();
     for (const p of lista) {
@@ -91,7 +89,7 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
 
 export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
   const distribuicaoStatus = useMemo(() => {
-    const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Atenção", "Revisão Financeira", "Coberto"];
+    const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Normal"];
     return statuses
       .map((s) => ({ status: s, qtd: lista.filter((p) => p.status === s).length, valor: lista.filter((p) => p.status === s).reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0) }))
       .filter((s) => s.qtd > 0);

@@ -9,8 +9,6 @@ const STATUS_QUICK: { value: StatusRisco | null; label: string }[] = [
   { value: null, label: "Todos" },
   { value: "Estouro", label: "🔴 Estouro" },
   { value: "Risco de Não Realização", label: "🟠 Risco de Não Realização" },
-  { value: "Atenção", label: "🟡 Atenção" },
-  { value: "Revisão Financeira", label: "🔵 Revisão Financeira" },
 ];
 
 export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {

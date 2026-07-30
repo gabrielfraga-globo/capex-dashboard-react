@@ -5,7 +5,7 @@
 export type Ano = "2026" | "2027";
 export type Periodo = "2026" | "2027" | "Todos";
 
-export type StatusRisco = "Estouro" | "Risco de Não Realização" | "Atenção" | "Coberto" | "Revisão Financeira" | "Dados insuficientes";
+export type StatusRisco = "Estouro" | "Risco de Não Realização" | "Normal" | "Dados insuficientes";
 
 export interface Gestor {
   n3: string;

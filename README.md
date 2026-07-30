@@ -269,3 +269,41 @@ A antiga regra de exceção para a Plataforma De Pré-Produção (excluída apen
 "baixo comprometimento") não tem mais equivalente direto no novo modelo proporcional — foi
 removida por ora. Se necessário, dá para reintroduzir uma regra de materialidade específica
 para essa plataforma.
+
+## Quarta rodada — Radar Executivo (menos métricas, mais decisão)
+
+Princípio aplicado: **mostrar apenas o necessário, explicar apenas sob demanda.**
+
+### Primeira dobra reduzida
+A tela inicial agora responde só 5 perguntas: Orçamento, Executado, Emitido, A Emitir, e
+Saúde Geral (1 frase, ex.: "🟢 Carteira saudável."). Tudo mais — Cobertura Financeira,
+Exposição Financeira, Projetos Críticos, Top Ofensores, Insights, Matriz de Risco,
+Distribuição por Plataforma, Rankings, Plano de Ação, Tabela — está em cartões
+recolhíveis, **todos fechados por padrão** (inclusive a Matriz de Risco, que antes ficava
+sempre expandida).
+
+### Textos com no máximo 8 palavras
+Frase de saúde geral e todos os insights foram reescritos para caber nesse limite —
+ex.: "💰 R$88M fora do fluxo financeiro." em vez do parágrafo anterior.
+
+### Nomenclatura neutra
+"Plataformas em Atenção" → **"Distribuição Financeira por Plataforma"** — o cartão
+apresenta a composição do orçamento por plataforma, não pressupõe problema.
+
+### Novo modelo de risco: cobertura + tempo (não mais % isolado)
+Simplificado de 6 estados para 4: **Estouro**, **Risco de Não Realização**, **Normal**,
+**Dados insuficientes**.
+
+**Risco de Não Realização agora exige as duas condições ao mesmo tempo**:
+- Cobertura Financeira < 95%, **e**
+- Menos de 6 meses para o fim do exercício selecionado.
+
+Fora dessa janela de tempo, mesmo uma cobertura baixa é considerada **Normal** — há tempo
+hábil para resolver, não é risco ainda. Isso elimina o falso alarme de sinalizar um
+projeto como "em risco" logo no início do ano, quando ele ainda tem o ano inteiro pela
+frente para emitir/executar.
+
+Validado contra os 209 projetos reais de 2026 (`scripts/validate-time-gated-risk.mjs`,
+considerando a data-base de julho/2026, portanto já dentro da janela de 6 meses): 59
+Estouro, 86 Risco de Não Realização, 39 Normal, 25 Dados insuficientes — soma exatamente
+209.

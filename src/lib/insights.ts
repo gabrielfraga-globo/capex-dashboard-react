@@ -3,39 +3,36 @@ import { fmtBRL, fmtPct } from "./format";
 
 // ============================================================================
 // Funções puras e reaproveitáveis (dashboard hoje, e-mail/Copilot amanhã).
-// Ótica: Cobertura Financeira e Risco de Não Realização — não apenas Estouro.
+// Textos limitados a frases objetivas — sem parágrafos, sem justificativas.
 // ============================================================================
 
 export interface RiskSummary {
   estouro: { n: number; valor: number };
   riscoNaoRealizacao: { n: number; valor: number };
-  atencao: { n: number; valor: number };
-  revisaoFinanceira: { n: number; valor: number };
-  coberturaFinanceira: number | null; // % agregado da carteira filtrada
-  exposicaoFinanceira: number; // R$ — estouro (excedente) + saldo ainda sem cobertura
+  normal: { n: number };
+  coberturaFinanceira: number | null;
+  exposicaoFinanceira: number;
   nCriticos: number; // Estouro + Risco de Não Realização
 }
 
 export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
   const estourados = lista.filter((p) => p.status === "Estouro");
   const riscoNaoReal = lista.filter((p) => p.status === "Risco de Não Realização");
-  const atencao = lista.filter((p) => p.status === "Atenção");
-  const revisao = lista.filter((p) => p.status === "Revisão Financeira");
+  const normal = lista.filter((p) => p.status === "Normal");
 
   const somaOrcamento = lista.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
   const somaCoberto = lista.reduce((a, p) => a + (p.executado ?? 0) + (p.compromisso ?? 0), 0);
   const coberturaFinanceira = somaOrcamento > 0 ? somaCoberto / somaOrcamento : null;
 
   const exposicaoFinanceira = lista.reduce(
-    (acc, p) => acc + (p.status === "Estouro" ? Math.max(p.desvioPlurianual ?? 0, 0) : Math.max(p.aEmitir ?? 0, 0)),
+    (acc, p) => acc + (p.status === "Estouro" ? Math.max(p.desvioPlurianual ?? 0, 0) : p.status === "Risco de Não Realização" ? Math.max(p.aEmitir ?? 0, 0) : 0),
     0
   );
 
   return {
     estouro: { n: estourados.length, valor: estourados.reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0) },
     riscoNaoRealizacao: { n: riscoNaoReal.length, valor: riscoNaoReal.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0) },
-    atencao: { n: atencao.length, valor: atencao.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0) },
-    revisaoFinanceira: { n: revisao.length, valor: revisao.reduce((a, p) => a + (p.aEmitir ?? 0), 0) },
+    normal: { n: normal.length },
     coberturaFinanceira,
     exposicaoFinanceira,
     nCriticos: estourados.length + riscoNaoReal.length,
@@ -51,6 +48,7 @@ export interface ExecutiveSummaryData {
   coberturaFinanceira: number | null;
 }
 
+/** Frase de saúde geral — no máximo 8 palavras, é o único sinal de risco na primeira tela. */
 export function generateExecutiveSummary(lista: ProjetoMetricas[]): ExecutiveSummaryData {
   const sum = (fn: (p: ProjetoMetricas) => number | null) => lista.reduce((a, p) => a + (fn(p) ?? 0), 0);
   const orcamentoPeriodo = sum((p) => p.orcamentoPeriodo);
@@ -61,19 +59,17 @@ export function generateExecutiveSummary(lista: ProjetoMetricas[]): ExecutiveSum
   const risco = generateRiskSummary(lista);
   let headline: string;
   if (risco.estouro.n > 0) {
-    headline = `🔴 ${risco.estouro.n} projeto(s) em estouro plurianual — prioridade máxima.`;
-  } else if (risco.coberturaFinanceira !== null && risco.coberturaFinanceira < 0.7) {
-    headline = `🟠 Cobertura financeira em ${(risco.coberturaFinanceira * 100).toFixed(0)}% — risco de não realização do orçamento.`;
+    headline = `🔴 ${risco.estouro.n} projetos em estouro.`;
   } else if (risco.riscoNaoRealizacao.n > 0) {
-    headline = `🟠 ${risco.riscoNaoRealizacao.n} projeto(s) com risco de não realização (${fmtBRL(risco.riscoNaoRealizacao.valor, true)}).`;
+    headline = `🟠 ${risco.riscoNaoRealizacao.n} projetos em risco de não realização.`;
   } else {
-    headline = `🟢 Carteira com boa cobertura financeira nos filtros atuais.`;
+    headline = `🟢 Carteira saudável.`;
   }
 
   return { headline, orcamentoPeriodo, executado, compromisso, aEmitir, coberturaFinanceira: risco.coberturaFinanceira };
 }
 
-/** Ranking de ofensores por SCORE PROPORCIONAL — ver metrics.ts::calculateRiskScore. */
+/** Ranking de ofensores por SCORE PROPORCIONAL. */
 export function generateTopOffenders(lista: ProjetoMetricas[], n = 5): ProjetoMetricas[] {
   return [...lista]
     .filter((p) => p.riscoScore > 0)
@@ -90,7 +86,7 @@ export interface AcaoAgrupada {
 export function generateActionPlan(lista: ProjetoMetricas[]): AcaoAgrupada[] {
   const map = new Map<string, ProjetoMetricas[]>();
   for (const p of lista) {
-    if (p.status === "Coberto" || p.status === "Dados insuficientes") continue;
+    if (p.status === "Normal" || p.status === "Dados insuficientes") continue;
     const arr = map.get(p.acaoRecomendada) ?? [];
     arr.push(p);
     map.set(p.acaoRecomendada, arr);
@@ -107,7 +103,7 @@ export interface PlatformHighlight {
   compromisso: number;
   aEmitir: number;
   coberturaFinanceira: number | null;
-  nRisco: number; // nº de projetos fora de "Coberto"/"Dados insuficientes"
+  nRisco: number;
   riscoScoreMedio: number;
 }
 
@@ -124,7 +120,7 @@ export function generatePlatformHighlights(lista: ProjetoMetricas[]): PlatformHi
       const executado = projetos.reduce((a, p) => a + (p.executado ?? 0), 0);
       const compromisso = projetos.reduce((a, p) => a + (p.compromisso ?? 0), 0);
       const aEmitir = projetos.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
-      const nRisco = projetos.filter((p) => p.status !== "Coberto" && p.status !== "Dados insuficientes").length;
+      const nRisco = projetos.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização").length;
       const riscoScoreMedio = projetos.length > 0 ? projetos.reduce((a, p) => a + p.riscoScore, 0) / projetos.length : 0;
       return {
         plataforma, orcamento, executado, compromisso, aEmitir,
@@ -135,7 +131,7 @@ export function generatePlatformHighlights(lista: ProjetoMetricas[]): PlatformHi
     .sort((a, b) => b.orcamento - a.orcamento);
 }
 
-/** Insights executivos — no máximo 1 frase cada, 3 a 5 no total. */
+/** Insights executivos — no máximo 8 palavras cada, 3 a 5 no total. */
 export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
   const out: string[] = [];
   const risco = generateRiskSummary(lista);
@@ -143,17 +139,20 @@ export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
   const totalAEmitir = lista.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
 
   if (totalAEmitir > 0) {
-    out.push(`💰 ${fmtBRL(totalAEmitir, true)} ainda não entraram no fluxo financeiro.`);
+    out.push(`💰 ${fmtBRL(totalAEmitir, true)} fora do fluxo financeiro.`);
+  }
+  if (risco.coberturaFinanceira !== null) {
+    out.push(`📈 Cobertura financeira em ${fmtPct(risco.coberturaFinanceira, 0)}.`);
   }
 
   const topPlat = plataformas[0];
   if (topPlat && totalAEmitir > 0 && topPlat.aEmitir > 0) {
     const pct = ((topPlat.aEmitir / totalAEmitir) * 100).toFixed(0);
-    out.push(`📊 ${pct}% do saldo a emitir está concentrado em ${topPlat.plataforma}.`);
+    out.push(`📊 ${topPlat.plataforma} concentra ${pct}% do saldo.`);
   }
 
   if (risco.riscoNaoRealizacao.n > 0) {
-    out.push(`🟠 ${risco.riscoNaoRealizacao.n} projetos possuem mais de 30% do orçamento sem cobertura financeira.`);
+    out.push(`🟠 ${risco.riscoNaoRealizacao.n} projetos em risco de não realização.`);
   }
 
   const ofensores = generateTopOffenders(lista, 5);
@@ -162,15 +161,11 @@ export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
       (a, p) => a + (p.status === "Estouro" ? Math.max(p.desvioPlurianual ?? 0, 0) : Math.max(p.aEmitir ?? 0, 0)), 0
     );
     const pct = ((top5 / risco.exposicaoFinanceira) * 100).toFixed(0);
-    out.push(`🎯 ${ofensores.length} projetos representam ${pct}% da exposição da carteira.`);
-  }
-
-  if (risco.coberturaFinanceira !== null) {
-    out.push(`📈 A cobertura financeira da carteira está em ${fmtPct(risco.coberturaFinanceira, 0)}.`);
+    out.push(`🎯 5 projetos concentram ${pct}% da exposição.`);
   }
 
   if (risco.estouro.n > 0) {
-    out.push(`🔴 ${risco.estouro.n} projetos apresentam risco de estouro.`);
+    out.push(`🔴 ${risco.estouro.n} projetos em estouro.`);
   }
 
   return out.slice(0, 5);
