@@ -48,17 +48,17 @@ export function ProjectSidePanel({
       <Field label="1º Aprovador" value={projeto.aprovador ?? "—"} />
 
       <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mt-4 mb-1">Composição Financeira ({projeto.periodo === "Todos" ? "2026–2027" : projeto.periodo})</p>
-      <Field label="Orçamento do período" value={fmtBRL(projeto.orcamentoPeriodo)} />
-      <Field label="Orçamento plurianual" value={fmtBRL(projeto.orcamentoPlurianual)} />
-      <Field label="Executado" value={fmtBRL(projeto.executado)} tooltip="Realizado + Em Pagamento" />
-      <Field label="Compromisso" value={fmtBRL(projeto.compromisso)} tooltip="Valor total contratado, não fracionado por ano" />
-      <Field label="A Emitir" value={fmtBRL(projeto.aEmitir)} />
-      <Field label="Falta comprometer" value={fmtBRL(projeto.faltaComprometer)} />
-      <Field label="% Execução" value={fmtPct(projeto.pctExecucao)} />
-      <Field label="% Comprometimento" value={fmtPct(projeto.pctComprometimento)} />
-      <Field label="Desvio plurianual" value={fmtBRL(projeto.desvioPlurianual)} />
-      <Field label="Participação no risco total" value={fmtPct(projeto.participacaoRisco)} />
-      <Field label="Ritmo necessário (por mês restante)" value={fmtBRL(projeto.ritmoNecessario)} tooltip="Valor ainda a comprometer dividido pelos meses restantes do período." />
+      <Field label="Orçamento do período" value={fmtBRL(projeto.orcamentoPeriodo)} tooltip="Valor total aprovado para o período selecionado (2026, 2027, ou os dois juntos)." />
+      <Field label="Orçamento plurianual" value={fmtBRL(projeto.orcamentoPlurianual)} tooltip="Valor total aprovado para o projeto somando todos os anos (2026 e 2027)." />
+      <Field label="Executado" value={fmtBRL(projeto.executado)} tooltip="Valor que já foi efetivamente pago ou reconhecido como gasto no período (Realizado + Em Pagamento)." />
+      <Field label="Emitido" value={fmtBRL(projeto.compromisso)} tooltip="Valor total já emitido (contrato/PO), não fracionado por ano" />
+      <Field label="A Emitir" value={fmtBRL(projeto.aEmitir)} tooltip="Quanto ainda não tem contrato nem foi gasto. Orçamento − Executado − Emitido." />
+      <Field label="% Execução" value={fmtPct(projeto.pctExecucao)} tooltip="Percentual do orçamento do período que já foi de fato gasto." />
+      <Field label="% Emitido" value={fmtPct(projeto.pctComprometimento)} tooltip="Percentual do orçamento do período que já tem contrato ou pedido de compra emitido." />
+      <Field label="Cobertura Financeira" value={fmtPct(projeto.coberturaFinanceira)} tooltip="Parcela do orçamento já com movimentação financeira: (Executado + Emitido) ÷ Orçamento." />
+      <Field label="Desvio plurianual" value={fmtBRL(projeto.desvioPlurianual)} tooltip="Quanto o total já gasto e emitido ultrapassa (se positivo) o orçamento aprovado para todo o projeto." />
+      <Field label="Participação no risco total" value={fmtPct(projeto.participacaoRisco)} tooltip="Peso deste projeto no risco financeiro de toda a carteira filtrada — quanto maior, mais prioritário." />
+      <Field label="Ritmo necessário (por mês restante)" value={fmtBRL(projeto.ritmoNecessario)} tooltip="Quanto a área precisa emitir/gastar por mês, em média, para não deixar saldo parado até o fim do período." />
 
       <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mt-4 mb-2">Comparação 2026 × 2027</p>
       <ResponsiveContainer width="100%" height={180}>

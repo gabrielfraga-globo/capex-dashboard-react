@@ -8,8 +8,9 @@ import type { ProjetoBase, StatusRisco } from "../types";
 const STATUS_QUICK: { value: StatusRisco | null; label: string }[] = [
   { value: null, label: "Todos" },
   { value: "Estouro", label: "🔴 Estouro" },
-  { value: "Baixo comprometimento", label: "🟠 Baixo Comprometimento" },
-  { value: "Baixa execução", label: "🟡 Baixa Execução" },
+  { value: "Risco de Não Realização", label: "🟠 Risco de Não Realização" },
+  { value: "Atenção", label: "🟡 Atenção" },
+  { value: "Revisão Financeira", label: "🔵 Revisão Financeira" },
 ];
 
 export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
@@ -81,7 +82,7 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
             <span>%</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
-            <span>Comprom.</span>
+            <span>Emitido</span>
             <input type="number" min={0} max={100} value={f.comprometimentoMin} onChange={(e) => f.setComprometimentoRange(Number(e.target.value), f.comprometimentoMax)} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
             <span>–</span>
             <input type="number" min={0} max={100} value={f.comprometimentoMax} onChange={(e) => f.setComprometimentoRange(f.comprometimentoMin, Number(e.target.value))} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />

@@ -8,9 +8,10 @@ import { SectionHeader } from "./ui/primitives";
 
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
-  "Baixo comprometimento": "#E0672E",
-  "Baixa execução": "#E0B429",
-  "OK": "#2A9D6F",
+  "Risco de Não Realização": "#E0672E",
+  "Atenção": "#E0B429",
+  "Coberto": "#2A9D6F",
+  "Revisão Financeira": "#5B7FDE",
   "Dados insuficientes": "#475569",
 };
 
@@ -50,8 +51,8 @@ export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
   return (
     <>
       <SectionHeader
-        title="Matriz de Risco — Comprometimento × Execução"
-        tooltip="Eixo X = % Comprometimento (Compromisso/Orçamento). Eixo Y = % Execução (Realizado/Orçamento). Clique num ponto para ver o detalhe."
+        title="Matriz de Risco — Emitido × Execução"
+        tooltip="Eixo X = % Emitido (valor já emitido em contrato/PO ÷ Orçamento). Eixo Y = % Execução (Realizado ÷ Orçamento). Clique num ponto para ver o detalhe."
       />
       <div className="relative">
         <ResponsiveContainer width="100%" height={400}>
@@ -62,11 +63,11 @@ export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
             <ReferenceLine x={LIMIAR_COMPROMETIMENTO} stroke="#3DA5F4" strokeDasharray="4 4" />
             <ReferenceLine y={LIMIAR_EXECUCAO} stroke="#3DA5F4" strokeDasharray="4 4" />
 
-            <XAxis type="number" dataKey="x" name="% Comprometimento" unit="%" domain={[0, 100]} stroke="#8CA0BF" fontSize={11} />
+            <XAxis type="number" dataKey="x" name="% Emitido" unit="%" domain={[0, 100]} stroke="#8CA0BF" fontSize={11} />
             <YAxis type="number" dataKey="y" name="% Execução" unit="%" domain={[0, 100]} stroke="#8CA0BF" fontSize={11} />
             <ZAxis type="number" dataKey="z" range={[40, 500]} name="Orçamento" />
             <Tooltip cursor={{ strokeDasharray: "3 3" }} content={<RiskMatrixTooltip />} />
-            {(["Estouro", "Baixo comprometimento", "Baixa execução", "OK"] as const).map((s) => (
+            {(["Estouro", "Risco de Não Realização", "Atenção", "Revisão Financeira", "Coberto"] as const).map((s) => (
               <Scatter
                 key={s}
                 name={s}
@@ -85,9 +86,9 @@ export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
 
         {/* Rótulos de quadrante (sobrepostos, não interativos) */}
         <div className="pointer-events-none absolute inset-0 grid grid-cols-2 grid-rows-2 text-[10px] font-semibold text-text-faint px-8 py-4">
-          <span className="self-start justify-self-start">🟡 Executado sem compromisso suficiente</span>
-          <span className="self-start justify-self-end text-right">🟢 OK</span>
-          <span className="self-end justify-self-start">🔴 Baixa execução e baixo comprometimento</span>
+          <span className="self-start justify-self-start">🟡 Executado acima do comprometimento esperado</span>
+          <span className="self-start justify-self-end text-right">🟢 Saudável</span>
+          <span className="self-end justify-self-start">🔴 Baixo comprometimento + baixa execução</span>
           <span className="self-end justify-self-end text-right">🟡 Comprometido mas pouco executado</span>
         </div>
       </div>
@@ -110,7 +111,7 @@ function RiskMatrixTooltip({ active, payload }: any) {
     <div className="rounded-md border border-border bg-card-alt px-3 py-2 text-xs text-text shadow-card">
       <p className="font-bold mb-1">{d.nome}</p>
       <p className="text-text-muted">{d.plataforma} · {d.gestor}</p>
-      <p>% Comprometimento: {fmtPct(d.xRaw / 100)}{comprometimentoClampado && " (exibido no limite de 100%)"}</p>
+      <p>% Emitido: {fmtPct(d.xRaw / 100)}{comprometimentoClampado && " (exibido no limite de 100%)"}</p>
       <p>% Execução: {fmtPct(d.yRaw / 100)}{execucaoClampada && " (exibido no limite de 100%)"}</p>
       <p>Orçamento: {fmtBRL(d.z)}</p>
     </div>

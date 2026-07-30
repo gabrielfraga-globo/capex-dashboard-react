@@ -44,9 +44,10 @@ export function KpiCard({
 
 // --------------------------------------------------------- Status card ----
 const STATUS_STYLES: Record<StatusRisco, string> = {
-  "OK": "from-risk-baixo to-emerald-700 text-emerald-950",
-  "Baixo comprometimento": "from-risk-alto to-orange-800 text-white",
-  "Baixa execução": "from-risk-medio to-amber-700 text-amber-950",
+  "Coberto": "from-risk-baixo to-emerald-700 text-emerald-950",
+  "Atenção": "from-risk-medio to-amber-700 text-amber-950",
+  "Risco de Não Realização": "from-risk-alto to-orange-800 text-white",
+  "Revisão Financeira": "from-risk-revisao to-indigo-800 text-white",
   "Estouro": "from-risk-critico to-red-900 text-white",
   "Dados insuficientes": "from-slate-500 to-slate-700 text-white",
 };
@@ -64,17 +65,19 @@ export function StatusCard({ status, n, label, sub }: { status: StatusRisco; n: 
 // -------------------------------------------------------------- Badge -----
 const BADGE_STYLES: Record<StatusRisco, string> = {
   "Estouro": "bg-risk-critico text-white",
-  "Baixo comprometimento": "bg-risk-alto text-white",
-  "Baixa execução": "bg-risk-medio text-amber-950",
-  "OK": "bg-risk-baixo text-emerald-950",
+  "Risco de Não Realização": "bg-risk-alto text-white",
+  "Atenção": "bg-risk-medio text-amber-950",
+  "Coberto": "bg-risk-baixo text-emerald-950",
+  "Revisão Financeira": "bg-risk-revisao text-white",
   "Dados insuficientes": "bg-slate-500 text-white",
 };
 
 const STATUS_ICON: Record<StatusRisco, string> = {
   "Estouro": "🔴",
-  "Baixo comprometimento": "🟠",
-  "Baixa execução": "🟡",
-  "OK": "🟢",
+  "Risco de Não Realização": "🟠",
+  "Atenção": "🟡",
+  "Coberto": "🟢",
+  "Revisão Financeira": "🔵",
   "Dados insuficientes": "⚪",
 };
 

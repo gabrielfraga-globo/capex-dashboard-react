@@ -20,11 +20,11 @@ const columns = [
   columnHelper.accessor("realizado2026", { header: "Realizado", cell: (i) => fmtBRL(i.getValue()) }),
   columnHelper.accessor("emPagamento2026", { header: "Em Pagamento", cell: (i) => fmtBRL(i.getValue()) }),
   columnHelper.accessor("executado", { header: "Executado", cell: (i) => fmtBRL(i.getValue()) }),
-  columnHelper.accessor("compromisso", { header: "Compromisso", cell: (i) => fmtBRL(i.getValue()) }),
+  columnHelper.accessor("compromisso", { header: "Emitido", cell: (i) => fmtBRL(i.getValue()) }),
   columnHelper.accessor("aEmitir", { header: "A Emitir", cell: (i) => fmtBRL(i.getValue()) }),
-  columnHelper.accessor("faltaComprometer", { header: "Falta Comprometer", cell: (i) => fmtBRL(i.getValue()) }),
   columnHelper.accessor("pctExecucao", { header: "% Execução", cell: (i) => fmtPct(i.getValue()) }),
-  columnHelper.accessor("pctComprometimento", { header: "% Comprometimento", cell: (i) => fmtPct(i.getValue()) }),
+  columnHelper.accessor("pctComprometimento", { header: "% Emitido", cell: (i) => fmtPct(i.getValue()) }),
+  columnHelper.accessor("coberturaFinanceira", { header: "Cobertura Financeira", cell: (i) => fmtPct(i.getValue()) }),
   columnHelper.accessor("desvioPlurianual", { header: "Desvio Plurianual", cell: (i) => fmtBRL(i.getValue()) }),
   columnHelper.accessor("participacaoRisco", { header: "Participação no Risco", cell: (i) => fmtPct(i.getValue()) }),
   columnHelper.accessor("status", { header: "Status", cell: (i) => <RiskBadge status={i.getValue()} /> }),
@@ -34,15 +34,16 @@ const columns = [
 function toCsv(rows: ProjetoMetricas[]): string {
   const headers = [
     "Projeto", "Plataforma", "Gestor", "1º Aprovador", "Orçamento Período", "Orçamento Plurianual",
-    "Realizado", "Em Pagamento", "Executado", "Compromisso", "A Emitir", "Falta Comprometer",
-    "% Execução", "% Comprometimento", "Desvio Plurianual", "Participação no Risco", "Status", "Ação Recomendada",
+    "Realizado", "Em Pagamento", "Executado", "Emitido", "A Emitir",
+    "% Execução", "% Emitido", "Cobertura Financeira", "Desvio Plurianual", "Participação no Risco", "Status", "Ação Recomendada",
   ];
   const lines = rows.map((p) =>
     [
       p.nome, p.n4Curta, p.gestor ?? "", p.aprovador ?? "",
       p.orcamentoPeriodo ?? "", p.orcamentoPlurianual ?? "", p.realizado2026 ?? "", p.emPagamento2026 ?? "",
-      p.executado ?? "", p.compromisso ?? "", p.aEmitir ?? "", p.faltaComprometer ?? "",
+      p.executado ?? "", p.compromisso ?? "", p.aEmitir ?? "",
       p.pctExecucao !== null ? (p.pctExecucao * 100).toFixed(1) : "", p.pctComprometimento !== null ? (p.pctComprometimento * 100).toFixed(1) : "",
+      p.coberturaFinanceira !== null ? (p.coberturaFinanceira * 100).toFixed(1) : "",
       p.desvioPlurianual ?? "", p.participacaoRisco !== null ? (p.participacaoRisco * 100).toFixed(1) : "",
       p.status, p.acaoRecomendada,
     ]

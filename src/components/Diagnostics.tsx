@@ -7,9 +7,10 @@ import { fmtBRL } from "../lib/format";
 
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
-  "Baixo comprometimento": "#E0672E",
-  "Baixa execução": "#E0B429",
-  "OK": "#2A9D6F",
+  "Risco de Não Realização": "#E0672E",
+  "Atenção": "#E0B429",
+  "Coberto": "#2A9D6F",
+  "Revisão Financeira": "#5B7FDE",
   "Dados insuficientes": "#475569",
 };
 
@@ -52,7 +53,7 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
   return (
     <div className="grid lg:grid-cols-2 gap-4">
       <div>
-        <p className="text-xs font-semibold text-text-muted mb-2">Orçamento × Executado × Compromisso × A Emitir (R$)</p>
+        <p className="text-xs font-semibold text-text-muted mb-2">Orçamento × Executado × Emitido × A Emitir (R$)</p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={porPlataforma} layout="vertical" margin={{ left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#22304A" horizontal={false} />
@@ -62,7 +63,7 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="orcamento" name="Orçamento" fill="#3DA5F4" radius={[0, 4, 4, 0]} />
             <Bar dataKey="executado" name="Executado" fill="#7FD1B9" radius={[0, 4, 4, 0]} />
-            <Bar dataKey="compromisso" name="Compromisso" fill="#E0B429" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="compromisso" name="Emitido" fill="#E0B429" radius={[0, 4, 4, 0]} />
             <Bar dataKey="aEmitir" name="A Emitir" fill="#E0672E" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -78,7 +79,7 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
             <Tooltip formatter={(v: any) => `${Number(v).toFixed(0)}%`} {...chartTooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9" />
-            <Bar dataKey="pctComprometido" name="Comprometido" stackId="a" fill="#E0B429" />
+            <Bar dataKey="pctComprometido" name="Emitido" stackId="a" fill="#E0B429" />
             <Bar dataKey="pctAEmitir" name="A Emitir" stackId="a" fill="#E0672E" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -90,7 +91,7 @@ export function PlataformasEmAtencao({ lista }: { lista: ProjetoMetricas[] }) {
 
 export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
   const distribuicaoStatus = useMemo(() => {
-    const statuses: ProjetoMetricas["status"][] = ["Estouro", "Baixo comprometimento", "Baixa execução", "OK"];
+    const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Atenção", "Revisão Financeira", "Coberto"];
     return statuses
       .map((s) => ({ status: s, qtd: lista.filter((p) => p.status === s).length, valor: lista.filter((p) => p.status === s).reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0) }))
       .filter((s) => s.qtd > 0);

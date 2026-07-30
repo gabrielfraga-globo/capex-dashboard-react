@@ -3,12 +3,11 @@ import type { ProjetoMetricas } from "../types";
 import { RiskBadge } from "./ui/primitives";
 import { fmtBRL, fmtPct } from "../lib/format";
 
-type RankingKey = "faltaComprometer" | "menorExecucao" | "maiorAEmitir" | "maiorEstouro" | "participacaoRisco";
+type RankingKey = "menorCobertura" | "maiorAEmitir" | "maiorEstouro" | "participacaoRisco";
 
 const RANKINGS: { key: RankingKey; label: string }[] = [
-  { key: "faltaComprometer", label: "Maior Falta de Comprometimento" },
-  { key: "menorExecucao", label: "Menor Execução" },
   { key: "maiorAEmitir", label: "Maior Valor a Emitir" },
+  { key: "menorCobertura", label: "Menor Cobertura Financeira" },
   { key: "maiorEstouro", label: "Maior Estouro Plurianual" },
   { key: "participacaoRisco", label: "Maior Participação no Risco" },
 ];
@@ -16,10 +15,8 @@ const RANKINGS: { key: RankingKey; label: string }[] = [
 function getRanked(lista: ProjetoMetricas[], key: RankingKey): ProjetoMetricas[] {
   const arr = [...lista];
   switch (key) {
-    case "faltaComprometer":
-      return arr.filter((p) => (p.faltaComprometer ?? 0) > 0).sort((a, b) => (b.faltaComprometer ?? 0) - (a.faltaComprometer ?? 0));
-    case "menorExecucao":
-      return arr.filter((p) => p.pctExecucao !== null).sort((a, b) => (a.pctExecucao ?? 1) - (b.pctExecucao ?? 1));
+    case "menorCobertura":
+      return arr.filter((p) => p.coberturaFinanceira !== null).sort((a, b) => (a.coberturaFinanceira ?? 1) - (b.coberturaFinanceira ?? 1));
     case "maiorAEmitir":
       return arr.filter((p) => (p.aEmitir ?? 0) > 0).sort((a, b) => (b.aEmitir ?? 0) - (a.aEmitir ?? 0));
     case "maiorEstouro":
@@ -31,8 +28,7 @@ function getRanked(lista: ProjetoMetricas[], key: RankingKey): ProjetoMetricas[]
 
 function valueFor(p: ProjetoMetricas, key: RankingKey): string {
   switch (key) {
-    case "faltaComprometer": return fmtBRL(p.faltaComprometer);
-    case "menorExecucao": return fmtPct(p.pctExecucao);
+    case "menorCobertura": return fmtPct(p.coberturaFinanceira);
     case "maiorAEmitir": return fmtBRL(p.aEmitir);
     case "maiorEstouro": return fmtBRL(p.desvioPlurianual);
     case "participacaoRisco": return fmtPct(p.participacaoRisco);

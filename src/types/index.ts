@@ -5,7 +5,7 @@
 export type Ano = "2026" | "2027";
 export type Periodo = "2026" | "2027" | "Todos";
 
-export type StatusRisco = "Estouro" | "Baixo comprometimento" | "Baixa execução" | "OK" | "Dados insuficientes";
+export type StatusRisco = "Estouro" | "Risco de Não Realização" | "Atenção" | "Coberto" | "Revisão Financeira" | "Dados insuficientes";
 
 export interface Gestor {
   n3: string;
@@ -74,8 +74,8 @@ export interface ProjetoMetricas extends ProjetoBase {
   executado: number | null; // realizado + em pagamento (do período)
   pctExecucao: number | null;
   pctComprometimento: number | null;
-  faltaComprometer: number | null;
   aEmitir: number | null;
+  coberturaFinanceira: number | null; // (Executado + Emitido) / Orçamento — 0 a 1 (pode passar de 1)
   valorComprometidoTotal: number | null; // executado + compromisso
   pctOrcamentoPlurianual: number | null;
   desvioPlurianual: number | null;

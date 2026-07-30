@@ -9,7 +9,7 @@ export default {
         border: { DEFAULT: "#22304A", subtle: "#1B2534" },
         text: { DEFAULT: "#E6EAF2", muted: "#8CA0BF", faint: "#6B85AD" },
         accent: { DEFAULT: "#3DA5F4" },
-        risk: { critico: "#C0392B", alto: "#E0672E", medio: "#E0B429", baixo: "#2A9D6F" },
+        risk: { critico: "#C0392B", alto: "#E0672E", medio: "#E0B429", baixo: "#2A9D6F", revisao: "#5B7FDE" },
       },
       borderRadius: { card: "14px" },
       fontFamily: { sans: ["Segoe UI", "Inter", "system-ui", "sans-serif"] },

@@ -35,9 +35,9 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
     mesesRestantes = MESES_2027_TOTAL;
     mesesTotais = MESES_2027_TOTAL;
   } else {
-    // Todos os anos: consolida 2026+2027 (aditivo — Compromisso NÃO é somado aqui, é tratado à parte)
-    orcamentoPeriodo =
-      p.orcamento2026 !== null || p.orcamento2027 !== null ? (p.orcamento2026 ?? 0) + (p.orcamento2027 ?? 0) : null;
+    // Todos os anos: usa o orçamento PLURIANUAL consolidado (aba Orçamento) — nunca mistura
+    // com a soma dos orçamentos anuais da aba Realizado.
+    orcamentoPeriodo = p.orcamentoPlurianual;
     realizado = p.realizado2026 !== null || p.realizado2027 !== null ? (p.realizado2026 ?? 0) + (p.realizado2027 ?? 0) : null;
     emPagamento =
       p.emPagamento2026 !== null || p.emPagamento2027 !== null ? (p.emPagamento2026 ?? 0) + (p.emPagamento2027 ?? 0) : null;
@@ -47,16 +47,21 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
 
   const executado = realizado !== null || emPagamento !== null ? (realizado ?? 0) + (emPagamento ?? 0) : null;
   const pctExecucao = safeDiv(executado, orcamentoPeriodo);
-  const compromisso = p.compromisso; // valor único, plurianual, nunca fracionado
+  const compromisso = p.compromisso; // "Emitido" — valor único, plurianual, nunca fracionado
   const pctComprometimento = safeDiv(compromisso, orcamentoPeriodo);
 
-  // --- CORREÇÃO (regra da área de Performance): ---
-  // A Emitir = Orçamento − Compromisso − Realizado (não subtrai Em Pagamento).
+  // A Emitir = Orçamento − Executado − Emitido (confirmado contra a coluna nativa da planilha-fonte)
   const aEmitir =
-    orcamentoPeriodo !== null && compromisso !== null && realizado !== null
-      ? orcamentoPeriodo - compromisso - realizado
+    orcamentoPeriodo !== null && compromisso !== null && executado !== null
+      ? orcamentoPeriodo - compromisso - executado
       : null;
-  const faltaComprometer = orcamentoPeriodo !== null && compromisso !== null ? Math.max(orcamentoPeriodo - compromisso, 0) : null;
+
+  // Cobertura Financeira = (Executado + Emitido) / Orçamento — nova ótica de risco:
+  // não é "estourou ou não", é "quanto do orçamento já entrou no fluxo financeiro".
+  const coberturaFinanceira =
+    orcamentoPeriodo !== null && orcamentoPeriodo > 0 && executado !== null && compromisso !== null
+      ? (executado + compromisso) / orcamentoPeriodo
+      : null;
 
   const valorComprometidoTotal = executado !== null || compromisso !== null ? (executado ?? 0) + (compromisso ?? 0) : null;
   const pctOrcamentoPlurianual = safeDiv(valorComprometidoTotal, p.orcamentoPlurianual);
@@ -66,17 +71,10 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
   const restante = aEmitir !== null ? Math.max(aEmitir, 0) : null;
   const ritmoNecessario = restante !== null ? restante / mesesRestantes : null;
 
-  const { status, acao } = classificarRisco(p, {
-    orcamentoPeriodo,
-    pctExecucao,
-    pctComprometimento,
-    faltaComprometer,
-    valorComprometidoTotal,
-    desvioPlurianual,
-  });
+  const { status, acao } = classificarRisco(p, { orcamentoPeriodo, aEmitir, desvioPlurianual });
 
   const riscoScore = calculateRiskScore({
-    status, orcamentoPeriodo, pctExecucao, pctComprometimento, aEmitir, mesesRestantes, mesesTotais,
+    status, orcamentoPeriodo, aEmitir, mesesRestantes, mesesTotais,
   });
 
   return {
@@ -87,8 +85,8 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
     executado,
     pctExecucao,
     pctComprometimento,
-    faltaComprometer,
     aEmitir,
+    coberturaFinanceira,
     valorComprometidoTotal,
     pctOrcamentoPlurianual,
     desvioPlurianual,
@@ -101,25 +99,12 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
 }
 
 /**
- * Score de risco PROPORCIONAL (0 a 1) — corrige o problema de ranquear ofensores só por
- * valor absoluto. Um projeto de R$100M com R$8M a emitir é MENOS arriscado que um de
- * R$10M com R$8M a emitir, ainda que o valor absoluto seja igual.
- *
- * Componentes (todos proporcionais, não em R$):
- *  - % não comprometido (1 - %Comprometimento)      peso 0.30
- *  - % não executado (1 - %Execução)                peso 0.25
- *  - % do orçamento ainda "a emitir"                 peso 0.25
- *  - porte relativo do orçamento do projeto          peso 0.20 (ainda dá algum peso a
- *                                                       projetos grandes, sem deixá-los dominar)
- * Multiplicado por um fator de urgência temporal: quanto mais perto do fim do período,
- * maior o peso do que ainda falta resolver (mesmo %, mais tarde no ano = mais grave).
- * Estouro sempre recebe score máximo (1.0) — é o risco mais severo por definição.
+ * Score de risco PROPORCIONAL (0 a 1) — ranqueia "ofensores" pela ótica de Cobertura
+ * Financeira (não mais por valor absoluto). Estouro sempre recebe score máximo.
  */
 function calculateRiskScore(m: {
   status: StatusRisco;
   orcamentoPeriodo: number | null;
-  pctExecucao: number | null;
-  pctComprometimento: number | null;
   aEmitir: number | null;
   mesesRestantes: number;
   mesesTotais: number;
@@ -127,79 +112,64 @@ function calculateRiskScore(m: {
   if (m.status === "Estouro") return 1;
   if (m.orcamentoPeriodo === null || m.orcamentoPeriodo <= 0) return 0;
 
-  const naoComprometido = 1 - clamp01(m.pctComprometimento);
-  const naoExecutado = 1 - clamp01(m.pctExecucao);
-  const pctAEmitir = clamp01(safeDiv(m.aEmitir, m.orcamentoPeriodo));
-  // porte relativo: log-scale para não deixar 1 projeto gigante dominar tudo, mas ainda contar
-  const porte = Math.min(Math.log10(1 + m.orcamentoPeriodo) / 8, 1); // ~R$100M → log10(1e8)/8 ≈ 1
+  const pctAEmitir = clamp01(safeDiv(m.aEmitir, m.orcamentoPeriodo)); // negativo vira 0 (não é risco de não-realização)
+  const porte = Math.min(Math.log10(1 + m.orcamentoPeriodo) / 8, 1);
+  const fatorUrgencia = 1 + (1 - m.mesesRestantes / Math.max(m.mesesTotais, 1));
 
-  const fatorUrgencia = 1 + (1 - m.mesesRestantes / Math.max(m.mesesTotais, 1)); // 1.0 no início do período, até 2.0 no fim
-
-  const score = (0.30 * naoComprometido + 0.25 * naoExecutado + 0.25 * pctAEmitir + 0.20 * porte) * fatorUrgencia;
+  const score = (0.65 * pctAEmitir + 0.20 * porte) * fatorUrgencia + (m.status === "Revisão Financeira" ? 0.1 : 0);
   return Math.min(score, 1);
 }
 
+/**
+ * Nova classificação — ótica de Cobertura Financeira em vez de "estourou / não estourou":
+ *
+ * 1. 🔴 Estouro — Executado + Emitido > Orçamento PLURIANUAL (sempre a prioridade máxima;
+ *    é o único caso onde o orçamento aprovado para o projeto inteiro foi excedido).
+ * 2. 🔵 Revisão Financeira — A Emitir negativo no PERÍODO (mais foi executado/emitido do
+ *    que o orçamento do período, mas sem violar o plurianual). NÃO é automaticamente
+ *    tratado como problema — pode ser timing, replanejamento ou apropriação futura.
+ * 3. 🟠 Risco de Não Realização — mais de 30% do orçamento do período ainda sem cobertura
+ *    financeira (nem executado, nem emitido).
+ * 4. 🟡 Atenção — entre 10% e 30% do orçamento sem cobertura.
+ * 5. 🟢 Coberto — 10% ou menos do orçamento sem cobertura.
+ */
 function classificarRisco(
   p: ProjetoBase,
-  m: {
-    orcamentoPeriodo: number | null;
-    pctExecucao: number | null;
-    pctComprometimento: number | null;
-    faltaComprometer: number | null;
-    valorComprometidoTotal: number | null;
-    desvioPlurianual: number | null;
-  }
+  m: { orcamentoPeriodo: number | null; aEmitir: number | null; desvioPlurianual: number | null }
 ): { status: StatusRisco; acao: string } {
-  // Dados insuficientes: sem orçamento do período E sem orçamento plurianual, nada a avaliar
   if (m.orcamentoPeriodo === null && p.orcamentoPlurianual === null) {
     return { status: "Dados insuficientes", acao: "Verificar cadastro do projeto (sem orçamento em nenhuma fonte)." };
   }
 
-  // 🔴 Estouro: Executado + Compromisso > orçamento plurianual
   if (m.desvioPlurianual !== null && m.desvioPlurianual > 0) {
     return {
       status: "Estouro",
       acao: p.orcamentoPlurianual === 0
-        ? "Regularizar contratação sem cobertura orçamentária (orçamento aprovado = zero)."
-        : "Revisar orçamento plurianual — compromisso já contratado excede o teto aprovado.",
+        ? "Regularizar emissão sem cobertura orçamentária (orçamento aprovado = zero)."
+        : "Revisar orçamento plurianual — valor já emitido/executado excede o teto aprovado.",
     };
   }
 
-  // 🟠 Baixo comprometimento: Compromisso < 80% do orçamento do período E falta comprometer > R$50 mil
-  const ehPreProducao = normalizePlataforma(p.n4) === "pre-producao";
-  if (
-    !ehPreProducao &&
-    m.pctComprometimento !== null &&
-    m.pctComprometimento < 0.8 &&
-    m.faltaComprometer !== null &&
-    m.faltaComprometer > 50000
-  ) {
-    return { status: "Baixo comprometimento", acao: "Acelerar emissão de contrato/PO para reduzir o saldo sem cobertura." };
+  if (m.orcamentoPeriodo === null || m.orcamentoPeriodo <= 0 || m.aEmitir === null) {
+    return { status: "Dados insuficientes", acao: "Cobertura financeira não calculável para este período." };
   }
 
-  // 🟡 Baixa execução: Execução < 40% do orçamento do período
-  if (m.pctExecucao !== null && m.pctExecucao < 0.4) {
-    return { status: "Baixa execução", acao: "Validar previsão de pagamento e reprogramar caixa se necessário." };
+  if (m.aEmitir < 0) {
+    return { status: "Revisão Financeira", acao: "Analisar contexto do saldo negativo (ajuste, replanejamento ou timing de apropriação)." };
   }
 
-  if (m.pctExecucao === null && m.pctComprometimento === null) {
-    return { status: "Dados insuficientes", acao: "Métricas de execução/comprometimento não calculáveis para este período." };
-  }
+  const pctAEmitir = m.aEmitir / m.orcamentoPeriodo;
 
-  return { status: "OK", acao: "Monitorar sem ação imediata." };
+  if (pctAEmitir > 0.30) {
+    return { status: "Risco de Não Realização", acao: "Acelerar emissão e execução — mais de 30% do orçamento ainda sem cobertura financeira." };
+  }
+  if (pctAEmitir > 0.10) {
+    return { status: "Atenção", acao: "Acompanhar de perto — entre 10% e 30% do orçamento ainda sem cobertura financeira." };
+  }
+  return { status: "Coberto", acao: "Nenhuma ação necessária — orçamento praticamente coberto." };
 }
 
-function normalizePlataforma(n4: string): string {
-  return n4
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .includes("pre-prod")
-    ? "pre-producao"
-    : n4;
-}
-
-/** Preenche "participação no risco" no nível da carteira filtrada, usando o novo score proporcional. */
+/** Preenche "participação no risco" no nível da carteira filtrada, usando o score proporcional. */
 export function withParticipacaoRisco(lista: ProjetoMetricas[]): ProjetoMetricas[] {
   const riscoTotal = lista.reduce((acc, p) => acc + p.riscoScore, 0);
   return lista.map((p) => ({
