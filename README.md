@@ -488,3 +488,61 @@ matriz, cartão) — não há mais variação de nome para o mesmo conceito.
 Conferido: `handleSelectFromRadar` não troca mais de tela — o painel abre como overlay,
 e como o `RadarExecutivo` não desmonta ao abrir/fechar o painel, filtro, busca e scroll
 continuam exatamente como estavam.
+
+## Nona rodada — consolidação final do Radar Executivo
+
+### 1. Filtro de Programa
+Confirmado: "Programa" mapeia para a Plataforma (N4) já existente nos dados —
+"Captação e Produção", "Pós-Produção e Design", "Metadados e Mídias", "Pré-Produção"
+(nomes exatos da fonte; levemente diferentes dos exemplos dados, mas o mesmo conceito).
+Filtro global de verdade: filtra `listaFocada`, que alimenta gráfico, Delta YTD, Saúde
+da Carteira, Projetos para Decisão, Revisar Caixa Ano, indicadores e os modais "Ver
+Todos" — tudo deriva da mesma lista já filtrada por Programa.
+
+### 2. Gráfico principal — barras verticais com formatação condicional
+Trocado de linha para barras agrupadas (Planejado × Executado, mensal). A barra de
+Executado é colorida por mês conforme o desvio: 🟢 ≤5% (Dentro do Plano), 🟡 5-15%
+(Acompanhar), 🔴 >15% (Requer Ação) — cor visível na barra e no tooltip (que também
+mostra o rótulo do status e o percentual exato).
+
+### 3. Filtro "Saúde da Carteira" corrigido
+Bug real: clicar em "Dentro do Plano" antes voltava para "todos" (sem filtrar nada).
+Agora existe um 4º estado de foco (`dentro`) que filtra de fato para status "Normal" —
+os 3 cartões de saúde agora ficam clicáveis e coerentes com os filtros rápidos (que
+também foram renomeados para a mesma nomenclatura: Dentro do Plano / Acompanhar /
+Requer Ação).
+
+### 4. Tooltip explicando "Executado"
+Ícone ⓘ ao lado de "Executado YTD" no card principal: "Executado = Realizado + Em
+Pagamento" — a regra que já está em uso em toda a base de cálculo.
+
+### 5. Contraste do gradiente/legenda
+Escurecido levemente o gradiente do tema claro (`--gradient-a`/`--gradient-b`) e
+definido texto branco sólido com peso 700 na legenda e nos rótulos do eixo — testado
+para os dois temas.
+
+### 6-7. Frase única substitui a tarja + os insights
+Novo `generateHeroNarrative()`: combina o status do Delta YTD com o principal risco ou
+oportunidade (estouro > concentração por plataforma > saldo a emitir > revisão de
+caixa), em 1 frase. O card de insights foi removido — a frase já conta a história.
+
+### 8. Layout 2×2, sem rolagem
+Grid reorganizado: Linha 1 = Execução do Plano + Saúde da Carteira; Linha 2 = Projetos
+para Decisão + Revisar Caixa Ano (removido o `row-span-2` que fazia o card principal
+ocupar as duas linhas).
+
+### 9-10. "Ver Todos" (já existente, confirmado aqui)
+Os modais já criados na rodada anterior automaticamente respeitam o novo filtro de
+Programa, já que são construídos a partir da mesma `listaFocada`.
+
+### 11. Navegação (confirmada, sem mudança necessária)
+
+### 12. Rodapé e título
+Rodapé: "Processamento local..." → **"Performance Plataformas · Radar Executivo
+Mensal · Uso Interno"**.
+
+⚠️ **Nota de transparência**: esta mensagem pediu explicitamente para manter o título
+"Carteira CAPEX / Radar Executivo" — **revertido** ao original. Isso desfaz a mudança
+para "Carteira de Investimentos" pedida há duas rodadas. Se isso não era intencional
+(ex.: você esqueceu da mudança anterior ao escrever esse ponto), me avisa que eu
+reaplico "Carteira de Investimentos" — é uma linha de código.

@@ -115,9 +115,9 @@ export default function App() {
         <div className="flex items-center gap-2.5">
           <BrandMark size={28} />
           <div>
-            <h1 className="text-lg font-bold leading-tight">Carteira de Investimentos</h1>
+            <h1 className="text-lg font-bold leading-tight">Carteira CAPEX</h1>
             <p className="text-[11px] text-text-muted">
-              {viewMode === "radar" ? "Radar Executivo · Plataformas de Produção" : "Auditoria da Carteira · Plataformas de Produção"}
+              {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
             </p>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function App() {
       )}
 
       <footer className="text-center text-[11px] text-text-faint py-4">
-        Processamento local · Dashboard executivo · Uso interno
+        Performance Plataformas · Radar Executivo Mensal · Uso Interno
       </footer>
 
       <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={() => setSelected(null)} />

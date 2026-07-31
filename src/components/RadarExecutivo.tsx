@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { LineChart, Line, XAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import type { ProjetoMetricas } from "../types";
 import { useFilterStore } from "../store/filterStore";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors } from "../lib/chartColors";
-import { generateDeltaYTD, generateRadarInsights } from "../lib/insights";
-import { fmtBRL } from "../lib/format";
+import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
+import { fmtBRL, fmtPct } from "../lib/format";
 import { InfoTooltip, RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
 import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
@@ -19,10 +19,20 @@ const SAUDE_STYLE: Record<string, string> = {
   "Requer Ação": "bg-risk-alto/10 border-risk-alto/30 text-risk-alto",
 };
 
+/** Banda de aderência ao plano por mês — usada para colorir a barra de Executado. */
+function bandaDelta(pctAbs: number): { cor: string; label: string } {
+  if (pctAbs <= 0.05) return { cor: "#2A9D6F", label: "Dentro do Plano" };
+  if (pctAbs <= 0.15) return { cor: "#E0B429", label: "Acompanhar" };
+  return { cor: "#C0392B", label: "Requer Ação" };
+}
+
+type Foco = "todos" | "dentro" | "acompanhar" | "acao";
+
 /**
- * Radar Executivo — Bento Grid fixo. Primeira dobra com só 5 blocos: Hero, Execução
- * do Plano (com gráfico e insights embutidos), Saúde da Carteira, Projetos para
- * Decisão, Revisar Caixa Ano. Filtros escondidos por padrão atrás de um botão.
+ * Radar Executivo — Bento Grid fixo, 2 linhas x 2 colunas (Execução do Plano + Saúde
+ * da Carteira / Projetos para Decisão + Revisar Caixa Ano), sem rolagem. Filtros
+ * (período, Programa, status) escondidos por padrão. Uma única frase de síntese
+ * substitui a tarja de status e o antigo card de insights.
  */
 export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
   const filtros = useFilterStore();
@@ -30,20 +40,26 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
   const colors = getChartColors(theme);
   const [busca, setBusca] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [foco, setFoco] = useState<Foco>("todos");
+  const [programa, setPrograma] = useState<string | null>(null);
   const [modalAberto, setModalAberto] = useState<"acao" | "revisao" | null>(null);
-  const [foco, setFoco] = useState<"todos" | "acao" | "revisao">("todos");
 
-  // O foco filtra TODA a visão — gráfico, indicadores, saúde e listas —, não só quais
-  // cartões aparecem. Isso responde diretamente ao pedido de que o filtro precisa
-  // impactar a tela inteira, não só a lista correspondente.
+  const programas = useMemo(() => Array.from(new Set(lista.map((p) => p.n4Curta))).sort(), [lista]);
+
+  // Programa filtra primeiro (é um recorte global), depois o foco de status.
+  const listaPrograma = useMemo(
+    () => (programa ? lista.filter((p) => p.n4Curta === programa) : lista),
+    [lista, programa]
+  );
   const listaFocada = useMemo(() => {
-    if (foco === "acao") return lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
-    if (foco === "revisao") return lista.filter((p) => p.status === "Revisar Caixa Ano");
-    return lista;
-  }, [lista, foco]);
+    if (foco === "dentro") return listaPrograma.filter((p) => p.status === "Normal");
+    if (foco === "acompanhar") return listaPrograma.filter((p) => p.status === "Revisar Caixa Ano");
+    if (foco === "acao") return listaPrograma.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
+    return listaPrograma;
+  }, [listaPrograma, foco]);
 
   const delta = useMemo(() => generateDeltaYTD(listaFocada), [listaFocada]);
-  const insights = useMemo(() => generateRadarInsights(listaFocada, delta), [listaFocada, delta]);
+  const narrativa = useMemo(() => generateHeroNarrative(listaFocada, delta), [listaFocada, delta]);
 
   const exigemAcao = useMemo(
     () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
@@ -56,7 +72,6 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
     [listaFocada, busca]
   );
 
-  // Saúde da carteira: 3 baldes reais (projetos + valor), não um número solto.
   const saude = useMemo(() => {
     const normal = listaFocada.filter((p) => p.status === "Normal");
     const acompanhar = listaFocada.filter((p) => p.status === "Revisar Caixa Ano");
@@ -69,9 +84,10 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
     };
   }, [listaFocada]);
 
-  // Gráfico Planejado × Executado acumulado — mensal (dado real de Planejado; Executado
-  // é uma reta entre o início do ano e o total acumulado conhecido até o mês corrente,
-  // já que a fonte não guarda o executado mês a mês).
+  // Gráfico de barras — Planejado × Executado acumulado, mensal, com cor condicional
+  // no Executado (verde ≤5%, amarelo 5-15%, vermelho >15% de desvio). Executado real
+  // só existe como total até a data-base (a fonte não guarda mês a mês); a série usa
+  // interpolação linear até o mês corrente para permitir a leitura mês a mês.
   const fluxoData = useMemo(() => {
     const planejadoMensal = Array(12).fill(0);
     for (const p of listaFocada) {
@@ -82,15 +98,22 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
     const totalExecutado = delta.executadoAcumulado;
     return MESES.map((m, i) => {
       acumulado += planejadoMensal[i];
-      const executado = i + 1 <= MES_ATUAL ? (totalExecutado * (i + 1)) / MES_ATUAL : null;
-      return { mes: m, Planejado: Math.round(acumulado), Executado: executado !== null ? Math.round(executado) : null };
+      const executado = i + 1 <= MES_ATUAL && acumulado > 0 ? (totalExecutado * (i + 1)) / MES_ATUAL : null;
+      const pct = executado !== null && acumulado > 0 ? (executado - acumulado) / acumulado : null;
+      const banda = pct !== null ? bandaDelta(Math.abs(pct)) : null;
+      return {
+        mes: m,
+        Planejado: Math.round(acumulado),
+        Executado: executado !== null ? Math.round(executado) : null,
+        pct, banda,
+      };
     });
   }, [listaFocada, delta.executadoAcumulado]);
 
   const acaoLabel = (p: ProjetoMetricas) => (p.status === "Estouro" ? "Validar estouro" : "Priorizar emissão");
-  const mostrarAcao = foco !== "revisao";
-  const mostrarRevisao = foco !== "acao";
-  const focoLabel = { todos: null, acao: "Projetos para Ação", revisao: "Revisar Caixa Ano" }[foco];
+  const mostrarAcao = foco !== "acompanhar";
+  const mostrarRevisao = foco === "todos" || foco === "acompanhar";
+  const focoLabel = { todos: null, dentro: "Dentro do Plano", acompanhar: "Acompanhar", acao: "Requer Ação" }[foco];
 
   return (
     <div>
@@ -115,10 +138,21 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                 {p === "Todos" ? "Todos os anos" : p}
               </button>
             ))}
+
+            <select
+              value={programa ?? ""}
+              onChange={(e) => setPrograma(e.target.value || null)}
+              className="rounded-full border border-border bg-card-alt px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
+            >
+              <option value="">Programa: Todos</option>
+              {programas.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+
             {([
               { key: "todos", label: "Todos" },
-              { key: "acao", label: "Projetos para Ação" },
-              { key: "revisao", label: "Revisar Caixa Ano" },
+              { key: "dentro", label: "Dentro do Plano" },
+              { key: "acompanhar", label: "Acompanhar" },
+              { key: "acao", label: "Requer Ação" },
             ] as const).map((f) => (
               <button
                 key={f.key}
@@ -130,6 +164,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                 {f.label}
               </button>
             ))}
+
             <div className="relative ml-auto max-w-xs w-full">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-faint" />
               <input
@@ -143,39 +178,45 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         )}
       </div>
 
-      {/* Hero Executivo — 1 linha */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <p className="text-base font-bold text-text">{delta.headline}</p>
-        {focoLabel && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
-            Filtrado: {focoLabel}
-          </span>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Execução do Plano — card grande: números + gráfico + insights */}
-        <div className="lg:col-span-2 lg:row-span-2 rounded-card bg-hero p-6 shadow-card text-white flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/75">Execução do Plano</p>
-            <span className="inline-block rounded-full border px-3 py-1 text-xs font-bold bg-white/15 border-white/30 text-white">
-              {delta.statusSimples}
+      {(programa || focoLabel) && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {programa && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+              Programa: {programa}
             </span>
-          </div>
+          )}
+          {focoLabel && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+              Filtrado: {focoLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Linha 1: Execução do Plano + Saúde da Carteira */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="lg:col-span-2 rounded-card bg-hero p-6 shadow-card text-white flex flex-col">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white mb-2">Execução do Plano</p>
+          <p className="text-sm font-semibold text-white leading-snug mb-4 max-w-lg">{narrativa}</p>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
-              <p className="text-[11px] text-white/70">Planejado YTD</p>
+              <p className="text-[11px] text-white/85">Planejado YTD</p>
               <p className="text-lg font-bold">{fmtBRL(delta.planejadoAcumulado, true)}</p>
             </div>
             <div>
-              <p className="text-[11px] text-white/70">Executado YTD</p>
+              <p className="text-[11px] text-white/85 flex items-center gap-1">
+                Executado YTD
+                <span className="[&_.info-icon]:text-white/85 [&_.info-icon:hover]:text-white">
+                  <InfoTooltip text="Executado = Realizado + Em Pagamento." />
+                </span>
+              </p>
               <p className="text-lg font-bold">{fmtBRL(delta.executadoAcumulado, true)}</p>
             </div>
             <div>
-              <p className="text-[11px] text-white/70 flex items-center gap-1">
+              <p className="text-[11px] text-white/85 flex items-center gap-1">
                 Delta YTD
-                <span className="[&_.info-icon]:text-white/70 [&_.info-icon:hover]:text-white">
+                <span className="[&_.info-icon]:text-white/85 [&_.info-icon:hover]:text-white">
                   <InfoTooltip text="Executado Acumulado − Planejado Acumulado. Negativo é atrás do plano; positivo, à frente." />
                 </span>
               </p>
@@ -185,41 +226,35 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
             </div>
           </div>
 
-          <div className="bg-white/10 rounded-xl p-2 mb-4">
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={fluxoData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                <XAxis dataKey="mes" stroke="rgba(255,255,255,.6)" fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip
-                  formatter={(v: any) => fmtBRL(Number(v))}
-                  contentStyle={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: 8, fontSize: 11, color: colors.tooltipText, fontWeight: 600 }}
-                  labelStyle={{ color: colors.tooltipLabel, fontWeight: 700 }}
-                  itemStyle={{ color: colors.tooltipText, fontWeight: 600 }}
-                />
-                <Legend wrapperStyle={{ fontSize: 10, color: "rgba(255,255,255,.85)" }} />
-                <Line type="monotone" dataKey="Planejado" stroke="#C9BFF0" strokeDasharray="4 3" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="Executado" stroke="#2563EB" strokeWidth={2.5} dot={false} connectNulls />
-              </LineChart>
+          <div className="bg-white/10 rounded-xl p-2">
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={fluxoData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
+                <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
+                <Tooltip content={<FluxoTooltip colors={colors} />} />
+                <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
+                <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Executado" name="Executado" radius={[3, 3, 0, 0]}>
+                  {fluxoData.map((d, i) => (
+                    <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
-          </div>
-
-          <div className="space-y-1 mt-auto">
-            {insights.map((ins, i) => (
-              <p key={i} className="text-xs text-white/90 leading-snug">• {ins}</p>
-            ))}
           </div>
         </div>
 
-        {/* Saúde da carteira — 3 estados, com projetos + valor, clicável */}
         <div className="rounded-card border border-border bg-card p-5 shadow-card">
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Saúde da Carteira</p>
           <div className="space-y-2">
             {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
               const b = saude[s];
+              const focoAlvo: Foco = s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
+              const ativo = foco === focoAlvo;
               return (
                 <button
                   key={s}
-                  onClick={() => setFoco(s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "revisao" : "todos")}
-                  className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} hover:brightness-110 transition-all`}
+                  onClick={() => setFoco(ativo ? "todos" : focoAlvo)}
+                  className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all`}
                 >
                   <span className="font-semibold">{s}</span>
                   <span className="flex items-center gap-2">
@@ -232,15 +267,17 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
             })}
           </div>
         </div>
+      </div>
 
-        {/* Projetos para decisão */}
+      {/* Linha 2: Projetos para Decisão + Revisar Caixa Ano */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {mostrarAcao && (
-          <div className={`${mostrarRevisao ? "" : "lg:col-span-1"} rounded-card border border-border bg-card p-5 shadow-card`}>
+          <div className={`${mostrarRevisao ? "lg:col-span-2" : "lg:col-span-3"} rounded-card border border-border bg-card p-5 shadow-card`}>
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Projetos para Decisão</p>
               {exigemAcao.length > 5 && (
                 <button onClick={() => setModalAberto("acao")} className="text-[11px] font-semibold text-accent hover:underline">
-                  Ver todos ({exigemAcao.length})
+                  Ver Todos ({exigemAcao.length})
                 </button>
               )}
             </div>
@@ -265,14 +302,13 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
           </div>
         )}
 
-        {/* Revisar caixa do ano */}
         {mostrarRevisao && (
           <div className="rounded-card border border-border bg-card p-5 shadow-card">
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Caixa Ano</p>
               {revisaoCaixa.length > 3 && (
                 <button onClick={() => setModalAberto("revisao")} className="text-[11px] font-semibold text-accent hover:underline">
-                  Ver todos
+                  Ver Todos
                 </button>
               )}
             </div>
@@ -316,6 +352,28 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         justificativaFn={() => "Potencial antecipação/postergação entre exercícios"}
         onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
       />
+    </div>
+  );
+}
+
+function FluxoTooltip({ active, payload, label, colors }: any) {
+  if (!active || !payload?.length) return null;
+  const planejado = payload.find((p: any) => p.dataKey === "Planejado")?.value;
+  const executado = payload.find((p: any) => p.dataKey === "Executado")?.value;
+  const entry = payload[0]?.payload;
+  return (
+    <div
+      className="rounded-md px-3 py-2 text-xs shadow-card"
+      style={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, color: colors.tooltipText }}
+    >
+      <p className="font-bold mb-1">{label}</p>
+      <p>Planejado: {fmtBRL(planejado)}</p>
+      <p>Executado: {executado != null ? fmtBRL(executado) : "—"}</p>
+      {entry?.banda && (
+        <p className="font-bold mt-1" style={{ color: entry.banda.cor }}>
+          {entry.banda.label} ({fmtPct(Math.abs(entry.pct))})
+        </p>
+      )}
     </div>
   );
 }

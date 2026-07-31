@@ -235,3 +235,37 @@ export function generateRadarInsights(lista: ProjetoMetricas[], delta: DeltaYTDS
 
   return out.slice(0, 4);
 }
+
+/**
+ * Frase única de síntese executiva do card "Execução do Plano" — substitui a tarja de
+ * status simples E o antigo card de insights. No máximo 1 frase, ~2 linhas.
+ */
+export function generateHeroNarrative(lista: ProjetoMetricas[], delta: DeltaYTDSummary): string {
+  const pctDelta = delta.planejadoAcumulado > 0 ? delta.deltaYTD / delta.planejadoAcumulado : 0;
+  let base: string;
+  if (pctDelta > 0.05) base = "Carteira executa acima do plano acumulado";
+  else if (pctDelta < -0.05) base = "Carteira executa abaixo do plano acumulado";
+  else base = "Execução segue aderente ao plano acumulado";
+
+  const risco = generateRiskSummary(lista);
+  let clausula = "";
+
+  if (risco.estouro.n > 0) {
+    clausula = `, mas ${risco.estouro.n} projeto(s) já estão em estouro`;
+  } else {
+    const totalAEmitir = lista.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
+    if (totalAEmitir > 0) {
+      const plataformas = generatePlatformHighlights(lista);
+      const top = [...plataformas].sort((a, b) => b.aEmitir - a.aEmitir)[0];
+      if (top && totalAEmitir > 0 && top.aEmitir / totalAEmitir > 0.4) {
+        clausula = `, mas ${top.plataforma} concentra o maior volume ainda sem cobertura financeira`;
+      } else {
+        clausula = `, mas possui ${fmtBRL(totalAEmitir, true)} ainda não emitidos`;
+      }
+    } else if (risco.revisaoFluxoCaixa.n > 0) {
+      clausula = `, mas ${risco.revisaoFluxoCaixa.n} projeto(s) exigem revisão de caixa`;
+    }
+  }
+
+  return `${base}${clausula}.`;
+}
