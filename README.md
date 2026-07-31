@@ -411,3 +411,49 @@ substituindo o emoji de gráfico genérico.
 ### Responsividade
 Bento em coluna única no mobile (empilha), cabeçalho com `flex-wrap`, linha de números
 do hero em coluna única abaixo do breakpoint `sm`.
+
+## Sétima rodada — refinamento do Radar Executivo
+
+### 1. Título
+"Carteira CAPEX" → **"Carteira de Investimentos"**, com subtítulo "Radar Executivo ·
+Plataformas de Produção" (ou "Auditoria da Carteira · Plataformas de Produção").
+
+### 2. Filtros escondidos por padrão no Radar
+Período, o toggle Todos/Projetos para Ação/Revisão de Caixa e a busca agora ficam
+atrás de um botão "Filtros" (fechado por padrão). Só a Auditoria mantém o seletor de
+período sempre visível.
+
+### 3. Card "Execução do Plano" evoluído
+Adicionado um gráfico de linha simples (Planejado × Realizado acumulado, mensal, sem
+grid pesado, poucos rótulos) dentro do próprio card. **Limitação de dados honesta**: a
+fonte não guarda o Realizado mês a mês — só o total acumulado até a data-base. A linha
+"Planejado" usa o dado mensal real (aba Orçamento); a linha "Realizado" é uma reta
+interpolada do início do ano até o total conhecido no mês corrente (documentado no
+próprio código). Os 2-4 insights do ciclo foram movidos para **dentro** deste card
+(deixaram de ser um bloco separado), narrando diretamente os números acima.
+
+### 4. "Saúde da Carteira" com projetos + valor, clicável
+Antes mostrava só uma contagem solta. Agora cada um dos 3 estados mostra **nº de
+projetos e R$ de orçamento**, e é clicável (aplica o filtro correspondente). Baldes:
+Dentro do Plano (Normal), Acompanhar (Revisão de Caixa), Requer Ação (Estouro + Risco
+de Não Realização).
+
+### 5. Insights conectados ao Delta YTD
+Novo `generateRadarInsights()` deriva as frases diretamente do Planejado/Executado/
+Delta e da concentração por plataforma — sem mencionar cobertura financeira ou saldo a
+emitir (esses ficam só na Auditoria, em `generateExecutiveInsights()`, mantido intacto).
+
+### 6. Renomeação
+"Revisão de Fluxo (de Caixa)" → **"Revisão de Caixa"** em todo o app (badge, filtro,
+matriz, legendas) — o card específico do Radar usa "Revisar Caixa do Ano" (forma mais
+executiva/de ação).
+
+### 7. Bug de navegação corrigido
+Selecionar um projeto no Radar **não muda mais a tela para Auditoria** — o painel
+lateral abre como overlay sobre o Radar, e fechar volta exatamente pro Radar. (Antes,
+a seleção trocava a view inteira para Auditoria, quebrando o contexto de navegação.)
+
+### 9. Primeira dobra reduzida ainda mais
+"Insight do Ciclo" deixou de ser um bloco à parte (fundido no card "Execução do
+Plano"), então a primeira dobra agora tem exatamente os 5 blocos pedidos: Hero, Execução
+do Plano, Saúde da Carteira, Projetos para Decisão, Revisar Caixa do Ano.

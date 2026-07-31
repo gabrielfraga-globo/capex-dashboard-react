@@ -11,7 +11,7 @@ import { getChartColors } from "../lib/chartColors";
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
   "Risco de Não Realização": "#E0672E",
-  "Revisão de Fluxo de Caixa": "#5B7FDE",
+  "Revisão de Caixa": "#5B7FDE",
   "Normal": "#2A9D6F",
   "Dados insuficientes": "#475569",
 };
@@ -70,7 +70,7 @@ export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
             <YAxis type="number" dataKey="y" name="% Execução" unit="%" domain={[0, 100]} stroke={colors.axis} fontSize={11} />
             <ZAxis type="number" dataKey="z" range={[40, 500]} name="Orçamento" />
             <Tooltip cursor={{ strokeDasharray: "3 3" }} content={<RiskMatrixTooltip />} />
-            {(["Estouro", "Risco de Não Realização", "Revisão de Fluxo de Caixa", "Normal"] as const).map((s) => (
+            {(["Estouro", "Risco de Não Realização", "Revisão de Caixa", "Normal"] as const).map((s) => (
               <Scatter
                 key={s}
                 name={s}

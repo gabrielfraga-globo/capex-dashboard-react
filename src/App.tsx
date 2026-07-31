@@ -79,11 +79,11 @@ export default function App() {
 
   const periodoLabel = { "2026": "Orçamento 2026", "2027": "Orçamento 2027", "Todos": "Consolidado 2026–2027" }[filtros.periodo];
 
-  // Selecionar um projeto no Radar Executivo abre o detalhe técnico — isso só existe
-  // na Auditoria, então a seleção já leva o usuário para lá.
+  // Selecionar um projeto abre o painel lateral (com o detalhe técnico completo) como
+  // overlay — a tela de fundo (Radar ou Auditoria) NÃO muda, preservando o contexto de
+  // navegação. Fechar o painel volta exatamente para onde o usuário estava.
   const handleSelectFromRadar = (p: ProjetoMetricas) => {
     setSelected(p);
-    setViewMode("auditoria");
   };
 
   if (loadError) {
@@ -115,9 +115,9 @@ export default function App() {
         <div className="flex items-center gap-2.5">
           <BrandMark size={28} />
           <div>
-            <h1 className="text-lg font-bold leading-tight">Carteira CAPEX</h1>
+            <h1 className="text-lg font-bold leading-tight">Carteira de Investimentos</h1>
             <p className="text-[11px] text-text-muted">
-              {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
+              {viewMode === "radar" ? "Radar Executivo · Plataformas de Produção" : "Auditoria da Carteira · Plataformas de Produção"}
             </p>
           </div>
         </div>
@@ -157,19 +157,21 @@ export default function App() {
 
       <ContextBar parsed={parsed} totalFiltrado={metricasFiltradas.length} totalGeral={todasMetricas.length} periodoLabel={periodoLabel} />
 
-      <div className="flex gap-2 mb-4">
-        {(["2026", "2027", "Todos"] as const).map((p) => (
-          <button
-            key={p}
-            onClick={() => filtros.setPeriodo(p)}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-              filtros.periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
-            }`}
-          >
-            {p === "Todos" ? "🗂️ Todos os anos" : `📅 ${p}`}
-          </button>
-        ))}
-      </div>
+      {viewMode === "auditoria" && (
+        <div className="flex gap-2 mb-4">
+          {(["2026", "2027", "Todos"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => filtros.setPeriodo(p)}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+                filtros.periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+              }`}
+            >
+              {p === "Todos" ? "🗂️ Todos os anos" : `📅 ${p}`}
+            </button>
+          ))}
+        </div>
+      )}
 
       {viewMode === "radar" ? (
         <RadarExecutivo lista={metricasFiltradas} onSelect={handleSelectFromRadar} />

@@ -19,7 +19,7 @@ export interface RiskSummary {
 export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
   const estourados = lista.filter((p) => p.status === "Estouro");
   const riscoNaoReal = lista.filter((p) => p.status === "Risco de Não Realização");
-  const revisaoFluxo = lista.filter((p) => p.status === "Revisão de Fluxo de Caixa");
+  const revisaoFluxo = lista.filter((p) => p.status === "Revisão de Caixa");
   const normal = lista.filter((p) => p.status === "Normal");
 
   const somaOrcamento = lista.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
@@ -202,4 +202,36 @@ export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
   }
 
   return out.slice(0, 5);
+}
+
+/** Insights específicos do Radar — narram o Delta YTD, não repetem cobertura/saldo a emitir. */
+export function generateRadarInsights(lista: ProjetoMetricas[], delta: DeltaYTDSummary): string[] {
+  const out: string[] = [];
+  const sinal = delta.deltaYTD >= 0 ? "acima" : "abaixo";
+  out.push(`Execução está ${fmtBRL(Math.abs(delta.deltaYTD), true)} ${sinal} do planejado acumulado.`);
+
+  // Contribuição por plataforma para o delta (não para o orçamento)
+  const porPlataforma = new Map<string, number>();
+  for (const p of lista) {
+    const d = (p.executadoAcumulado ?? 0) - (p.planejadoAcumulado ?? 0);
+    porPlataforma.set(p.n4Curta, (porPlataforma.get(p.n4Curta) ?? 0) + d);
+  }
+  const totalAbs = [...porPlataforma.values()].reduce((a, v) => a + Math.abs(v), 0);
+  const top = [...porPlataforma.entries()].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+  if (top && totalAbs > 0) {
+    const pct = Math.round((Math.abs(top[1]) / totalAbs) * 100);
+    out.push(`${top[0]} explica ${pct}% do resultado.`);
+  }
+
+  const ofensores = generateTopOffenders(lista, 6).filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
+  if (ofensores.length > 0) {
+    out.push(`${ofensores.length} projetos concentram o principal risco do ciclo.`);
+  }
+
+  const revisao = lista.filter((p) => p.status === "Revisão de Caixa");
+  if (revisao.length > 0) {
+    out.push(`${revisao.length} projetos exigem revisão de caixa.`);
+  }
+
+  return out.slice(0, 4);
 }
