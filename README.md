@@ -457,3 +457,34 @@ a seleção trocava a view inteira para Auditoria, quebrando o contexto de naveg
 "Insight do Ciclo" deixou de ser um bloco à parte (fundido no card "Execução do
 Plano"), então a primeira dobra agora tem exatamente os 5 blocos pedidos: Hero, Execução
 do Plano, Saúde da Carteira, Projetos para Decisão, Revisar Caixa do Ano.
+
+## Oitava rodada — refinamentos de UX
+
+### 1-2. Tooltip ilegível no tema claro + diferenciação visual do gráfico (mesma causa raiz)
+As linhas do gráfico usavam branco/branco-transparente (pensadas só para o fundo
+gradiente do card). O Recharts colore o texto do item no tooltip com a cor da própria
+série — em tema claro, o tooltip tem fundo branco, então texto branco ficava invisível.
+Corrigido com cores sólidas e distintas: **Planejado** = roxo/lilás suave, tracejado
+(`#C9BFF0`); **Executado** = azul forte, linha sólida (`#2563EB`). Também defini
+`itemStyle`/`contentStyle`/`labelStyle` explícitos no tooltip para os dois temas.
+O Delta YTD agora também é colorido (verde ▲ / vermelho ▼) conforme o sinal.
+
+### 3. Filtro Todos/Projetos para Ação/Revisão de Caixa agora afeta a tela inteira
+Antes só escondia um dos dois cartões secundários. Agora filtra de fato: gráfico,
+Delta YTD, Saúde da Carteira e insights recalculam sobre o subconjunto selecionado.
+Adicionei um selo "Filtrado: X" ao lado do Hero quando um foco está ativo, para deixar
+isso visualmente explícito.
+
+### 5-6. "Ver todos" nos dois cartões
+Novo `ProjectListModal.tsx` — modal central, com busca, ordenação (maior→menor /
+menor→maior) e scroll interno. Aparece como link "Ver todos" quando a lista tem mais
+itens do que o preview (5 em Projetos para Decisão, 3 em Revisar Caixa Ano).
+
+### 7. Renomeação final
+"Revisão de Fluxo" → **"Revisar Caixa Ano"**, unificado em todo o app (badge, filtro,
+matriz, cartão) — não há mais variação de nome para o mesmo conceito.
+
+### 8. Navegação (já corrigida na rodada anterior, confirmada aqui)
+Conferido: `handleSelectFromRadar` não troca mais de tela — o painel abre como overlay,
+e como o `RadarExecutivo` não desmonta ao abrir/fechar o painel, filtro, busca e scroll
+continuam exatamente como estavam.

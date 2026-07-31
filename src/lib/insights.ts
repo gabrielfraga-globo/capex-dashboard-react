@@ -19,7 +19,7 @@ export interface RiskSummary {
 export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
   const estourados = lista.filter((p) => p.status === "Estouro");
   const riscoNaoReal = lista.filter((p) => p.status === "Risco de Não Realização");
-  const revisaoFluxo = lista.filter((p) => p.status === "Revisão de Caixa");
+  const revisaoFluxo = lista.filter((p) => p.status === "Revisar Caixa Ano");
   const normal = lista.filter((p) => p.status === "Normal");
 
   const somaOrcamento = lista.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
@@ -228,7 +228,7 @@ export function generateRadarInsights(lista: ProjetoMetricas[], delta: DeltaYTDS
     out.push(`${ofensores.length} projetos concentram o principal risco do ciclo.`);
   }
 
-  const revisao = lista.filter((p) => p.status === "Revisão de Caixa");
+  const revisao = lista.filter((p) => p.status === "Revisar Caixa Ano");
   if (revisao.length > 0) {
     out.push(`${revisao.length} projetos exigem revisão de caixa.`);
   }

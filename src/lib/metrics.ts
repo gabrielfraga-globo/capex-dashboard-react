@@ -158,7 +158,7 @@ function calculateRiskScore(m: {
  *
  * 🔴 Estouro — Realizado + Em Pagamento (plurianual) > Orçamento Plurianual. Só dinheiro
  *    realmente gasto conta; Emitido (contrato) não é mais considerado nesta checagem.
- * 🔵 Revisão de Caixa — A Emitir negativo no período (mais foi gasto/emitido do
+ * 🔵 Revisar Caixa Ano — A Emitir negativo no período (mais foi gasto/emitido do
  *    que o orçamento do período), sem violar o plurianual. Indica potencial necessidade
  *    de antecipar ou postergar orçamento entre exercícios — não é alarme automático.
  * 🟠 Risco de Não Realização — Cobertura Financeira < 95% E faltam menos de 6 meses
@@ -192,7 +192,7 @@ function classificarRisco(
   }
 
   if (m.aEmitir !== null && m.aEmitir < 0) {
-    return { status: "Revisão de Caixa", acao: "Avaliar antecipação ou postergação de orçamento entre exercícios." };
+    return { status: "Revisar Caixa Ano", acao: "Avaliar antecipação ou postergação de orçamento entre exercícios." };
   }
 
   if (m.coberturaFinanceira < COBERTURA_MINIMA && m.mesesRestantes < JANELA_RISCO_MESES) {

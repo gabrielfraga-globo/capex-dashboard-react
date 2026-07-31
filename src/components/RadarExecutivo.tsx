@@ -7,6 +7,7 @@ import { getChartColors } from "../lib/chartColors";
 import { generateDeltaYTD, generateRadarInsights } from "../lib/insights";
 import { fmtBRL } from "../lib/format";
 import { InfoTooltip, RiskBadge } from "./ui/primitives";
+import { ProjectListModal } from "./ProjectListModal";
 import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -21,7 +22,7 @@ const SAUDE_STYLE: Record<string, string> = {
 /**
  * Radar Executivo — Bento Grid fixo. Primeira dobra com só 5 blocos: Hero, Execução
  * do Plano (com gráfico e insights embutidos), Saúde da Carteira, Projetos para
- * Decisão, Revisar Caixa do Ano. Filtros escondidos por padrão atrás de um botão.
+ * Decisão, Revisar Caixa Ano. Filtros escondidos por padrão atrás de um botão.
  */
 export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
   const filtros = useFilterStore();
@@ -29,56 +30,67 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
   const colors = getChartColors(theme);
   const [busca, setBusca] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [modalAberto, setModalAberto] = useState<"acao" | "revisao" | null>(null);
   const [foco, setFoco] = useState<"todos" | "acao" | "revisao">("todos");
 
-  const delta = useMemo(() => generateDeltaYTD(lista), [lista]);
-  const insights = useMemo(() => generateRadarInsights(lista, delta), [lista, delta]);
+  // O foco filtra TODA a visão — gráfico, indicadores, saúde e listas —, não só quais
+  // cartões aparecem. Isso responde diretamente ao pedido de que o filtro precisa
+  // impactar a tela inteira, não só a lista correspondente.
+  const listaFocada = useMemo(() => {
+    if (foco === "acao") return lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
+    if (foco === "revisao") return lista.filter((p) => p.status === "Revisar Caixa Ano");
+    return lista;
+  }, [lista, foco]);
+
+  const delta = useMemo(() => generateDeltaYTD(listaFocada), [listaFocada]);
+  const insights = useMemo(() => generateRadarInsights(listaFocada, delta), [listaFocada, delta]);
 
   const exigemAcao = useMemo(
-    () => lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
+    () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
       .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
       .sort((a, b) => b.riscoScore - a.riscoScore),
-    [lista, busca]
+    [listaFocada, busca]
   );
   const revisaoCaixa = useMemo(
-    () => lista.filter((p) => p.status === "Revisão de Caixa").filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase())),
-    [lista, busca]
+    () => listaFocada.filter((p) => p.status === "Revisar Caixa Ano").filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase())),
+    [listaFocada, busca]
   );
 
   // Saúde da carteira: 3 baldes reais (projetos + valor), não um número solto.
   const saude = useMemo(() => {
-    const normal = lista.filter((p) => p.status === "Normal");
-    const acompanhar = lista.filter((p) => p.status === "Revisão de Caixa");
-    const acao = lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
+    const normal = listaFocada.filter((p) => p.status === "Normal");
+    const acompanhar = listaFocada.filter((p) => p.status === "Revisar Caixa Ano");
+    const acao = listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
     const sum = (arr: ProjetoMetricas[]) => arr.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
     return {
       "Dentro do Plano": { n: normal.length, valor: sum(normal) },
       "Acompanhar": { n: acompanhar.length, valor: sum(acompanhar) },
       "Requer Ação": { n: acao.length, valor: sum(acao) },
     };
-  }, [lista]);
+  }, [listaFocada]);
 
-  // Gráfico Planejado × Realizado acumulado — mensal (dado real de Planejado; Realizado
+  // Gráfico Planejado × Executado acumulado — mensal (dado real de Planejado; Executado
   // é uma reta entre o início do ano e o total acumulado conhecido até o mês corrente,
-  // já que a fonte não guarda o realizado mês a mês).
+  // já que a fonte não guarda o executado mês a mês).
   const fluxoData = useMemo(() => {
     const planejadoMensal = Array(12).fill(0);
-    for (const p of lista) {
+    for (const p of listaFocada) {
       if (!p.meses2026) continue;
       p.meses2026.forEach((v, i) => { planejadoMensal[i] += v; });
     }
     let acumulado = 0;
-    const totalRealizado = delta.executadoAcumulado;
+    const totalExecutado = delta.executadoAcumulado;
     return MESES.map((m, i) => {
       acumulado += planejadoMensal[i];
-      const realizado = i + 1 <= MES_ATUAL ? (totalRealizado * (i + 1)) / MES_ATUAL : null;
-      return { mes: m, Planejado: Math.round(acumulado), Realizado: realizado !== null ? Math.round(realizado) : null };
+      const executado = i + 1 <= MES_ATUAL ? (totalExecutado * (i + 1)) / MES_ATUAL : null;
+      return { mes: m, Planejado: Math.round(acumulado), Executado: executado !== null ? Math.round(executado) : null };
     });
-  }, [lista, delta.executadoAcumulado]);
+  }, [listaFocada, delta.executadoAcumulado]);
 
   const acaoLabel = (p: ProjetoMetricas) => (p.status === "Estouro" ? "Validar estouro" : "Priorizar emissão");
   const mostrarAcao = foco !== "revisao";
   const mostrarRevisao = foco !== "acao";
+  const focoLabel = { todos: null, acao: "Projetos para Ação", revisao: "Revisar Caixa Ano" }[foco];
 
   return (
     <div>
@@ -106,7 +118,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
             {([
               { key: "todos", label: "Todos" },
               { key: "acao", label: "Projetos para Ação" },
-              { key: "revisao", label: "Revisão de Caixa" },
+              { key: "revisao", label: "Revisar Caixa Ano" },
             ] as const).map((f) => (
               <button
                 key={f.key}
@@ -132,7 +144,14 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
       </div>
 
       {/* Hero Executivo — 1 linha */}
-      <p className="text-base font-bold text-text mb-4">{delta.headline}</p>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <p className="text-base font-bold text-text">{delta.headline}</p>
+        {focoLabel && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+            Filtrado: {focoLabel}
+          </span>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Execução do Plano — card grande: números + gráfico + insights */}
@@ -160,7 +179,9 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                   <InfoTooltip text="Executado Acumulado − Planejado Acumulado. Negativo é atrás do plano; positivo, à frente." />
                 </span>
               </p>
-              <p className="text-xl font-extrabold">{fmtBRL(delta.deltaYTD, true)}</p>
+              <p className={`text-xl font-extrabold ${delta.deltaYTD >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                {delta.deltaYTD >= 0 ? "▲ " : "▼ "}{fmtBRL(delta.deltaYTD, true)}
+              </p>
             </div>
           </div>
 
@@ -170,12 +191,13 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                 <XAxis dataKey="mes" stroke="rgba(255,255,255,.6)" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip
                   formatter={(v: any) => fmtBRL(Number(v))}
-                  contentStyle={{ background: colors.tooltipBg, border: "none", borderRadius: 8, fontSize: 11 }}
-                  labelStyle={{ color: colors.tooltipLabel }}
+                  contentStyle={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: 8, fontSize: 11, color: colors.tooltipText, fontWeight: 600 }}
+                  labelStyle={{ color: colors.tooltipLabel, fontWeight: 700 }}
+                  itemStyle={{ color: colors.tooltipText, fontWeight: 600 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 10, color: "rgba(255,255,255,.85)" }} />
-                <Line type="monotone" dataKey="Planejado" stroke="rgba(255,255,255,.85)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="Realizado" stroke="#FFFFFF" strokeWidth={2.5} dot={false} connectNulls />
+                <Line type="monotone" dataKey="Planejado" stroke="#C9BFF0" strokeDasharray="4 3" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="Executado" stroke="#2563EB" strokeWidth={2.5} dot={false} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -214,7 +236,14 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         {/* Projetos para decisão */}
         {mostrarAcao && (
           <div className={`${mostrarRevisao ? "" : "lg:col-span-1"} rounded-card border border-border bg-card p-5 shadow-card`}>
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Projetos para Decisão</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Projetos para Decisão</p>
+              {exigemAcao.length > 5 && (
+                <button onClick={() => setModalAberto("acao")} className="text-[11px] font-semibold text-accent hover:underline">
+                  Ver todos ({exigemAcao.length})
+                </button>
+              )}
+            </div>
             {exigemAcao.length === 0 ? (
               <p className="text-xs text-text-faint">Nenhum projeto exige decisão nos filtros atuais.</p>
             ) : (
@@ -239,7 +268,14 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         {/* Revisar caixa do ano */}
         {mostrarRevisao && (
           <div className="rounded-card border border-border bg-card p-5 shadow-card">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-1">Revisar Caixa do Ano</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Caixa Ano</p>
+              {revisaoCaixa.length > 3 && (
+                <button onClick={() => setModalAberto("revisao")} className="text-[11px] font-semibold text-accent hover:underline">
+                  Ver todos
+                </button>
+              )}
+            </div>
             <div className="text-3xl font-extrabold text-text mt-2">{revisaoCaixa.length}</div>
             <p className="text-xs text-text-muted mt-1">
               {fmtBRL(revisaoCaixa.reduce((a, p) => a + Math.abs(p.aEmitir ?? 0), 0), true)} em replanejamento
@@ -261,6 +297,25 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
           </div>
         )}
       </div>
+
+      <ProjectListModal
+        open={modalAberto === "acao"}
+        onClose={() => setModalAberto(null)}
+        title="Projetos para Decisão — todos"
+        projetos={exigemAcao}
+        valorFn={(p) => (p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0))}
+        justificativaFn={(p) => acaoLabel(p)}
+        onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
+      />
+      <ProjectListModal
+        open={modalAberto === "revisao"}
+        onClose={() => setModalAberto(null)}
+        title="Revisar Caixa Ano — todos"
+        projetos={revisaoCaixa}
+        valorFn={(p) => Math.abs(p.aEmitir ?? 0)}
+        justificativaFn={() => "Potencial antecipação/postergação entre exercícios"}
+        onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
+      />
     </div>
   );
 }
