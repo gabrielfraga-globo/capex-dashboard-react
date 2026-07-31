@@ -46,6 +46,7 @@ export function KpiCard({
 const STATUS_STYLES: Record<StatusRisco, string> = {
   "Normal": "from-risk-baixo to-emerald-700 text-emerald-950",
   "Risco de Não Realização": "from-risk-alto to-orange-800 text-white",
+  "Revisão de Fluxo de Caixa": "from-risk-revisao to-indigo-800 text-white",
   "Estouro": "from-risk-critico to-red-900 text-white",
   "Dados insuficientes": "from-slate-500 to-slate-700 text-white",
 };
@@ -64,6 +65,7 @@ export function StatusCard({ status, n, label, sub }: { status: StatusRisco; n: 
 const BADGE_STYLES: Record<StatusRisco, string> = {
   "Estouro": "bg-risk-critico text-white",
   "Risco de Não Realização": "bg-risk-alto text-white",
+  "Revisão de Fluxo de Caixa": "bg-risk-revisao text-white",
   "Normal": "bg-risk-baixo text-emerald-950",
   "Dados insuficientes": "bg-slate-500 text-white",
 };
@@ -71,6 +73,7 @@ const BADGE_STYLES: Record<StatusRisco, string> = {
 const STATUS_ICON: Record<StatusRisco, string> = {
   "Estouro": "🔴",
   "Risco de Não Realização": "🟠",
+  "Revisão de Fluxo de Caixa": "🔵",
   "Normal": "🟢",
   "Dados insuficientes": "⚪",
 };

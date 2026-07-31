@@ -5,7 +5,7 @@
 export type Ano = "2026" | "2027";
 export type Periodo = "2026" | "2027" | "Todos";
 
-export type StatusRisco = "Estouro" | "Risco de Não Realização" | "Normal" | "Dados insuficientes";
+export type StatusRisco = "Estouro" | "Revisão de Fluxo de Caixa" | "Risco de Não Realização" | "Normal" | "Dados insuficientes";
 
 export interface Gestor {
   n3: string;
@@ -54,6 +54,8 @@ export interface ProjetoBase {
   orcamento2027: number | null;
   h1_2026: number | null;
   h2_2026: number | null;
+  meses2026: number[] | null; // jan..dez, só disponível quando o projeto existe na aba Orçamento
+  meses2027: number[] | null; // jan..mar
 
   realizado2026: number | null;
   emPagamento2026: number | null;
@@ -84,6 +86,9 @@ export interface ProjetoMetricas extends ProjetoBase {
   status: StatusRisco;
   acaoRecomendada: string;
   ritmoNecessario: number | null; // valor restante / meses restantes do período
+  planejadoAcumulado: number | null; // orçamento mensal acumulado até o mês corrente
+  realizadoAcumulado: number | null; // Realizado até a data-base (já é "acumulado" por natureza)
+  deltaYTD: number | null; // Planejado Acumulado − Realizado Acumulado
 }
 
 export interface LinhaIgnorada {

@@ -8,6 +8,7 @@ import { fmtBRL } from "../lib/format";
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
   "Risco de Não Realização": "#E0672E",
+  "Revisão de Fluxo de Caixa": "#5B7FDE",
   "Normal": "#2A9D6F",
   "Dados insuficientes": "#475569",
 };
@@ -89,7 +90,7 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
 
 export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
   const distribuicaoStatus = useMemo(() => {
-    const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Normal"];
+    const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Revisão de Fluxo de Caixa", "Normal"];
     return statuses
       .map((s) => ({ status: s, qtd: lista.filter((p) => p.status === s).length, valor: lista.filter((p) => p.status === s).reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0) }))
       .filter((s) => s.qtd > 0);

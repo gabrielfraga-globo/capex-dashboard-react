@@ -307,3 +307,60 @@ Validado contra os 209 projetos reais de 2026 (`scripts/validate-time-gated-risk
 considerando a data-base de julho/2026, portanto já dentro da janela de 6 meses): 59
 Estouro, 86 Risco de Não Realização, 39 Normal, 25 Dados insuficientes — soma exatamente
 209.
+
+## Quinta rodada — duas experiências complementares
+
+### Radar Executivo × Auditoria da Carteira
+
+A aplicação agora tem **duas telas com navegação clara** (botões no cabeçalho):
+
+- **Radar Executivo** (tela padrão ao abrir): responde só 4 perguntas — estamos
+  executando o plano? qual o delta YTD? quais projetos exigem ação? quais precisam
+  revisão de fluxo de caixa? Nenhuma métrica técnica aparece aqui — sem cobertura
+  financeira, sem Emitido, sem Em Pagamento, sem Matriz de Risco, sem fórmulas, sem
+  tabela. Reduz bem mais que 70% da informação visível em relação à Auditoria.
+- **Auditoria da Carteira**: toda a riqueza analítica já construída nas rodadas
+  anteriores (4 KPIs financeiros, Destaques, Matriz de Risco, Distribuição por
+  Plataforma, Rankings, Plano de Ação, Tabela completa, Validação Técnica).
+
+Clicar em um projeto no Radar Executivo abre o painel lateral (que tem detalhe
+técnico) e **automaticamente muda para a Auditoria** — o usuário decide entrar no
+detalhe, a informação técnica não aparece "de graça" no Radar.
+
+### Novo KPI principal: Delta YTD
+```
+Delta YTD = Planejado Acumulado − Realizado Acumulado
+```
+- **Planejado Acumulado**: soma do orçamento mensal (aba Orçamento) até o mês
+  corrente — usa o detalhe mês a mês real quando disponível; para os poucos
+  projetos que só existem na aba Realizado (sem detalhe mensal), aproxima por
+  regra de três sobre o total do ano (documentado como aproximação).
+- **Realizado Acumulado**: o campo "Realizado" já é acumulado por natureza (é o
+  valor reconhecido até a data-base).
+
+Validado contra os dados reais (base julho/2026, `scripts/validate-delta-ytd.mjs`):
+Planejado Acumulado R$ 51,35M, Realizado Acumulado R$ 48,63M, **Delta YTD = +R$
+2,72M** (positivo = atrás do plano). Assumi que "Realizado" no cálculo é o campo
+puro (sem Em Pagamento) — se a área considerar Em Pagamento parte do "realizado
+acumulado", é uma troca de uma linha em `metrics.ts`.
+
+### Estouro — fórmula revisada (mais rigorosa)
+Antes: `Executado + Emitido > Orçamento Plurianual` (contava contrato, não só gasto).
+**Agora**: `Realizado + Em Pagamento > Orçamento Plurianual` — só dinheiro
+**realmente gasto**, o Emitido não entra mais nessa conta. Validado: a contagem de
+projetos em Estouro cai de 59 (regra antiga) para **10** (regra nova) — bem mais
+rigorosa e rara, como esperado ao remover o componente de compromisso contratual.
+
+### Novo status: Revisão de Fluxo de Caixa
+Substituiu o "Revisão Financeira" de uma rodada anterior, com significado mais
+preciso: **A Emitir negativo no período, sem violar o plurianual** — sinaliza
+potencial necessidade de antecipar ou postergar orçamento entre exercícios. Não é
+tratado como alarme automático (segue a mesma filosofia de "precisa de contexto,
+não é problema garantido").
+
+### Classificação final — 5 estados
+1. 🔴 Estouro (Realizado+Em Pagamento > Orçamento Plurianual)
+2. 🔵 Revisão de Fluxo de Caixa (A Emitir do período < 0)
+3. 🟠 Risco de Não Realização (Cobertura < 95% E < 6 meses para o fim do exercício)
+4. 🟢 Normal
+5. ⚪ Dados insuficientes

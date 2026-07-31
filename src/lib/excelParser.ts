@@ -275,6 +275,8 @@ function buildProjetos(
       orcamento2027,
       h1_2026: o ? o.meses2026.slice(0, 6).reduce((a, b) => a + b, 0) : null,
       h2_2026: o ? o.meses2026.slice(6, 12).reduce((a, b) => a + b, 0) : null,
+      meses2026: o ? o.meses2026 : null,
+      meses2027: o ? o.meses2027 : null,
       realizado2026: r ? r.realizado2026 : null,
       emPagamento2026: r ? r.emPagamento2026 : null,
       realizado2027: r ? r.realizado2027 : null,

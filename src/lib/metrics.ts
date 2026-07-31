@@ -2,7 +2,8 @@ import type { Periodo, ProjetoBase, ProjetoMetricas, StatusRisco } from "../type
 
 const MESES_2026_TOTAL = 12;
 const MESES_2027_TOTAL = 3; // a planilha só tem jan-mar/2027 orçado
-const MES_ATUAL = new Date().getMonth() + 1; // 1-12, referência "hoje"
+const MES_ATUAL = new Date().getMonth() + 1; // 1-12
+const ANO_ATUAL = new Date().getFullYear();
 const JANELA_RISCO_MESES = 6; // "menos de 6 meses do fim do exercício"
 const COBERTURA_MINIMA = 0.95; // "cobertura financeira < 95%"
 
@@ -16,6 +17,27 @@ function clamp01(v: number | null): number {
   return Math.min(Math.max(v, 0), 1);
 }
 
+/** Quantos meses de um exercício já decorreram, com base na data real de hoje. */
+function mesesDecorridos(ano: number, totalMesesDoExercicio: number): number {
+  if (ANO_ATUAL > ano) return totalMesesDoExercicio; // exercício já encerrado
+  if (ANO_ATUAL < ano) return 0; // exercício ainda não começou
+  return Math.min(MES_ATUAL, totalMesesDoExercicio);
+}
+
+/** Planejado Acumulado: soma do orçamento mensal até o mês corrente. Quando o projeto não
+ * tem o detalhe mensal (só existe na aba Realizado, não na aba Orçamento), aproxima por
+ * regra de três sobre o total do ano — é uma aproximação documentada, não a exata. */
+function planejadoAcumuladoAno(meses: number[] | null, totalOrcamentoAno: number | null, ano: number, totalMeses: number): number | null {
+  const decorridos = mesesDecorridos(ano, totalMeses);
+  if (meses && meses.length === totalMeses) {
+    return meses.slice(0, decorridos).reduce((a, b) => a + b, 0);
+  }
+  if (totalOrcamentoAno !== null) {
+    return totalOrcamentoAno * (decorridos / totalMeses);
+  }
+  return null;
+}
+
 /** Resolve orçamento/executado/etc. do período selecionado para um projeto. */
 export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetricas {
   let orcamentoPeriodo: number | null;
@@ -23,27 +45,35 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
   let emPagamento: number | null;
   let mesesRestantes: number;
   let mesesTotais: number;
+  let planejadoAcumulado: number | null;
 
   if (periodo === "2026") {
     orcamentoPeriodo = p.orcamento2026;
     realizado = p.realizado2026;
     emPagamento = p.emPagamento2026;
-    mesesRestantes = Math.max(MESES_2026_TOTAL - MES_ATUAL, 0);
+    mesesRestantes = Math.max(MESES_2026_TOTAL - mesesDecorridos(2026, MESES_2026_TOTAL), 0);
     mesesTotais = MESES_2026_TOTAL;
+    planejadoAcumulado = planejadoAcumuladoAno(p.meses2026, p.orcamento2026, 2026, MESES_2026_TOTAL);
   } else if (periodo === "2027") {
     orcamentoPeriodo = p.orcamento2027;
     realizado = p.realizado2027;
     emPagamento = p.emPagamento2027;
-    mesesRestantes = MESES_2027_TOTAL;
+    mesesRestantes = Math.max(MESES_2027_TOTAL - mesesDecorridos(2027, MESES_2027_TOTAL), 0);
     mesesTotais = MESES_2027_TOTAL;
+    planejadoAcumulado = planejadoAcumuladoAno(p.meses2027, p.orcamento2027, 2027, MESES_2027_TOTAL);
   } else {
     // Todos os anos: usa o orçamento PLURIANUAL consolidado — nunca mistura granularidades.
     orcamentoPeriodo = p.orcamentoPlurianual;
     realizado = p.realizado2026 !== null || p.realizado2027 !== null ? (p.realizado2026 ?? 0) + (p.realizado2027 ?? 0) : null;
     emPagamento =
       p.emPagamento2026 !== null || p.emPagamento2027 !== null ? (p.emPagamento2026 ?? 0) + (p.emPagamento2027 ?? 0) : null;
-    mesesRestantes = Math.max(MESES_2026_TOTAL - MES_ATUAL, 0) + MESES_2027_TOTAL;
+    mesesRestantes =
+      Math.max(MESES_2026_TOTAL - mesesDecorridos(2026, MESES_2026_TOTAL), 0) +
+      Math.max(MESES_2027_TOTAL - mesesDecorridos(2027, MESES_2027_TOTAL), 0);
     mesesTotais = MESES_2026_TOTAL + MESES_2027_TOTAL;
+    const plan2026 = planejadoAcumuladoAno(p.meses2026, p.orcamento2026, 2026, MESES_2026_TOTAL);
+    const plan2027 = planejadoAcumuladoAno(p.meses2027, p.orcamento2027, 2027, MESES_2027_TOTAL);
+    planejadoAcumulado = plan2026 !== null || plan2027 !== null ? (plan2026 ?? 0) + (plan2027 ?? 0) : null;
   }
 
   const executado = realizado !== null || emPagamento !== null ? (realizado ?? 0) + (emPagamento ?? 0) : null;
@@ -61,15 +91,22 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
       ? (executado + compromisso) / orcamentoPeriodo
       : null;
 
+  // --- Delta YTD: o indicador executivo principal ---
+  const realizadoAcumulado = realizado; // o "Realizado" da fonte já é acumulado até a data-base
+  const deltaYTD = planejadoAcumulado !== null && realizadoAcumulado !== null ? planejadoAcumulado - realizadoAcumulado : null;
+
+  // --- Estouro (regra revisada): só considera dinheiro REALMENTE gasto (Realizado + Em
+  // Pagamento), plurianual, contra o orçamento plurianual — não conta mais o Emitido. ---
+  const executadoPlurianualTotal =
+    (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0) + (p.realizado2027 ?? 0) + (p.emPagamento2027 ?? 0);
   const valorComprometidoTotal = executado !== null || compromisso !== null ? (executado ?? 0) + (compromisso ?? 0) : null;
   const pctOrcamentoPlurianual = safeDiv(valorComprometidoTotal, p.orcamentoPlurianual);
-  const desvioPlurianual =
-    valorComprometidoTotal !== null && p.orcamentoPlurianual !== null ? valorComprometidoTotal - p.orcamentoPlurianual : null;
+  const desvioPlurianual = p.orcamentoPlurianual !== null ? executadoPlurianualTotal - p.orcamentoPlurianual : null;
 
   const restante = aEmitir !== null ? Math.max(aEmitir, 0) : null;
   const ritmoNecessario = restante !== null ? restante / Math.max(mesesRestantes, 1) : null;
 
-  const { status, acao } = classificarRisco(p, { orcamentoPeriodo, coberturaFinanceira, desvioPlurianual, mesesRestantes });
+  const { status, acao } = classificarRisco(p, { orcamentoPeriodo, aEmitir, coberturaFinanceira, desvioPlurianual, mesesRestantes });
 
   const riscoScore = calculateRiskScore({ status, orcamentoPeriodo, coberturaFinanceira, mesesRestantes, mesesTotais });
 
@@ -91,6 +128,9 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
     status,
     acaoRecomendada: acao,
     ritmoNecessario,
+    planejadoAcumulado,
+    realizadoAcumulado,
+    deltaYTD,
   };
 }
 
@@ -112,19 +152,27 @@ function calculateRiskScore(m: {
 }
 
 /**
- * Classificação simplificada — apenas 4 estados:
+ * Classificação — 5 estados:
  *
- * 🔴 Estouro — Executado + Emitido > Orçamento Plurianual. Sempre prioridade máxima.
+ * 🔴 Estouro — Realizado + Em Pagamento (plurianual) > Orçamento Plurianual. Só dinheiro
+ *    realmente gasto conta; Emitido (contrato) não é mais considerado nesta checagem.
+ * 🔵 Revisão de Fluxo de Caixa — A Emitir negativo no período (mais foi gasto/emitido do
+ *    que o orçamento do período), sem violar o plurianual. Indica potencial necessidade
+ *    de antecipar ou postergar orçamento entre exercícios — não é alarme automático.
  * 🟠 Risco de Não Realização — Cobertura Financeira < 95% E faltam menos de 6 meses
- *    para o fim do exercício selecionado. Fora dessa janela de tempo, mesmo uma
- *    cobertura baixa ainda é considerada normal (há tempo hábil para resolver).
- * 🟢 Normal — todo o resto, incluindo cobertura baixa com tempo hábil e cobertura
- *    acima de 100% (execução/emissão adiantada).
+ *    para o fim do exercício selecionado.
+ * 🟢 Normal — todo o resto.
  * ⚪ Dados insuficientes — sem orçamento em nenhuma fonte.
  */
 function classificarRisco(
   p: ProjetoBase,
-  m: { orcamentoPeriodo: number | null; coberturaFinanceira: number | null; desvioPlurianual: number | null; mesesRestantes: number }
+  m: {
+    orcamentoPeriodo: number | null;
+    aEmitir: number | null;
+    coberturaFinanceira: number | null;
+    desvioPlurianual: number | null;
+    mesesRestantes: number;
+  }
 ): { status: StatusRisco; acao: string } {
   if (m.orcamentoPeriodo === null && p.orcamentoPlurianual === null) {
     return { status: "Dados insuficientes", acao: "Verificar cadastro do projeto." };
@@ -133,12 +181,16 @@ function classificarRisco(
   if (m.desvioPlurianual !== null && m.desvioPlurianual > 0) {
     return {
       status: "Estouro",
-      acao: p.orcamentoPlurianual === 0 ? "Regularizar emissão sem orçamento aprovado." : "Revisar orçamento plurianual.",
+      acao: p.orcamentoPlurianual === 0 ? "Regularizar gasto sem orçamento aprovado." : "Revisar orçamento plurianual.",
     };
   }
 
   if (m.orcamentoPeriodo === null || m.orcamentoPeriodo <= 0 || m.coberturaFinanceira === null) {
     return { status: "Dados insuficientes", acao: "Cobertura financeira não calculável." };
+  }
+
+  if (m.aEmitir !== null && m.aEmitir < 0) {
+    return { status: "Revisão de Fluxo de Caixa", acao: "Avaliar antecipação ou postergação de orçamento entre exercícios." };
   }
 
   if (m.coberturaFinanceira < COBERTURA_MINIMA && m.mesesRestantes < JANELA_RISCO_MESES) {

@@ -7,6 +7,7 @@ import { FilterBar } from "./components/FilterBar";
 import { ContextBar } from "./components/ContextBar";
 import { ExecutiveSummary } from "./components/ExecutiveSummary";
 import { Destaques } from "./components/Destaques";
+import { RadarExecutivo } from "./components/RadarExecutivo";
 import { RiskMatrix } from "./components/RiskMatrix";
 import { DistribuicaoFinanceiraPlataforma } from "./components/Diagnostics";
 import { Rankings } from "./components/Rankings";
@@ -15,13 +16,16 @@ import { ProjectsTable } from "./components/ProjectsTable";
 import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { BentoCard } from "./components/ui/bento";
-import { Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Loader2, AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
+
+type ViewMode = "radar" | "auditoria";
 
 export default function App() {
   const [parsed, setParsed] = useState<RelatorioParsing | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
   const [modoAuditoria, setModoAuditoria] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("radar");
   const filtros = useFilterStore();
 
   useEffect(() => {
@@ -66,6 +70,13 @@ export default function App() {
 
   const periodoLabel = { "2026": "Orçamento 2026", "2027": "Orçamento 2027", "Todos": "Consolidado 2026–2027" }[filtros.periodo];
 
+  // Selecionar um projeto no Radar Executivo abre o detalhe técnico — isso só existe
+  // na Auditoria, então a seleção já leva o usuário para lá.
+  const handleSelectFromRadar = (p: ProjetoMetricas) => {
+    setSelected(p);
+    setViewMode("auditoria");
+  };
+
   if (loadError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg px-4">
@@ -93,17 +104,42 @@ export default function App() {
     <div className="min-h-screen bg-bg text-text px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
       <header className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-lg font-bold">📊 Radar Executivo — Carteira CAPEX</h1>
-          <p className="text-[11px] text-text-muted">Plataformas de Produção</p>
+          <h1 className="text-lg font-bold">📊 Carteira CAPEX — Plataformas de Produção</h1>
+          <p className="text-[11px] text-text-muted">
+            {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
+          </p>
         </div>
-        <button
-          onClick={() => setModoAuditoria((v) => !v)}
-          className={`flex items-center gap-1.5 text-xs rounded-md border px-3 py-1.5 transition-colors ${
-            modoAuditoria ? "border-accent text-accent bg-accent/10" : "border-border text-text-muted hover:text-text"
-          }`}
-        >
-          <ShieldCheck size={13} /> Modo Auditoria
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Navegação entre as duas experiências */}
+          <div className="flex rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode("radar")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                viewMode === "radar" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+              }`}
+            >
+              <Radar size={13} /> Radar Executivo
+            </button>
+            <button
+              onClick={() => setViewMode("auditoria")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                viewMode === "auditoria" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+              }`}
+            >
+              <ClipboardList size={13} /> Auditoria da Carteira
+            </button>
+          </div>
+          {viewMode === "auditoria" && (
+            <button
+              onClick={() => setModoAuditoria((v) => !v)}
+              className={`flex items-center gap-1.5 text-xs rounded-md border px-3 py-1.5 transition-colors ${
+                modoAuditoria ? "border-accent text-accent bg-accent/10" : "border-border text-text-muted hover:text-text"
+              }`}
+            >
+              <ShieldCheck size={13} /> Validação Técnica
+            </button>
+          )}
+        </div>
       </header>
 
       <ContextBar parsed={parsed} totalFiltrado={metricasFiltradas.length} totalGeral={todasMetricas.length} periodoLabel={periodoLabel} />
@@ -122,40 +158,44 @@ export default function App() {
         ))}
       </div>
 
-      <FilterBar projetos={parsed.projetos} />
+      {viewMode === "radar" ? (
+        <RadarExecutivo lista={metricasFiltradas} onSelect={handleSelectFromRadar} />
+      ) : (
+        <>
+          <FilterBar projetos={parsed.projetos} />
 
-      {/* Primeira dobra — só 5 respostas: orçamento, executado, emitido, a emitir, saúde geral */}
-      <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} />
+          <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} />
 
-      {/* Tudo mais: recolhido por padrão, explicado só sob demanda */}
-      <div className="space-y-3 mb-6">
-        <BentoCard title="Destaques" icon="🎯">
-          <Destaques lista={metricasFiltradas} onSelect={setSelected} />
-        </BentoCard>
+          <div className="space-y-3 mb-6">
+            <BentoCard title="Destaques" icon="🎯">
+              <Destaques lista={metricasFiltradas} onSelect={setSelected} />
+            </BentoCard>
 
-        <BentoCard title="Matriz de Risco" icon="🧭">
-          <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
-        </BentoCard>
+            <BentoCard title="Matriz de Risco" icon="🧭">
+              <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
+            </BentoCard>
 
-        <BentoCard title="Distribuição Financeira por Plataforma" icon="🏗️">
-          <DistribuicaoFinanceiraPlataforma lista={metricasFiltradas} />
-        </BentoCard>
+            <BentoCard title="Distribuição Financeira por Plataforma" icon="🏗️">
+              <DistribuicaoFinanceiraPlataforma lista={metricasFiltradas} />
+            </BentoCard>
 
-        <BentoCard title="Projetos Prioritários" icon="📋">
-          <Rankings lista={metricasFiltradas} onSelect={setSelected} />
-        </BentoCard>
+            <BentoCard title="Projetos Prioritários" icon="📋">
+              <Rankings lista={metricasFiltradas} onSelect={setSelected} />
+            </BentoCard>
 
-        <BentoCard title="Plano de Ação" icon="✅">
-          <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
-        </BentoCard>
+            <BentoCard title="Plano de Ação" icon="✅">
+              <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
+            </BentoCard>
 
-        <BentoCard title="Detalhamento Completo" icon="🗂️" tooltip="Tabela completa, ordenável e exportável.">
-          <ProjectsTable lista={metricasFiltradas} onSelect={setSelected} />
-        </BentoCard>
-      </div>
+            <BentoCard title="Detalhamento Completo" icon="🗂️" tooltip="Tabela completa, ordenável e exportável.">
+              <ProjectsTable lista={metricasFiltradas} onSelect={setSelected} />
+            </BentoCard>
+          </div>
 
-      {modoAuditoria && (
-        <ValidationPanel metricas2026={metricas2026} parsed={parsed} totalGeralProjetos={parsed.projetos.length} />
+          {modoAuditoria && (
+            <ValidationPanel metricas2026={metricas2026} parsed={parsed} totalGeralProjetos={parsed.projetos.length} />
+          )}
+        </>
       )}
 
       <footer className="text-center text-[11px] text-text-faint py-4">

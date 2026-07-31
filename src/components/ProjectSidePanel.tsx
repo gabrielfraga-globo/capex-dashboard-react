@@ -56,7 +56,10 @@ export function ProjectSidePanel({
       <Field label="% Execução" value={fmtPct(projeto.pctExecucao)} tooltip="Percentual do orçamento do período que já foi de fato gasto." />
       <Field label="% Emitido" value={fmtPct(projeto.pctComprometimento)} tooltip="Percentual do orçamento do período que já tem contrato ou pedido de compra emitido." />
       <Field label="Cobertura Financeira" value={fmtPct(projeto.coberturaFinanceira)} tooltip="Parcela do orçamento já com movimentação financeira: (Executado + Emitido) ÷ Orçamento." />
-      <Field label="Desvio plurianual" value={fmtBRL(projeto.desvioPlurianual)} tooltip="Quanto o total já gasto e emitido ultrapassa (se positivo) o orçamento aprovado para todo o projeto." />
+      <Field label="Planejado Acumulado" value={fmtBRL(projeto.planejadoAcumulado)} tooltip="Orçamento mensal acumulado até o mês corrente." />
+      <Field label="Realizado Acumulado" value={fmtBRL(projeto.realizadoAcumulado)} tooltip="Valor realizado até a data-base." />
+      <Field label="Delta YTD" value={fmtBRL(projeto.deltaYTD)} tooltip="Planejado Acumulado − Realizado Acumulado. Positivo = atrás do plano." />
+      <Field label="Desvio plurianual" value={fmtBRL(projeto.desvioPlurianual)} tooltip="Quanto o total já pago/gasto (Realizado + Em Pagamento) ultrapassa, se positivo, o orçamento aprovado para todo o projeto." />
       <Field label="Participação no risco total" value={fmtPct(projeto.participacaoRisco)} tooltip="Peso deste projeto no risco financeiro de toda a carteira filtrada — quanto maior, mais prioritário." />
       <Field label="Ritmo necessário (por mês restante)" value={fmtBRL(projeto.ritmoNecessario)} tooltip="Quanto a área precisa emitir/gastar por mês, em média, para não deixar saldo parado até o fim do período." />
 

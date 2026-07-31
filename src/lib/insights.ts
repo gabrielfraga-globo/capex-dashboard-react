@@ -9,6 +9,7 @@ import { fmtBRL, fmtPct } from "./format";
 export interface RiskSummary {
   estouro: { n: number; valor: number };
   riscoNaoRealizacao: { n: number; valor: number };
+  revisaoFluxoCaixa: { n: number; valor: number };
   normal: { n: number };
   coberturaFinanceira: number | null;
   exposicaoFinanceira: number;
@@ -18,6 +19,7 @@ export interface RiskSummary {
 export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
   const estourados = lista.filter((p) => p.status === "Estouro");
   const riscoNaoReal = lista.filter((p) => p.status === "Risco de Não Realização");
+  const revisaoFluxo = lista.filter((p) => p.status === "Revisão de Fluxo de Caixa");
   const normal = lista.filter((p) => p.status === "Normal");
 
   const somaOrcamento = lista.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
@@ -32,11 +34,34 @@ export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
   return {
     estouro: { n: estourados.length, valor: estourados.reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0) },
     riscoNaoRealizacao: { n: riscoNaoReal.length, valor: riscoNaoReal.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0) },
+    revisaoFluxoCaixa: { n: revisaoFluxo.length, valor: revisaoFluxo.reduce((a, p) => a + (p.aEmitir ?? 0), 0) },
     normal: { n: normal.length },
     coberturaFinanceira,
     exposicaoFinanceira,
     nCriticos: estourados.length + riscoNaoReal.length,
   };
+}
+
+export interface DeltaYTDSummary {
+  planejadoAcumulado: number;
+  realizadoAcumulado: number;
+  deltaYTD: number;
+  headline: string; // ≤ 8 palavras — "estamos executando o plano?"
+}
+
+/** Delta YTD agregado da carteira filtrada — o indicador executivo principal do Radar. */
+export function generateDeltaYTD(lista: ProjetoMetricas[]): DeltaYTDSummary {
+  const planejadoAcumulado = lista.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0);
+  const realizadoAcumulado = lista.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0);
+  const deltaYTD = planejadoAcumulado - realizadoAcumulado;
+
+  const pctDelta = planejadoAcumulado > 0 ? deltaYTD / planejadoAcumulado : 0;
+  let headline: string;
+  if (pctDelta > 0.1) headline = "🟠 Atrás do plano.";
+  else if (pctDelta < -0.1) headline = "🔵 À frente do plano.";
+  else headline = "🟢 No plano.";
+
+  return { planejadoAcumulado, realizadoAcumulado, deltaYTD, headline };
 }
 
 export interface ExecutiveSummaryData {
@@ -153,6 +178,9 @@ export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
 
   if (risco.riscoNaoRealizacao.n > 0) {
     out.push(`🟠 ${risco.riscoNaoRealizacao.n} projetos em risco de não realização.`);
+  }
+  if (risco.revisaoFluxoCaixa.n > 0) {
+    out.push(`🔵 ${risco.revisaoFluxoCaixa.n} projetos precisam revisão de fluxo de caixa.`);
   }
 
   const ofensores = generateTopOffenders(lista, 5);
