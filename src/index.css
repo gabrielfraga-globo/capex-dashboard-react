@@ -2,17 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+[data-theme="dark"] {
+  --color-bg: #0E1520;
+  --color-bg-sidebar: #0A1019;
+  --color-card: #121A26;
+  --color-card-alt: #16202F;
+  --color-border: #22304A;
+  --color-border-subtle: #1B2534;
+  --color-text: #E6EAF2;
+  --color-text-muted: #8CA0BF;
+  --color-text-faint: #6B85AD;
+  --color-accent: 124 143 224;
+  --gradient-a: #6D5BD0;
+  --gradient-b: #3DA5F4;
+  --card-shadow: 0 4px 24px rgba(0,0,0,.35);
+}
+
+[data-theme="light"] {
+  --color-bg: #F7F7FB;
+  --color-bg-sidebar: #EFEEF7;
+  --color-card: #FFFFFF;
+  --color-card-alt: #F5F3FC;
+  --color-border: #E4E2F0;
+  --color-border-subtle: #ECEAF6;
+  --color-text: #1A1A2E;
+  --color-text-muted: #6B7280;
+  --color-text-faint: #9CA3AF;
+  --color-accent: 109 91 208;
+  --gradient-a: #8B7FE8;
+  --gradient-b: #5B7FDE;
+  --card-shadow: 0 4px 24px rgba(109,91,208,.10);
+}
+
 html, body, #root { height: 100%; }
 body {
-  background-color: #0E1520;
-  color: #E6EAF2;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: "Segoe UI", Inter, system-ui, sans-serif;
+  transition: background-color .2s ease, color .2s ease;
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #0E1520; }
-::-webkit-scrollbar-thumb { background: #22304A; border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: #2c3e5c; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
 
-.info-icon { display:inline-block; font-size:13px; color:#6B85AD; cursor:help; }
-.info-icon:hover { color:#3DA5F4; }
+.info-icon { display:inline-block; font-size:13px; color: var(--color-text-faint); cursor:help; }
+.info-icon:hover { color: var(--color-accent); }
+
+table { width:100%; border-collapse:collapse; font-size:13px; }
+table thead th {
+  text-align:left; padding:9px 10px; background: var(--color-card-alt); color: var(--color-text-muted);
+  font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+  border-bottom:2px solid var(--color-border); position:sticky; top:0;
+}
+table tbody td { padding:8px 10px; border-bottom:1px solid var(--color-border-subtle); color: var(--color-text); }
+table tbody tr:hover td { background: var(--color-card-alt); }

@@ -44,24 +44,29 @@ export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
 
 export interface DeltaYTDSummary {
   planejadoAcumulado: number;
-  realizadoAcumulado: number;
+  executadoAcumulado: number;
   deltaYTD: number;
-  headline: string; // ≤ 8 palavras — "estamos executando o plano?"
+  headline: string; // ≤ 4 palavras de título, frase objetiva
+  statusSimples: "Dentro do plano" | "Acompanhar" | "Requer ação";
 }
 
 /** Delta YTD agregado da carteira filtrada — o indicador executivo principal do Radar. */
+/** Delta YTD agregado — o indicador executivo principal. Executado − Planejado:
+ * negativo = atrás do plano, positivo = à frente do plano. */
 export function generateDeltaYTD(lista: ProjetoMetricas[]): DeltaYTDSummary {
   const planejadoAcumulado = lista.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0);
-  const realizadoAcumulado = lista.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0);
-  const deltaYTD = planejadoAcumulado - realizadoAcumulado;
+  const executadoAcumulado = lista.reduce((a, p) => a + (p.executadoAcumulado ?? 0), 0);
+  const deltaYTD = executadoAcumulado - planejadoAcumulado;
 
   const pctDelta = planejadoAcumulado > 0 ? deltaYTD / planejadoAcumulado : 0;
   let headline: string;
-  if (pctDelta > 0.1) headline = "🟠 Atrás do plano.";
-  else if (pctDelta < -0.1) headline = "🔵 À frente do plano.";
-  else headline = "🟢 No plano.";
+  let statusSimples: "Dentro do plano" | "Acompanhar" | "Requer ação";
+  if (pctDelta < -0.15) { headline = "Requer ação — bem atrás do plano."; statusSimples = "Requer ação"; }
+  else if (pctDelta < -0.05) { headline = "Acompanhar — levemente atrás do plano."; statusSimples = "Acompanhar"; }
+  else if (pctDelta > 0.05) { headline = "À frente do plano."; statusSimples = "Dentro do plano"; }
+  else { headline = "Dentro do plano."; statusSimples = "Dentro do plano"; }
 
-  return { planejadoAcumulado, realizadoAcumulado, deltaYTD, headline };
+  return { planejadoAcumulado, executadoAcumulado, deltaYTD, headline, statusSimples };
 }
 
 export interface ExecutiveSummaryData {

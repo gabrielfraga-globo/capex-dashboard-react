@@ -364,3 +364,50 @@ não é problema garantido").
 3. 🟠 Risco de Não Realização (Cobertura < 95% E < 6 meses para o fim do exercício)
 4. 🟢 Normal
 5. ⚪ Dados insuficientes
+
+## Sexta rodada — Decision Hub (Bento premium, tema claro/escuro)
+
+### Delta YTD — base e sinal corrigidos
+Antes: `Planejado − Realizado` (Realizado puro, sem Em Pagamento).
+**Agora**: `Executado Acumulado − Planejado Acumulado`, onde `Executado = Realizado + Em
+Pagamento`. Sinal invertido: **negativo = atrás do plano, positivo = à frente**.
+Validado (`scripts/validate-delta-ytd-v2.mjs`, base julho/2026): Planejado R$ 51,35M,
+Executado R$ 53,75M, **Delta YTD = +R$ 2,40M** (à frente do plano).
+
+### Radar Executivo — Bento Grid fixo (sem accordion)
+Reescrito por completo: card hero "Execução do Plano" (Planejado/Executado/Delta YTD +
+status), Saúde da Carteira (3 estados: Dentro do plano/Acompanhar/Requer ação), Insight
+do Ciclo (3-4 frases), Projetos para Decisão, Revisão de Fluxo — tudo visível sem
+nenhum clique. Filtro simplificado: Ano (compartilhado) + toggle Todos/Projetos para
+Ação/Revisão de Fluxo + busca — nada de filtros avançados aqui (só na Auditoria).
+
+### Copywriting executivo
+"Top 5 Ofensores" → "Projetos para Decisão" · "Exposição Financeira" → "Ajuste de
+Fluxo" · "Projetos Críticos" → "Projetos para Ação" · "Plataformas em Atenção" →
+"Composição por Plataforma".
+
+### Tema claro/escuro
+Implementado via CSS custom properties (`index.css`, `[data-theme="light"|"dark"]`),
+`themeStore.ts` (zustand + persistência em localStorage) e `ThemeToggle.tsx`. Aplicado
+antes do primeiro render (`main.tsx`) para não piscar o tema errado ao carregar.
+
+**Bug real encontrado e corrigido**: cores baseadas em variável CSS (`accent`, o
+gradiente do hero) quebravam silenciosamente ao usar modificador de opacidade do
+Tailwind (`bg-accent/10`, `from-gradA/90` etc.) — a classe simplesmente não era gerada.
+Corrigido armazenando `--color-accent` como tripla RGB (`124 143 224`) e referenciando
+via `rgb(var(--color-accent) / <alpha-value>)` no `tailwind.config.js`, que é o padrão
+que o Tailwind exige para opacidade funcionar com variáveis CSS. Confirmado inspecionando
+o CSS gerado.
+
+**Gráficos (Recharts) também tornados sensíveis ao tema**: como esses componentes
+recebem cor como string literal via props (não classe Tailwind), criei
+`lib/chartColors.ts` com paletas para os dois temas, aplicado em `Diagnostics.tsx`,
+`RiskMatrix.tsx` e `ProjectSidePanel.tsx`.
+
+### Identidade visual
+Ícone de marca novo (`BrandMark.tsx`, SVG radar abstrato com gradiente lilás→azul),
+substituindo o emoji de gráfico genérico.
+
+### Responsividade
+Bento em coluna única no mobile (empilha), cabeçalho com `flex-wrap`, linha de números
+do hero em coluna única abaixo do breakpoint `sm`.

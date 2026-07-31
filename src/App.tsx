@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ProjetoMetricas, RelatorioParsing } from "./types";
 import { useFilterStore } from "./store/filterStore";
+import { useThemeStore } from "./store/themeStore";
 import { computeMetricas, withParticipacaoRisco } from "./lib/metrics";
 import { loadPortfolioData } from "./lib/dataSource";
 import { FilterBar } from "./components/FilterBar";
@@ -16,6 +17,8 @@ import { ProjectsTable } from "./components/ProjectsTable";
 import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { ValidationPanel } from "./components/ValidationPanel";
 import { BentoCard } from "./components/ui/bento";
+import { BrandMark } from "./components/ui/BrandMark";
+import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { Loader2, AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
 
 type ViewMode = "radar" | "auditoria";
@@ -27,6 +30,12 @@ export default function App() {
   const [modoAuditoria, setModoAuditoria] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
   const filtros = useFilterStore();
+  const { theme } = useThemeStore();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
 
   useEffect(() => {
     loadPortfolioData()
@@ -102,14 +111,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-text px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
-      <header className="flex items-center justify-between mb-3">
-        <div>
-          <h1 className="text-lg font-bold">📊 Carteira CAPEX — Plataformas de Produção</h1>
-          <p className="text-[11px] text-text-muted">
-            {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
-          </p>
+      <header className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2.5">
+          <BrandMark size={28} />
+          <div>
+            <h1 className="text-lg font-bold leading-tight">Carteira CAPEX</h1>
+            <p className="text-[11px] text-text-muted">
+              {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {/* Navegação entre as duas experiências */}
           <div className="flex rounded-md border border-border overflow-hidden">
             <button
@@ -175,7 +188,7 @@ export default function App() {
               <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
             </BentoCard>
 
-            <BentoCard title="Distribuição Financeira por Plataforma" icon="🏗️">
+            <BentoCard title="Composição por Plataforma" icon="🏗️">
               <DistribuicaoFinanceiraPlataforma lista={metricasFiltradas} />
             </BentoCard>
 

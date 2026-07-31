@@ -18,12 +18,12 @@ export function Destaques({ lista, onSelect }: { lista: ProjetoMetricas[]; onSel
           tooltip="(Executado + Emitido) ÷ Orçamento."
         />
         <KpiCard
-          label="Exposição Financeira"
+          label="Ajuste de Fluxo"
           value={fmtBRL(risco.exposicaoFinanceira, true)}
           tooltip="Valor total em risco de estouro ou não realização."
         />
         <KpiCard
-          label="Projetos Críticos"
+          label="Projetos para Ação"
           value={String(risco.nCriticos)}
           tooltip="Projetos em Estouro ou Risco de Não Realização."
         />
@@ -41,7 +41,7 @@ export function Destaques({ lista, onSelect }: { lista: ProjetoMetricas[]; onSel
           </div>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-2">Top 5 Ofensores</p>
+          <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold mb-2">Projetos para Decisão</p>
           <div className="space-y-1">
             {ofensores.length === 0 ? (
               <p className="text-xs text-text-faint">Nenhum ofensor nos filtros atuais.</p>

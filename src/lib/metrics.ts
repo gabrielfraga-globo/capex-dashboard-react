@@ -91,9 +91,10 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
       ? (executado + compromisso) / orcamentoPeriodo
       : null;
 
-  // --- Delta YTD: o indicador executivo principal ---
-  const realizadoAcumulado = realizado; // o "Realizado" da fonte já é acumulado até a data-base
-  const deltaYTD = planejadoAcumulado !== null && realizadoAcumulado !== null ? planejadoAcumulado - realizadoAcumulado : null;
+  // --- Delta YTD: o indicador executivo principal (Executado − Planejado) ---
+  const realizadoAcumulado = realizado; // "Realizado" da fonte já é acumulado até a data-base
+  const executadoAcumulado = realizado !== null || emPagamento !== null ? (realizado ?? 0) + (emPagamento ?? 0) : null;
+  const deltaYTD = planejadoAcumulado !== null && executadoAcumulado !== null ? executadoAcumulado - planejadoAcumulado : null;
 
   // --- Estouro (regra revisada): só considera dinheiro REALMENTE gasto (Realizado + Em
   // Pagamento), plurianual, contra o orçamento plurianual — não conta mais o Emitido. ---
@@ -130,6 +131,7 @@ export function computeMetricas(p: ProjetoBase, periodo: Periodo): ProjetoMetric
     ritmoNecessario,
     planejadoAcumulado,
     realizadoAcumulado,
+    executadoAcumulado,
     deltaYTD,
   };
 }

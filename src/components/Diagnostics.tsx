@@ -4,6 +4,8 @@ import {
 } from "recharts";
 import type { ProjetoMetricas } from "../types";
 import { fmtBRL } from "../lib/format";
+import { useThemeStore } from "../store/themeStore";
+import { getChartColors, chartTooltipStyle } from "../lib/chartColors";
 
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
@@ -13,12 +15,11 @@ const RISK_COLORS: Record<string, string> = {
   "Dados insuficientes": "#475569",
 };
 
-const chartTooltipStyle = {
-  contentStyle: { background: "#16202F", border: "1px solid #22304A", borderRadius: 8, fontSize: 12, color: "#E6EAF2" },
-  labelStyle: { color: "#8CA0BF" },
-};
-
 export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetricas[] }) {
+  const { theme } = useThemeStore();
+  const colors = getChartColors(theme);
+  const tooltipStyle = chartTooltipStyle(theme);
+
   const porPlataforma = useMemo(() => {
     const map = new Map<string, { plataforma: string; orcamento: number; executado: number; compromisso: number; aEmitir: number }>();
     for (const p of lista) {
@@ -55,10 +56,10 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
         <p className="text-xs font-semibold text-text-muted mb-2">Orçamento × Executado × Emitido × A Emitir (R$)</p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={porPlataforma} layout="vertical" margin={{ left: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#22304A" horizontal={false} />
-            <XAxis type="number" tickFormatter={(v) => fmtBRL(v, true)} stroke="#8CA0BF" fontSize={11} />
-            <YAxis type="category" dataKey="plataforma" stroke="#8CA0BF" fontSize={11} width={130} />
-            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} {...chartTooltipStyle} />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+            <XAxis type="number" tickFormatter={(v) => fmtBRL(v, true)} stroke={colors.axis} fontSize={11} />
+            <YAxis type="category" dataKey="plataforma" stroke={colors.axis} fontSize={11} width={130} />
+            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} {...tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="orcamento" name="Orçamento" fill="#3DA5F4" radius={[0, 4, 4, 0]} />
             <Bar dataKey="executado" name="Executado" fill="#7FD1B9" radius={[0, 4, 4, 0]} />
@@ -72,10 +73,10 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
         <p className="text-xs font-semibold text-text-muted mb-2">Composição do Orçamento por Plataforma (%)</p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={composicao} layout="vertical" margin={{ left: 20 }} stackOffset="expand">
-            <CartesianGrid strokeDasharray="3 3" stroke="#22304A" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#8CA0BF" fontSize={11} />
-            <YAxis type="category" dataKey="plataforma" stroke="#8CA0BF" fontSize={11} width={130} />
-            <Tooltip formatter={(v: any) => `${Number(v).toFixed(0)}%`} {...chartTooltipStyle} />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke={colors.axis} fontSize={11} />
+            <YAxis type="category" dataKey="plataforma" stroke={colors.axis} fontSize={11} width={130} />
+            <Tooltip formatter={(v: any) => `${Number(v).toFixed(0)}%`} {...tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9" />
             <Bar dataKey="pctComprometido" name="Emitido" stackId="a" fill="#E0B429" />
@@ -89,6 +90,8 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
 }
 
 export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
+  const { theme } = useThemeStore();
+  const tooltipStyle = chartTooltipStyle(theme);
   const distribuicaoStatus = useMemo(() => {
     const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Revisão de Fluxo de Caixa", "Normal"];
     return statuses
@@ -105,7 +108,7 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
             <Pie data={distribuicaoStatus} dataKey="qtd" nameKey="status" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => e.qtd}>
               {distribuicaoStatus.map((d) => <Cell key={d.status} fill={RISK_COLORS[d.status]} />)}
             </Pie>
-            <Tooltip {...chartTooltipStyle} />
+            <Tooltip {...tooltipStyle} />
           </PieChart>
         </ResponsiveContainer>
         <ResponsiveContainer width="100%" height="100%">
@@ -113,7 +116,7 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
             <Pie data={distribuicaoStatus} dataKey="valor" nameKey="status" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => fmtBRL(e.valor, true)}>
               {distribuicaoStatus.map((d) => <Cell key={d.status} fill={RISK_COLORS[d.status]} />)}
             </Pie>
-            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} {...chartTooltipStyle} />
+            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} {...tooltipStyle} />
           </PieChart>
         </ResponsiveContainer>
       </div>

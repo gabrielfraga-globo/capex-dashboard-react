@@ -87,8 +87,9 @@ export interface ProjetoMetricas extends ProjetoBase {
   acaoRecomendada: string;
   ritmoNecessario: number | null; // valor restante / meses restantes do período
   planejadoAcumulado: number | null; // orçamento mensal acumulado até o mês corrente
-  realizadoAcumulado: number | null; // Realizado até a data-base (já é "acumulado" por natureza)
-  deltaYTD: number | null; // Planejado Acumulado − Realizado Acumulado
+  realizadoAcumulado: number | null; // Realizado até a data-base (sem Em Pagamento)
+  executadoAcumulado: number | null; // Realizado + Em Pagamento até a data-base
+  deltaYTD: number | null; // Executado Acumulado − Planejado Acumulado
 }
 
 export interface LinhaIgnorada {

@@ -1,6 +1,8 @@
 import { SidePanel } from "./ui/sidepanel";
 import { RiskBadge, InfoTooltip } from "./ui/primitives";
 import { fmtBRL, fmtPct } from "../lib/format";
+import { useThemeStore } from "../store/themeStore";
+import { getChartColors } from "../lib/chartColors";
 import type { ProjetoMetricas } from "../types";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -27,6 +29,9 @@ export function ProjectSidePanel({
   comparaveis: ProjetoMetricas[];
   onClose: () => void;
 }) {
+  const { theme } = useThemeStore();
+  const colors = getChartColors(theme);
+
   if (!projeto) return null;
 
   const comparacaoAnual = [
@@ -66,12 +71,12 @@ export function ProjectSidePanel({
       <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mt-4 mb-2">Comparação 2026 × 2027</p>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={comparacaoAnual}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#22304A" />
-          <XAxis dataKey="ano" stroke="#8CA0BF" fontSize={11} />
-          <YAxis tickFormatter={(v) => fmtBRL(v, true)} stroke="#8CA0BF" fontSize={11} />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
+          <XAxis dataKey="ano" stroke={colors.axis} fontSize={11} />
+          <YAxis tickFormatter={(v) => fmtBRL(v, true)} stroke={colors.axis} fontSize={11} />
           <Tooltip
             formatter={(v: any) => fmtBRL(Number(v))}
-            contentStyle={{ background: "#16202F", border: "1px solid #22304A", borderRadius: 8, fontSize: 12 }}
+            contentStyle={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, borderRadius: 8, fontSize: 12, color: colors.tooltipText }}
           />
           <Bar dataKey="orcamento" name="Orçamento" fill="#3DA5F4" radius={[4, 4, 0, 0]} />
           <Bar dataKey="executado" name="Executado" fill="#7FD1B9" radius={[4, 4, 0, 0]} />

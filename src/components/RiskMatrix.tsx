@@ -5,6 +5,8 @@ import {
 import type { ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
 import { SectionHeader } from "./ui/primitives";
+import { useThemeStore } from "../store/themeStore";
+import { getChartColors } from "../lib/chartColors";
 
 const RISK_COLORS: Record<string, string> = {
   "Estouro": "#C0392B",
@@ -27,6 +29,8 @@ const LIMIAR_COMPROMETIMENTO = 80;
 const LIMIAR_EXECUCAO = 40;
 
 export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
+  const { theme } = useThemeStore();
+  const colors = getChartColors(theme);
   const { data, ocultos } = useMemo(() => {
     const elegiveis = lista.filter((p) => p.pctExecucao !== null && p.pctComprometimento !== null && p.orcamentoPeriodo);
     const materiais = elegiveis.filter((p) => (p.orcamentoPeriodo ?? 0) >= PISO_MATERIALIDADE);
@@ -56,14 +60,14 @@ export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
       <div className="relative">
         <ResponsiveContainer width="100%" height={400}>
           <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#22304A" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
 
             {/* Sombreado dos quadrantes */}
             <ReferenceLine x={LIMIAR_COMPROMETIMENTO} stroke="#3DA5F4" strokeDasharray="4 4" />
             <ReferenceLine y={LIMIAR_EXECUCAO} stroke="#3DA5F4" strokeDasharray="4 4" />
 
-            <XAxis type="number" dataKey="x" name="% Emitido" unit="%" domain={[0, 100]} stroke="#8CA0BF" fontSize={11} />
-            <YAxis type="number" dataKey="y" name="% Execução" unit="%" domain={[0, 100]} stroke="#8CA0BF" fontSize={11} />
+            <XAxis type="number" dataKey="x" name="% Emitido" unit="%" domain={[0, 100]} stroke={colors.axis} fontSize={11} />
+            <YAxis type="number" dataKey="y" name="% Execução" unit="%" domain={[0, 100]} stroke={colors.axis} fontSize={11} />
             <ZAxis type="number" dataKey="z" range={[40, 500]} name="Orçamento" />
             <Tooltip cursor={{ strokeDasharray: "3 3" }} content={<RiskMatrixTooltip />} />
             {(["Estouro", "Risco de Não Realização", "Revisão de Fluxo de Caixa", "Normal"] as const).map((s) => (
