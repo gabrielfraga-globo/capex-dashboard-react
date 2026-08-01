@@ -31,6 +31,14 @@ export function ValidationPanel({
 
       {open && (
         <div className="mt-2 space-y-4">
+          {Object.keys(parsed.statusReportValores).length === 0 && (
+            <p className="text-[11px] text-text-faint bg-card-alt rounded-md px-3 py-2">
+              Esta planilha não tem a aba "Status Report" (formato de extração atual, sem
+              tratamento). A validação abaixo fica sem referência externa — os valores
+              calculados aqui já são auditáveis por si (ver "Realizado detalhado", quando
+              presente) mas não há mais um segundo cálculo independente para comparar.
+            </p>
+          )}
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-border text-text-muted uppercase text-[10px]">

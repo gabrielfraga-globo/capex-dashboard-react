@@ -81,56 +81,58 @@ function parseOrcamento(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): Orca
 }
 
 // ----------------------------------------------------------------------------
-// Leitura da aba "Realizado" (tabela dinâmica hierárquica: Ano > N4 > Aprovador > Projeto)
+// Leitura da aba "Realizado" (tabela dinâmica: N4 > 1º Aprovador > NomeLB > Ano >
+// Rubrica > REQ_COMPRA — nível de detalhe adicionado na extração "sem tratamento").
+// A linha que queremos é a de nível "Ano": Ano preenchido diretamente na própria
+// linha (não herdado) + Rubrica === "Total" + REQ_COMPRA vazio.
 // ----------------------------------------------------------------------------
 
 function parseRealizado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): RealizadoAnual[] {
   const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
   const out: RealizadoAnual[] = [];
 
-  let curAno: "2026" | "2027" | null = null;
   let curN4: string | null = null;
   let curAprovador: string | null = null;
+  let curNomeLB: string | null = null;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.every((c) => c === null)) continue;
 
-    const anoCell = row[0];
-    const n4Cell = row[1] as string | null;
-    const aprovCell = row[2] as string | null;
-    const nomeCell = row[3] as string | null;
+    const n4Cell = row[0] as string | null;
+    const aprovCell = row[1] as string | null;
+    const nomeCell = row[2] as string | null;
+    const anoCell = row[3];
+    const rubricaCell = row[4] as string | null;
+    const reqCompraCell = row[5];
 
-    if (anoCell !== null && anoCell !== undefined) {
-      if (anoCell === "Total") { curAno = null; continue; } // total geral (2026+2027) — pular, recalculamos
-      curAno = String(anoCell) as "2026" | "2027";
-      curN4 = null;
-      curAprovador = null;
-    }
-    if (!curAno) continue; // estamos dentro do bloco "Total geral" — ignorar (evita dupla contagem)
+    if (n4Cell) { curN4 = n4Cell; curAprovador = null; curNomeLB = null; }
+    if (n4Cell === "Total") continue; // linha de total geral (todas as plataformas) — recalculamos
+    if (aprovCell) { curAprovador = aprovCell; curNomeLB = null; }
+    if (nomeCell) curNomeLB = nomeCell;
 
-    if (n4Cell) { curN4 = n4Cell; curAprovador = null; }
-    if (aprovCell) curAprovador = aprovCell;
+    if (!curNomeLB || curNomeLB === "Total") continue; // subtotal de plataforma/aprovador — ignorar
 
-    if (!nomeCell || nomeCell === "Total") continue; // subtotal de plataforma/aprovador — ignorar
+    // linha de nível "Ano": só aceitamos quando Ano está na PRÓPRIA linha (não herdado)
+    if ((anoCell !== 2026 && anoCell !== 2027) || rubricaCell !== "Total" || reqCompraCell !== null) continue;
 
     if (!curN4) {
-      ignoradas.push({ aba: "Realizado", motivo: "N4 não resolvido", contexto: nomeCell });
+      ignoradas.push({ aba: "Realizado", motivo: "N4 não resolvido", contexto: curNomeLB });
       continue;
     }
 
-    const orcamento = toNumberOrNull(row[4]) ?? 0;
-    const realizado = toNumberOrNull(row[5]) ?? 0;
-    const emPagamento = toNumberOrNull(row[6]) ?? 0;
-    const deltaCaixa = toNumberOrNull(row[7]) ?? orcamento - realizado - emPagamento;
-    const compromisso = toNumberOrNull(row[8]) ?? 0;
-    const aEmitir = toNumberOrNull(row[9]) ?? deltaCaixa - compromisso;
+    const orcamento = toNumberOrNull(row[6]) ?? 0;
+    const realizado = toNumberOrNull(row[7]) ?? 0;
+    const emPagamento = toNumberOrNull(row[8]) ?? 0;
+    const deltaCaixa = toNumberOrNull(row[9]) ?? orcamento - realizado - emPagamento;
+    const compromisso = toNumberOrNull(row[10]) ?? 0;
+    const aEmitir = toNumberOrNull(row[11]) ?? deltaCaixa - compromisso;
 
     out.push({
-      ano: curAno,
+      ano: String(anoCell) as "2026" | "2027",
       n4: curN4,
       aprovador: curAprovador,
-      nomeLB: nomeCell,
+      nomeLB: curNomeLB,
       orcamento,
       realizado,
       emPagamento,
@@ -141,6 +143,60 @@ function parseRealizado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): Real
   }
   return out;
 }
+
+// ----------------------------------------------------------------------------
+// Leitura da aba "Realizado detalhado" (transação a transação, com data real de
+// pagamento — "NF_DT_PAGAMENTO"). Usada SOMENTE para reconstruir o fluxo mensal
+// real de Executado; nunca exposta ao diretor. Cada linha é uma nota fiscal
+// distinta (Realizado Pago) ou um item pendente de pagamento (Realizado Pendente),
+// nunca os dois ao mesmo tempo.
+// ----------------------------------------------------------------------------
+
+export interface RealizadoDetalhadoLinha {
+  n4: string;
+  nomeLB: string;
+  data: Date;
+  pago: number;
+  pendente: number;
+}
+
+function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): RealizadoDetalhadoLinha[] {
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  const out: RealizadoDetalhadoLinha[] = [];
+
+  // colunas: N4(0), NomeLB(1), Rubrica(2), REQ_COMPRA(3), NOTA_FISCAL(4),
+  // NF_DT_PAGAMENTO(5), EXP_COMMENT(6), 1º Aprovador(7), DeltaCaixa_CAPEX(8),
+  // Orcamento_Cenarios(9), Realizado Pago(10), Realizado Pendente(11),
+  // Compromisso_Conecta(12), A emitir_Conecta_CAPEX(13)
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every((c) => c === null)) continue;
+
+    const n4 = row[0] as string | null;
+    const nomeLB = row[1] as string | null;
+    const reqCompra = row[3];
+    const dataCell = row[5];
+    const pago = toNumberOrNull(row[10]);
+    const pendente = toNumberOrNull(row[11]);
+
+    // ignora a linha de total geral (N4 === "Total", sem REQ_COMPRA) e a nota de filtros
+    if (!n4 || n4 === "Total" || reqCompra === null || reqCompra === undefined) continue;
+    if (!nomeLB) continue;
+
+    if (!(dataCell instanceof Date)) {
+      if (pago || pendente) {
+        ignoradas.push({ aba: "Realizado detalhado", motivo: "Linha com valor mas sem NF_DT_PAGAMENTO válida — ignorada (evita fluxo sem data real)", contexto: nomeLB });
+      }
+      continue;
+    }
+    if (!pago && !pendente) continue; // linha sem valor financeiro — nada a somar
+
+    out.push({ n4, nomeLB, data: dataCell, pago: pago ?? 0, pendente: pendente ?? 0 });
+  }
+  return out;
+}
+
+
 
 // ----------------------------------------------------------------------------
 // Leitura da aba "Hierarquia"
@@ -192,12 +248,25 @@ function buildProjetos(
   orcamento: OrcamentoAnual[],
   realizado: RealizadoAnual[],
   gestores: Gestor[],
-  ignoradas: LinhaIgnorada[]
+  ignoradas: LinhaIgnorada[],
+  realizadoDetalhado: RealizadoDetalhadoLinha[] = []
 ): { projetos: ProjetoBase[]; soOrcamento: string[]; soRealizado: string[] } {
   const gestorPorN4 = new Map(gestores.map((g) => [normalizeKey(g.n4), g]));
 
   const orcMap = new Map<string, OrcamentoAnual>();
   for (const o of orcamento) orcMap.set(`${normalizeKey(o.n4)}|${normalizeKey(o.nomeLB)}`, o);
+
+  // Fluxo mensal REAL de Executado por projeto, a partir da data de pagamento de cada
+  // transação (aba Realizado detalhado). Só existe quando a aba está presente — nunca
+  // interpolado/estimado. Índice 0 = janeiro, 11 = dezembro (só ano corrente, 2026).
+  const executadoMensalMap = new Map<string, number[]>();
+  for (const linha of realizadoDetalhado) {
+    const key = `${normalizeKey(linha.n4)}|${normalizeKey(linha.nomeLB)}`;
+    if (linha.data.getFullYear() !== 2026) continue; // fluxo mensal real só cobre o ano corrente
+    let arr = executadoMensalMap.get(key);
+    if (!arr) { arr = Array(12).fill(0); executadoMensalMap.set(key, arr); }
+    arr[linha.data.getMonth()] += linha.pago + linha.pendente;
+  }
 
   // agrupa Realizado por chave, deduplicando Compromisso (mesmo valor repetido em 2026 e 2027)
   type Agg = {
@@ -284,6 +353,7 @@ function buildProjetos(
       compromisso,
       origemOrcamento: !!o,
       origemRealizado: !!r,
+      executadoMensal2026: executadoMensalMap.get(key) ?? null,
     });
   }
 
@@ -295,11 +365,11 @@ function buildProjetos(
 // ----------------------------------------------------------------------------
 
 export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string): Promise<RelatorioParsing> {
-  const wb = XLSX.read(buf, { type: "array", cellDates: false });
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
 
   const ignoradas: LinhaIgnorada[] = [];
 
-  const requiredSheets = ["Orçamento", "Realizado", "Hierarquia", "Status Report"];
+  const requiredSheets = ["Orçamento", "Realizado", "Hierarquia"];
   for (const s of requiredSheets) {
     if (!wb.SheetNames.includes(s)) {
       throw new Error(`Aba obrigatória não encontrada: "${s}". Abas disponíveis: ${wb.SheetNames.join(", ")}`);
@@ -309,9 +379,12 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
   const orcamento = parseOrcamento(wb.Sheets["Orçamento"], ignoradas);
   const realizado = parseRealizado(wb.Sheets["Realizado"], ignoradas);
   const gestores = parseHierarquia(wb.Sheets["Hierarquia"]);
-  const statusReportValores = parseStatusReport(wb.Sheets["Status Report"]);
+  const statusReportValores = wb.SheetNames.includes("Status Report") ? parseStatusReport(wb.Sheets["Status Report"]) : {};
+  const realizadoDetalhado = wb.SheetNames.includes("Realizado detalhado")
+    ? parseRealizadoDetalhado(wb.Sheets["Realizado detalhado"], ignoradas)
+    : [];
 
-  const { projetos, soOrcamento, soRealizado } = buildProjetos(orcamento, realizado, gestores, ignoradas);
+  const { projetos, soOrcamento, soRealizado } = buildProjetos(orcamento, realizado, gestores, ignoradas, realizadoDetalhado);
 
   return {
     projetos,
@@ -323,6 +396,7 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
     nomeArquivo,
     atualizadoEm: new Date().toLocaleString("pt-BR"),
     statusReportValores,
+    temFluxoMensalReal: realizadoDetalhado.length > 0,
   };
 }
 

@@ -85,30 +85,36 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
   }, [listaFocada]);
 
   // Gráfico de barras — Planejado × Executado acumulado, mensal, com cor condicional
-  // no Executado (verde ≤5%, amarelo 5-15%, vermelho >15% de desvio). Executado real
-  // só existe como total até a data-base (a fonte não guarda mês a mês); a série usa
-  // interpolação linear até o mês corrente para permitir a leitura mês a mês.
+  // no Executado (verde ≤5%, amarelo 5-15%, vermelho >15% de desvio).
+  // Executado agora vem de DADO REAL (aba "Realizado detalhado", por data de pagamento
+  // de cada nota fiscal) quando disponível — nunca mais interpolado/estimado. Se a aba
+  // não existir na planilha carregada, a série de Executado simplesmente não aparece
+  // (preferimos mostrar menos do que mostrar algo sem respaldo nos dados).
+  const temFluxoReal = useMemo(() => listaFocada.some((p) => p.executadoMensal2026 !== null), [listaFocada]);
   const fluxoData = useMemo(() => {
     const planejadoMensal = Array(12).fill(0);
+    const executadoMensal = Array(12).fill(0);
     for (const p of listaFocada) {
-      if (!p.meses2026) continue;
-      p.meses2026.forEach((v, i) => { planejadoMensal[i] += v; });
+      if (p.meses2026) p.meses2026.forEach((v, i) => { planejadoMensal[i] += v; });
+      if (p.executadoMensal2026) p.executadoMensal2026.forEach((v, i) => { executadoMensal[i] += v; });
     }
-    let acumulado = 0;
-    const totalExecutado = delta.executadoAcumulado;
+    let acumuladoPlan = 0;
+    let acumuladoExec = 0;
     return MESES.map((m, i) => {
-      acumulado += planejadoMensal[i];
-      const executado = i + 1 <= MES_ATUAL && acumulado > 0 ? (totalExecutado * (i + 1)) / MES_ATUAL : null;
-      const pct = executado !== null && acumulado > 0 ? (executado - acumulado) / acumulado : null;
+      acumuladoPlan += planejadoMensal[i];
+      acumuladoExec += executadoMensal[i];
+      const temExecEsteMes = i + 1 <= MES_ATUAL;
+      const executado = temFluxoReal && temExecEsteMes ? acumuladoExec : null;
+      const pct = executado !== null && acumuladoPlan > 0 ? (executado - acumuladoPlan) / acumuladoPlan : null;
       const banda = pct !== null ? bandaDelta(Math.abs(pct)) : null;
       return {
         mes: m,
-        Planejado: Math.round(acumulado),
+        Planejado: Math.round(acumuladoPlan),
         Executado: executado !== null ? Math.round(executado) : null,
         pct, banda,
       };
     });
-  }, [listaFocada, delta.executadoAcumulado]);
+  }, [listaFocada, temFluxoReal]);
 
   const acaoLabel = (p: ProjetoMetricas) => (p.status === "Estouro" ? "Validar estouro" : "Priorizar emissão");
   const mostrarAcao = foco !== "acompanhar";
@@ -227,19 +233,28 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
           </div>
 
           <div className="bg-white/10 rounded-xl p-2">
-            <ResponsiveContainer width="100%" height={150}>
-              <BarChart data={fluxoData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
-                <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
-                <Tooltip content={<FluxoTooltip colors={colors} />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
-                <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Executado" name="Executado" radius={[3, 3, 0, 0]}>
-                  {fluxoData.map((d, i) => (
-                    <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {temFluxoReal ? (
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={fluxoData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
+                  <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
+                  <Tooltip content={<FluxoTooltip colors={colors} />} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
+                  <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Executado" name="Executado" radius={[3, 3, 0, 0]}>
+                    {fluxoData.map((d, i) => (
+                      <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[150px] flex items-center justify-center text-center px-6">
+                <p className="text-xs text-white/80 leading-snug">
+                  Sem dado mensal real de Executado nesta planilha (aba "Realizado detalhado" ausente).
+                  Nenhuma estimativa é exibida — Executado YTD acima é o único valor confiável disponível.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

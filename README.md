@@ -546,3 +546,55 @@ Mensal · Uso Interno"**.
 para "Carteira de Investimentos" pedida há duas rodadas. Se isso não era intencional
 (ex.: você esqueceu da mudança anterior ao escrever esse ponto), me avisa que eu
 reaplico "Carteira de Investimentos" — é uma linha de código.
+
+## Décima rodada — fluxo de caixa 100% real, novo formato de extração
+
+Esta rodada corrigiu o problema mais sério identificado até agora: a série "Executado"
+do gráfico principal era **interpolação linear**, não dado real. Investigação completa
+documentada na conversa; resumo do resultado:
+
+### Novo formato de extração (definitivo a partir de agora)
+- **4 abas**: `Orçamento`, `Realizado`, `Realizado detalhado` (nova), `Hierarquia`.
+- **`Status Report` não existe mais** — tornado opcional no parser (`excelParser.ts`).
+  Sem essa aba, a Área Técnica de Validação mostra "Sem referência" em vez de comparar
+  contra um valor externo (e explica isso claramente na própria tela).
+- **`Realizado` mudou de estrutura**: hierarquia agora é `N4 > 1º Aprovador > NomeLB >
+  Ano > Rubrica > REQ_COMPRA` (2 níveis a mais que antes). O parser foi reescrito para
+  a nova ordem de colunas e para identificar a linha de totais por ano corretamente
+  (`Ano` preenchido na própria linha + `Rubrica === "Total"` + `REQ_COMPRA` vazio).
+- **`Realizado detalhado`** (nova): transação a transação, com `NF_DT_PAGAMENTO` — a
+  data real de pagamento de cada nota fiscal. É a fonte do fluxo mensal real.
+
+### Bug crítico de configuração encontrado durante a correção
+`XLSX.read()` estava com `cellDates: false` — toda célula de data seria lida como
+**número serial**, não como `Date`. Se eu não tivesse notado, o parser teria
+silenciosamente ignorado 100% das linhas de `Realizado detalhado` (o filtro
+`dataCell instanceof Date` nunca seria verdadeiro). Corrigido para `cellDates: true`.
+
+### Validação de dados na planilha em si (não é bug do dashboard)
+A primeira versão do arquivo enviado tinha a `Data de Pagamento` duplicada — a mesma
+nota fiscal aparecia até 255 vezes com o mesmo valor e datas diferentes (log de
+status/exportação, não eventos de caixa distintos). Somar ingenuamente inflava uma
+transação de R$ 25 mil para R$ 6,4 milhões. Identificado e reportado antes de qualquer
+implementação. Na versão corrigida enviada depois, cada linha é uma transação real e
+distinta — validado por reconciliação exata (ver abaixo).
+
+### Reconciliação (prova de que os dados batem)
+```
+Σ (Realizado Pago + Realizado Pendente), aba "Realizado detalhado"  = R$ 59.520.722,64
+Σ (Realizado + Em Pagamento), aba "Realizado" (agregada)            = R$ 59.520.722,64
+```
+Bate exatamente, centavo por centavo — script `scripts/validate-new-format.mjs`.
+
+### O gráfico agora
+- **Planejado**: continua vindo do orçamento mensal real (aba `Orçamento`) — sem mudança.
+- **Executado**: agora soma `Realizado Pago + Realizado Pendente` por mês, a partir de
+  `NF_DT_PAGAMENTO` de cada transação real — **zero interpolação, zero estimativa**.
+- **Fallback honesto**: se uma planilha carregada não tiver a aba `Realizado
+  detalhado` (formato antigo), o gráfico **não inventa uma distribuição mensal** — mostra
+  uma mensagem explicando a ausência do dado, e o Executado YTD (card) continua sendo o
+  único número confiável exibido.
+
+### Arquivo de dados bundled atualizado
+`public/data/carteira.xlsx` substituído pela versão corrigida enviada
+(`carteira_revisada.xlsx`, formato novo de 4 abas).
