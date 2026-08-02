@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ProjetoMetricas, RelatorioParsing } from "./types";
+import { useState } from "react";
+import type { ProjetoMetricas } from "./types";
 import { useFilterStore } from "./store/filterStore";
 import { useThemeStore } from "./store/themeStore";
-import { computeMetricas, withParticipacaoRisco } from "./lib/metrics";
-import { loadPortfolioData } from "./lib/dataSource";
+import { usePortfolioData } from "./hooks/usePortfolioData";
+import { usePortfolioMetrics } from "./hooks/usePortfolioMetrics";
+import { useFilteredProjects } from "./hooks/useFilteredProjects";
+import { useThemeSync } from "./hooks/useThemeSync";
 import { FilterBar } from "./components/FilterBar";
 import { ContextBar } from "./components/ContextBar";
 import { ExecutiveSummary } from "./components/ExecutiveSummary";
@@ -24,67 +26,25 @@ import { Loader2, AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucid
 type ViewMode = "radar" | "auditoria";
 
 export default function App() {
-  const [parsed, setParsed] = useState<RelatorioParsing | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
   const [modoAuditoria, setModoAuditoria] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
+
   const filtros = useFilterStore();
   const { theme } = useThemeStore();
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
+  useThemeSync(theme);
 
+  const { parsed, loadError } = usePortfolioData();
+  const { todasMetricas, metricas2026 } = usePortfolioMetrics(parsed, filtros.periodo);
+  const { metricasFiltradas, comparaveis, periodoLabel } = useFilteredProjects(
+    todasMetricas,
+    filtros,
+    selected
+  );
 
-  useEffect(() => {
-    loadPortfolioData()
-      .then(setParsed)
-      .catch((e) => setLoadError(e instanceof Error ? e.message : "Falha ao carregar os dados da carteira."));
-  }, []);
-
-  const todasMetricas = useMemo(() => {
-    if (!parsed) return [];
-    return withParticipacaoRisco(parsed.projetos.map((p) => computeMetricas(p, filtros.periodo)));
-  }, [parsed, filtros.periodo]);
-
-  const metricasFiltradas = useMemo(() => {
-    return todasMetricas.filter((p) => {
-      if (filtros.plataforma && p.n4Curta !== filtros.plataforma) return false;
-      if (filtros.gestor && p.gestor !== filtros.gestor) return false;
-      if (filtros.aprovador && p.aprovador !== filtros.aprovador) return false;
-      if (filtros.status && p.status !== filtros.status) return false;
-      if (filtros.busca && !p.nome.toLowerCase().includes(filtros.busca.toLowerCase())) return false;
-      if ((filtros.execucaoMin !== 0 || filtros.execucaoMax !== 100) && p.pctExecucao !== null) {
-        const pct = p.pctExecucao * 100;
-        if (pct < filtros.execucaoMin || pct > filtros.execucaoMax) return false;
-      }
-      if ((filtros.comprometimentoMin !== 0 || filtros.comprometimentoMax !== 100) && p.pctComprometimento !== null) {
-        const pct = p.pctComprometimento * 100;
-        if (pct < filtros.comprometimentoMin || pct > filtros.comprometimentoMax) return false;
-      }
-      return true;
-    });
-  }, [todasMetricas, filtros]);
-
-  const metricas2026 = useMemo(() => {
-    if (!parsed) return [];
-    return withParticipacaoRisco(parsed.projetos.map((p) => computeMetricas(p, "2026")));
-  }, [parsed]);
-
-  const comparaveis = useMemo(() => {
-    if (!selected) return [];
-    return metricasFiltradas.filter((p) => p.n4Curta === selected.n4Curta && p.id !== selected.id);
-  }, [selected, metricasFiltradas]);
-
-  const periodoLabel = { "2026": "Orçamento 2026", "2027": "Orçamento 2027", "Todos": "Consolidado 2026–2027" }[filtros.periodo];
-
-  // Selecionar um projeto abre o painel lateral (com o detalhe técnico completo) como
-  // overlay — a tela de fundo (Radar ou Auditoria) NÃO muda, preservando o contexto de
-  // navegação. Fechar o painel volta exatamente para onde o usuário estava.
-  const handleSelectFromRadar = (p: ProjetoMetricas) => {
-    setSelected(p);
-  };
+  // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
+  const handleSelectFromRadar = (p: ProjetoMetricas) => setSelected(p);
 
   if (loadError) {
     return (
