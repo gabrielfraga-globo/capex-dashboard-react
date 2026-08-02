@@ -62,6 +62,16 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
   const delta = useMemo(() => generateDeltaYTD(listaFocada), [listaFocada]);
   const narrativa = useMemo(() => generateHeroNarrative(listaFocada, delta), [listaFocada, delta]);
 
+  // Métricas macro para a Regra dos 5 Segundos
+  const pctVsPlano = useMemo(
+    () => (delta.planejadoAcumulado > 0 ? delta.executadoAcumulado / delta.planejadoAcumulado : null),
+    [delta]
+  );
+  const totalOrcamento = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0),
+    [listaFocada]
+  );
+
   const exigemAcao = useMemo(
     () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
       .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
@@ -128,17 +138,20 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
       <div className="mb-4">
         <button
           onClick={() => setMostrarFiltros((v) => !v)}
-          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text"
+          aria-expanded={mostrarFiltros}
+          aria-controls="radar-filtros-panel"
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
         >
-          <SlidersHorizontal size={13} /> Filtros
+          <SlidersHorizontal size={13} aria-hidden="true" /> Filtros
         </button>
         {mostrarFiltros && (
-          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2.5">
+          <div id="radar-filtros-panel" className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2.5">
             {(["2026", "2027", "Todos"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriodo(p)}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                aria-pressed={periodo === p}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
                   periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
                 }`}
               >
@@ -164,7 +177,8 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
               <button
                 key={f.key}
                 onClick={() => setFoco(f.key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                aria-pressed={foco === f.key}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
                   foco === f.key ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
                 }`}
               >
@@ -178,7 +192,8 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar projeto…"
-                className="w-full rounded-full border border-border bg-card-alt pl-8 pr-3 py-1.5 text-xs text-text placeholder:text-text-faint outline-none focus:border-accent"
+                aria-label="Buscar projeto no Radar"
+                className="w-full rounded-full border border-border bg-card-alt pl-8 pr-3 py-1.5 text-xs text-text placeholder:text-text-faint outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/70"
               />
             </div>
           </div>
@@ -203,31 +218,53 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
       {/* Linha 1: Execução do Plano + Saúde da Carteira */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div className="lg:col-span-2 rounded-card bg-hero p-6 shadow-card text-white flex flex-col">
-          <p className="text-xs font-semibold uppercase tracking-wide text-white mb-2">Execução do Plano</p>
-          <p className="text-sm font-semibold text-white leading-snug mb-4 max-w-lg">{narrativa}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-1">Execução do Plano</p>
+
+          {/* Regra dos 5 Segundos: % vs plano é o indicador macro dominante */}
+          {pctVsPlano !== null && (
+            <div className="flex items-end gap-2.5 mb-2">
+              <span
+                aria-label={`${fmtPct(pctVsPlano)} do plano YTD executado`}
+                className={`text-5xl font-extrabold leading-none tabular-nums ${
+                  Math.abs(pctVsPlano - 1) <= 0.05
+                    ? "text-emerald-300"
+                    : Math.abs(pctVsPlano - 1) <= 0.15
+                    ? "text-amber-300"
+                    : "text-red-300"
+                }`}
+              >
+                {fmtPct(pctVsPlano)}
+              </span>
+              <span className="text-[11px] text-white/70 mb-1.5 leading-tight">
+                do plano<br />executado
+              </span>
+            </div>
+          )}
+
+          <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativa}</p>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
-              <p className="text-[11px] text-white/85">Planejado YTD</p>
-              <p className="text-lg font-bold">{fmtBRL(delta.planejadoAcumulado, true)}</p>
+              <p className="text-[11px] text-white/70">CAPEX Total</p>
+              <p className="text-base font-bold">{fmtBRL(totalOrcamento, true)}</p>
             </div>
             <div>
-              <p className="text-[11px] text-white/85 flex items-center gap-1">
+              <p className="text-[11px] text-white/70 flex items-center gap-1">
                 Executado YTD
-                <span className="[&_.info-icon]:text-white/85 [&_.info-icon:hover]:text-white">
+                <span className="[&_.info-icon]:text-white/70 [&_.info-icon:hover]:text-white">
                   <InfoTooltip text="Executado = Realizado + Em Pagamento." />
                 </span>
               </p>
-              <p className="text-lg font-bold">{fmtBRL(delta.executadoAcumulado, true)}</p>
+              <p className="text-base font-bold">{fmtBRL(delta.executadoAcumulado, true)}</p>
             </div>
             <div>
-              <p className="text-[11px] text-white/85 flex items-center gap-1">
+              <p className="text-[11px] text-white/70 flex items-center gap-1">
                 Delta YTD
-                <span className="[&_.info-icon]:text-white/85 [&_.info-icon:hover]:text-white">
+                <span className="[&_.info-icon]:text-white/70 [&_.info-icon:hover]:text-white">
                   <InfoTooltip text="Executado Acumulado − Planejado Acumulado. Negativo é atrás do plano; positivo, à frente." />
                 </span>
               </p>
-              <p className={`text-xl font-extrabold ${delta.deltaYTD >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+              <p className={`text-lg font-extrabold ${delta.deltaYTD >= 0 ? "text-emerald-300" : "text-red-300"}`}>
                 {delta.deltaYTD >= 0 ? "▲ " : "▼ "}{fmtBRL(delta.deltaYTD, true)}
               </p>
             </div>
@@ -270,7 +307,8 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                 <button
                   key={s}
                   onClick={() => setFoco(ativo ? "todos" : focoAlvo)}
-                  className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all`}
+                  aria-pressed={ativo}
+                  className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                 >
                   <span className="font-semibold">{s}</span>
                   <span className="flex items-center gap-2">

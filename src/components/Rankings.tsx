@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ProjetoMetricas } from "../types";
 import { RiskBadge } from "./ui/primitives";
+import { EmptyState } from "./ui/EmptyState";
 import { fmtBRL, fmtPct } from "../lib/format";
 
 type RankingKey = "menorCobertura" | "maiorAEmitir" | "maiorEstouro" | "participacaoRisco";
@@ -46,7 +47,8 @@ export function Rankings({ lista, onSelect }: { lista: ProjetoMetricas[]; onSele
           <button
             key={r.key}
             onClick={() => setTab(r.key)}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            aria-pressed={tab === r.key}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
               tab === r.key ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
             }`}
           >
@@ -55,7 +57,7 @@ export function Rankings({ lista, onSelect }: { lista: ProjetoMetricas[]; onSele
         ))}
       </div>
       {ranked.length === 0 ? (
-        <p className="text-sm text-text-muted">Nenhum projeto nesta categoria para os filtros atuais.</p>
+        <EmptyState description="Nenhum projeto encontrado nesta categoria para os filtros atuais." />
       ) : (
         <div className="divide-y divide-border-subtle">
           {ranked.map((p, i) => (

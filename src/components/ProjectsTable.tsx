@@ -6,6 +6,7 @@ import {
 import { ArrowUpDown, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ProjetoMetricas } from "../types";
 import { RiskBadge, Button } from "./ui/primitives";
+import { EmptyState } from "./ui/EmptyState";
 import { fmtBRL, fmtPct } from "../lib/format";
 
 const columnHelper = createColumnHelper<ProjetoMetricas>();
@@ -80,6 +81,10 @@ export function ProjectsTable({ lista, onSelect }: { lista: ProjetoMetricas[]; o
 
   const copyToClipboard = () => navigator.clipboard.writeText(toCsv(lista));
 
+  if (lista.length === 0) {
+    return <EmptyState description="Nenhum projeto corresponde aos filtros aplicados na tabela." />;
+  }
+
   return (
     <div>
       <div className="flex items-center justify-end mb-3 gap-2">
@@ -141,12 +146,22 @@ export function ProjectsTable({ lista, onSelect }: { lista: ProjetoMetricas[]; o
             <span>· {lista.length} projetos no total</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="disabled:opacity-30">
-              <ChevronLeft size={16} />
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="Página anterior"
+              className="disabled:opacity-30 rounded p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+            >
+              <ChevronLeft size={16} aria-hidden="true" />
             </button>
             <span>Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}</span>
-            <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="disabled:opacity-30">
-              <ChevronRight size={16} />
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label="Próxima página"
+              className="disabled:opacity-30 rounded p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+            >
+              <ChevronRight size={16} aria-hidden="true" />
             </button>
           </div>
         </div>

@@ -123,7 +123,7 @@ export function Button({
   };
   return (
     <button
-      className={cn("rounded-md px-3 py-1.5 text-sm font-medium transition-colors", variants[variant], className)}
+      className={cn("rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70", variants[variant], className)}
       {...props}
     />
   );

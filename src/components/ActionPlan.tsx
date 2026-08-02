@@ -2,13 +2,19 @@ import { useMemo } from "react";
 import type { ProjetoMetricas } from "../types";
 import { generateActionPlan } from "../lib/insights";
 import { RiskBadge } from "./ui/primitives";
+import { EmptyState } from "./ui/EmptyState";
 import { fmtBRL } from "../lib/format";
 
 export function ActionPlan({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
   const grupos = useMemo(() => generateActionPlan(lista), [lista]);
 
   if (grupos.length === 0) {
-    return <p className="text-sm text-text-muted">Nenhuma ação recomendada — carteira filtrada sem riscos identificados.</p>;
+    return (
+      <EmptyState
+        title="Sem ações recomendadas"
+        description="A carteira filtrada não apresenta riscos identificados."
+      />
+    );
   }
 
   return (

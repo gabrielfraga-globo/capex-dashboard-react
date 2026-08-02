@@ -62,7 +62,8 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
           <button
             key={s.label}
             onClick={() => setStatus(s.value)}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            aria-pressed={status === s.value}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
               status === s.value ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
             }`}
           >
@@ -74,14 +75,16 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar projeto…"
-          className="rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs text-text placeholder:text-text-faint w-44 outline-none focus:border-accent"
+          aria-label="Buscar projeto"
+          className="rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs text-text placeholder:text-text-faint w-44 outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent/70"
         />
 
         <button
           onClick={() => setShowAvancados((v) => !v)}
-          className="flex items-center gap-1 text-xs text-text-muted hover:text-text ml-auto"
+          aria-expanded={showAvancados}
+          className="flex items-center gap-1 text-xs text-text-muted hover:text-text ml-auto rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
         >
-          <SlidersHorizontal size={13} /> Filtros avançados {filtrosAvancadosAtivos && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
+          <SlidersHorizontal size={13} aria-hidden="true" /> Filtros avançados {filtrosAvancadosAtivos && <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />}
         </button>
 
         {(filtrosAvancadosAtivos || status || busca) && (

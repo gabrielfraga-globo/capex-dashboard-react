@@ -12,7 +12,8 @@ import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { BrandMark } from "./components/ui/BrandMark";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
-import { Loader2, AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
+import { AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
+import { SkeletonRadar } from "./components/ui/SkeletonCard";
 
 // Lazy: o bundle da Auditoria só é baixado quando o usuário navega para essa aba
 const AuditoriaCarteiraPage = lazy(() =>
@@ -63,9 +64,15 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg px-4">
         <div className="max-w-md text-center">
-          <AlertTriangle className="mx-auto text-risk-critico mb-3" size={32} />
+          <AlertTriangle className="mx-auto text-risk-critico mb-3" size={32} aria-hidden="true" />
           <p className="text-text font-semibold mb-1">Não foi possível carregar a carteira</p>
-          <p className="text-text-muted text-sm">{loadError}</p>
+          <p className="text-text-muted text-sm mb-4">{loadError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-semibold text-text-muted hover:text-text hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+          >
+            Tentar Novamente
+          </button>
         </div>
       </div>
     );
@@ -73,11 +80,9 @@ export default function App() {
 
   if (!parsed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="flex flex-col items-center gap-3 text-text-muted">
-          <Loader2 className="animate-spin text-accent" size={28} />
-          <span className="text-sm">Carregando carteira…</span>
-        </div>
+      <div className="min-h-screen bg-bg px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
+        <div className="h-12 mb-4 rounded-card bg-card-alt animate-pulse" aria-hidden="true" />
+        <SkeletonRadar />
       </div>
     );
   }
@@ -100,29 +105,32 @@ export default function App() {
           <div className="flex rounded-md border border-border overflow-hidden">
             <button
               onClick={() => setViewMode("radar")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+              aria-pressed={viewMode === "radar"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70 ${
                 viewMode === "radar" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
               }`}
             >
-              <Radar size={13} /> Radar Executivo
+              <Radar size={13} aria-hidden="true" /> Radar Executivo
             </button>
             <button
               onClick={() => setViewMode("auditoria")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+              aria-pressed={viewMode === "auditoria"}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70 ${
                 viewMode === "auditoria" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
               }`}
             >
-              <ClipboardList size={13} /> Auditoria da Carteira
+              <ClipboardList size={13} aria-hidden="true" /> Auditoria da Carteira
             </button>
           </div>
           {viewMode === "auditoria" && (
             <button
               onClick={() => setModoAuditoria((v) => !v)}
-              className={`flex items-center gap-1.5 text-xs rounded-md border px-3 py-1.5 transition-colors ${
+              aria-pressed={modoAuditoria}
+              className={`flex items-center gap-1.5 text-xs rounded-md border px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
                 modoAuditoria ? "border-accent text-accent bg-accent/10" : "border-border text-text-muted hover:text-text"
               }`}
             >
-              <ShieldCheck size={13} /> Validação Técnica
+              <ShieldCheck size={13} aria-hidden="true" /> Validação Técnica
             </button>
           )}
         </div>
@@ -134,8 +142,10 @@ export default function App() {
         <RadarExecutivoPage lista={metricasFiltradas} onSelect={handleSelectFromRadar} />
       ) : (
         <Suspense fallback={
-          <div className="flex items-center justify-center py-20 text-text-muted">
-            <Loader2 className="animate-spin text-accent" size={24} />
+          <div role="status" aria-label="Carregando Auditoria da Carteira…" className="space-y-3 py-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-card border border-border bg-card-alt animate-pulse h-16" aria-hidden="true" />
+            ))}
           </div>
         }>
           <AuditoriaCarteiraPage

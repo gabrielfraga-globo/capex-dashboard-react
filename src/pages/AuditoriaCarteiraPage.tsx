@@ -36,7 +36,8 @@ export function AuditoriaCarteiraPage({
           <button
             key={p}
             onClick={() => onSetPeriodo(p)}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+            aria-pressed={periodo === p}
+            className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
               periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
             }`}
           >
