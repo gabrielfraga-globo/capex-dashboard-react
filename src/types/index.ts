@@ -13,6 +13,8 @@ export interface KPIEstrategicoCarteira {
   nome: string;
   valor: number | null;
   status: StatusSemaforo;
+  /** Rótulo semântico legível pelo executivo; null quando status === "nd". */
+  statusLabel: string | null;
   direcao: "up" | "down" | "none";
   meta: string;
   formula: string;

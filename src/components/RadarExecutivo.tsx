@@ -45,12 +45,6 @@ function fmtKpiRatio(value: number | null): string {
   return `${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
 }
 
-function labelSemaforo(status: StatusSemaforo): string {
-  if (status === "verde") return "Verde";
-  if (status === "amarelo") return "Amarelo";
-  if (status === "vermelho") return "Vermelho";
-  return "N/D";
-}
 
 export function RadarExecutivo({
   lista,
@@ -243,20 +237,31 @@ export function RadarExecutivo({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         {kpisEstrategicos.map((kpi) => {
-          const statusClass = kpi.status === "nd" ? "border-border bg-card-alt text-text-muted" : KPI_STATUS_STYLE[kpi.status];
+          const badgeClass = kpi.status === "nd" ? "border-border/60 bg-card-alt text-text-faint" : KPI_STATUS_STYLE[kpi.status];
           const seta = kpi.direcao === "up" ? "▲" : kpi.direcao === "down" ? "▼" : "-";
           return (
             <article
               key={kpi.id}
-              className={`rounded-card border p-4 shadow-card ${statusClass}`}
-              aria-label={`${kpi.nome}: ${fmtKpiRatio(kpi.valor)}. Semáforo ${labelSemaforo(kpi.status)}.`}
+              className="rounded-card border border-border bg-card p-4 shadow-card"
+              aria-label={`${kpi.nome}: ${fmtKpiRatio(kpi.valor)}. Status: ${kpi.statusLabel ?? "N/D"}.`}
             >
-              <p className="text-[11px] uppercase tracking-wide font-semibold opacity-90 mb-1">{kpi.nome}</p>
-              <div className="flex items-end justify-between gap-2">
-                <p className="text-3xl font-extrabold tabular-nums">{fmtKpiRatio(kpi.valor)}</p>
-                <span className="text-base font-bold" aria-hidden="true">{seta}</span>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-[11px] uppercase tracking-wide font-semibold text-text-muted">{kpi.nome}</p>
+                {kpi.statusLabel !== null ? (
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold shrink-0 ${badgeClass}`}>
+                    {kpi.statusLabel}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full border border-border/60 bg-card-alt px-2 py-0.5 text-[10px] font-bold text-text-faint shrink-0">
+                    N/D
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] mt-1 opacity-90">Meta: {kpi.meta}</p>
+              <div className="flex items-end justify-between gap-2">
+                <p className="text-3xl font-extrabold tabular-nums text-text">{fmtKpiRatio(kpi.valor)}</p>
+                <span className="text-base font-bold text-text-muted" aria-hidden="true">{seta}</span>
+              </div>
+              <p className="text-[11px] mt-2 text-text-muted">Meta: {kpi.meta}</p>
             </article>
           );
         })}

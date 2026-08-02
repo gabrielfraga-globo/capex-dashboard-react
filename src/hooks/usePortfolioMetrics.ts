@@ -36,6 +36,26 @@ function directionByCenter(value: number | null, center: number): "up" | "down" 
   return value >= center ? "up" : "down";
 }
 
+const STATUS_LABEL: Record<
+  "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
+  { verde: string; baixo: string; alto: string }
+> = {
+  velocidadeCaixa:      { verde: "Dentro da Meta", baixo: "Atrasado",       alto: "Acelerado"    },
+  empenho:              { verde: "Dentro da Meta", baixo: "Abaixo do Ideal", alto: "Estourado"   },
+  equilibrioFinanceiro: { verde: "Dentro da Meta", baixo: "Abaixo do Ideal", alto: "Estourado"   },
+};
+
+function resolveStatusLabel(
+  id: "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
+  value: number | null,
+  status: StatusSemaforo
+): string | null {
+  if (value === null || status === "nd") return null;
+  const map = STATUS_LABEL[id];
+  if (status === "verde") return map.verde;
+  return value < 1 ? map.baixo : map.alto;
+}
+
 function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {
   return {
     ...p,
@@ -68,29 +88,32 @@ export function usePortfolioMetrics(
     if (todasMetricas.length === 0) {
       return [
         {
-          id: "velocidadeCaixa",
+          id: "velocidadeCaixa" as const,
           nome: "Velocidade do Caixa",
           valor: null,
-          status: "nd",
-          direcao: "none",
+          status: "nd" as const,
+          statusLabel: null,
+          direcao: "none" as const,
           meta: "0,90 a 1,10",
           formula: "Realizado / Planejado",
         },
         {
-          id: "empenho",
+          id: "empenho" as const,
           nome: "Empenho",
           valor: null,
-          status: "nd",
-          direcao: "none",
+          status: "nd" as const,
+          statusLabel: null,
+          direcao: "none" as const,
           meta: "0,95 a 1,05",
           formula: "Empenho / (Planejado - Executado - Compromisso)",
         },
         {
-          id: "equilibrioFinanceiro",
+          id: "equilibrioFinanceiro" as const,
           nome: "Equilíbrio Financeiro",
           valor: null,
-          status: "nd",
-          direcao: "none",
+          status: "nd" as const,
+          statusLabel: null,
+          direcao: "none" as const,
           meta: "0,95 a 1,05",
           formula: "Provisionado / Orçamento",
         },
@@ -112,34 +135,44 @@ export function usePortfolioMetrics(
       totalPlanejado !== null && totalExecutado !== null && totalCompromisso !== null
         ? totalPlanejado - totalExecutado - totalCompromisso
         : null;
-    const empenho = safeDiv(totalCompromisso, saldoDisponivelEmpenho);
+    // Denominador <= 0 indica carteira estourada — rácio seria irreal; retorna null (N/D).
+    const empenho = saldoDisponivelEmpenho !== null && saldoDisponivelEmpenho > 0
+      ? safeDiv(totalCompromisso, saldoDisponivelEmpenho)
+      : null;
 
     const equilibrio = safeDiv(totalProvisionado, totalOrcamento);
 
+    const velStatus  = statusByBands(velocidade, 0.9, 1.1, 0.85, 1.15);
+    const empStatus  = statusByBands(empenho,    0.95, 1.05, 0.9, 1.1);
+    const eqStatus   = statusByBands(equilibrio, 0.95, 1.05, 0.9, 1.1);
+
     return [
       {
-        id: "velocidadeCaixa",
+        id: "velocidadeCaixa" as const,
         nome: "Velocidade do Caixa",
         valor: velocidade,
-        status: statusByBands(velocidade, 0.9, 1.1, 0.85, 1.15),
+        status: velStatus,
+        statusLabel: resolveStatusLabel("velocidadeCaixa", velocidade, velStatus),
         direcao: directionByCenter(velocidade, 1),
         meta: "0,90 a 1,10",
         formula: "Realizado / Planejado",
       },
       {
-        id: "empenho",
+        id: "empenho" as const,
         nome: "Empenho",
         valor: empenho,
-        status: statusByBands(empenho, 0.95, 1.05, 0.9, 1.1),
+        status: empStatus,
+        statusLabel: resolveStatusLabel("empenho", empenho, empStatus),
         direcao: directionByCenter(empenho, 1),
         meta: "0,95 a 1,05",
         formula: "Empenho / (Planejado - Executado - Compromisso)",
       },
       {
-        id: "equilibrioFinanceiro",
+        id: "equilibrioFinanceiro" as const,
         nome: "Equilíbrio Financeiro",
         valor: equilibrio,
-        status: statusByBands(equilibrio, 0.95, 1.05, 0.9, 1.1),
+        status: eqStatus,
+        statusLabel: resolveStatusLabel("equilibrioFinanceiro", equilibrio, eqStatus),
         direcao: directionByCenter(equilibrio, 1),
         meta: "0,95 a 1,05",
         formula: "Provisionado / Orçamento",
