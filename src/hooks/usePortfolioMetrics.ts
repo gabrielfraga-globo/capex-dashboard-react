@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ProjetoMetricas, RelatorioParsing } from "../types";
 import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
-import type { Periodo } from "../store/filterStore";
+import type { Periodo } from "../types";
 
 interface PortfolioMetricsResult {
   todasMetricas: ProjetoMetricas[];
