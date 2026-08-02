@@ -15,6 +15,8 @@ export interface KPIEstrategicoCarteira {
   status: StatusSemaforo;
   /** Rótulo semântico legível pelo executivo; null quando status === "nd". */
   statusLabel: string | null;
+  /** Descrição executiva fluida para data storytelling. Substitui o rótulo robótico. */
+  descricaoExecutiva: string;
   direcao: "up" | "down" | "none";
   meta: string;
   formula: string;

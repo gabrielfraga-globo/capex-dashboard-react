@@ -9,7 +9,7 @@ import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
 import { ExecutiveInsights } from "./ExecutiveInsights";
-import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronRight, HelpCircle } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 // Trava M-1: barras do gráfico só são coloridas até o mês fechado anterior.
@@ -240,33 +240,61 @@ export function RadarExecutivo({
 
       <ExecutiveInsights kpis={kpisEstrategicos} />
 
+      {/* Grid de KPIs Estratégicos com novo design — Interpretação em primeiro plano */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         {kpisEstrategicos.map((kpi) => {
+          // Mapa de ícones + cores de status
+          const statusEmoji = kpi.status === "verde" ? "✅" : kpi.status === "amarelo" ? "🟠" : kpi.status === "vermelho" ? "🔴" : "⚪";
           const badgeClass = kpi.status === "nd" ? "border-border/60 bg-card-alt text-text-faint" : KPI_STATUS_STYLE[kpi.status];
-          const seta = kpi.direcao === "up" ? "▲" : kpi.direcao === "down" ? "▼" : "-";
+          const statusTextClass = kpi.status === "nd" ? "text-text-faint" : kpi.status === "verde" ? "text-emerald-600" : kpi.status === "amarelo" ? "text-amber-600" : "text-red-600";
+          
+          // Tooltip: O que mede, Como calculamos, Valores utilizados, Resultado, Impacto
+          const tooltipContent = `
+Métrica: ${kpi.nome}
+O que mede: Aderência do ritmo de execução vs plano.
+Fórmula: ${kpi.formula}
+Meta esperada: ${kpi.meta}
+Resultado técnico: ${fmtKpiRatio(kpi.valor)}
+Status: ${kpi.statusLabel ?? "Dados insuficientes"}
+Impacto: ${kpi.descricaoExecutiva}
+          `.trim();
+
           return (
             <article
               key={kpi.id}
-              className="rounded-card border border-border bg-card p-4 shadow-card"
-              aria-label={`${kpi.nome}: ${fmtKpiRatio(kpi.valor)}. Status: ${kpi.statusLabel ?? "N/D"}.`}
+              className="rounded-card border border-border bg-card p-4 shadow-card flex flex-col gap-4"
+              aria-label={`${kpi.nome}: ${kpi.statusLabel}. ${kpi.descricaoExecutiva}`}
             >
-              <div className="flex items-start justify-between gap-2 mb-1">
+              {/* Topo: Título sutil + Ícone de ajuda (tooltip) */}
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] uppercase tracking-wide font-semibold text-text-muted">{kpi.nome}</p>
-                {kpi.statusLabel !== null ? (
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold shrink-0 ${badgeClass}`}>
-                    {kpi.statusLabel}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center rounded-full border border-border/60 bg-card-alt px-2 py-0.5 text-[10px] font-bold text-text-faint shrink-0">
-                    N/D
-                  </span>
-                )}
+                <button
+                  type="button"
+                  className="text-text-faint hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 rounded"
+                  aria-label={`Informações sobre ${kpi.nome}`}
+                  title={tooltipContent}
+                >
+                  <HelpCircle size={14} />
+                </button>
               </div>
-              <div className="flex items-end justify-between gap-2">
-                <p className="text-3xl font-extrabold tabular-nums text-text">{fmtKpiRatio(kpi.valor)}</p>
-                <span className="text-base font-bold text-text-muted" aria-hidden="true">{seta}</span>
+
+              {/* Centro: Ícone + Status em grande destaque */}
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-4xl" aria-hidden="true">{statusEmoji}</span>
+                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold text-center ${badgeClass}`}>
+                  {kpi.statusLabel ?? "Dados insuficientes"}
+                </span>
               </div>
-              <p className="text-[11px] mt-2 text-text-muted">Meta: {kpi.meta}</p>
+
+              {/* Descrição Executiva: O coração da comunicação */}
+              <p className="text-sm text-text-muted leading-relaxed text-center">
+                {kpi.descricaoExecutiva}
+              </p>
+
+              {/* Rodapé: Valor técnico neutro */}
+              <div className="border-t border-border pt-3 text-center">
+                <p className="text-[10px] text-text-faint">Resultado técnico: <span className="font-mono font-bold">{fmtKpiRatio(kpi.valor)}</span></p>
+              </div>
             </article>
           );
         })}
