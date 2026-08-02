@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { KPIEstrategicoCarteira, StatusSemaforo } from "../types";
+import type { KPIEstrategicoCarteira } from "../types";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -50,7 +50,6 @@ export function ExecutiveInsights({ kpis }: { kpis: KPIEstrategicoCarteira[] }) 
   const narrativa = useMemo(() => generateFluidNarrative(kpis), [kpis]);
 
   // Cores de status para destaque na narrativa
-  const hasVerde = kpis.some((k) => k.status === "verde");
   const hasAmarelo = kpis.some((k) => k.status === "amarelo");
   const hasVermelho = kpis.some((k) => k.status === "vermelho");
 

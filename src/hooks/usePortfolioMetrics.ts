@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { KPIEstrategicoCarteira, ProjetoBase, ProjetoMetricas, RelatorioParsing, StatusSemaforo } from "../types";
+import type { KPIEstrategicoCarteira, ProjetoBase, ProjetoMetricas, RelatorioParsing } from "../types";
 import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
 import type { Periodo } from "../types";
 

@@ -246,7 +246,6 @@ export function RadarExecutivo({
           // Mapa de ícones + cores de status
           const statusEmoji = kpi.status === "verde" ? "✅" : kpi.status === "amarelo" ? "🟠" : kpi.status === "vermelho" ? "🔴" : "⚪";
           const badgeClass = kpi.status === "nd" ? "border-border/60 bg-card-alt text-text-faint" : KPI_STATUS_STYLE[kpi.status];
-          const statusTextClass = kpi.status === "nd" ? "text-text-faint" : kpi.status === "verde" ? "text-emerald-600" : kpi.status === "amarelo" ? "text-amber-600" : "text-red-600";
           
           // Tooltip: O que mede, Como calculamos, Valores utilizados, Resultado, Impacto
           const tooltipContent = `
