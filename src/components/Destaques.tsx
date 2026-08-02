@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ProjetoMetricas } from "../types";
 import { RiskBadge, KpiCard } from "./ui/primitives";
-import { fmtBRL } from "../lib/format";
+import { formatCurrencyMillions } from "../lib/format";
 import { generateRiskSummary, generateTopOffenders, generateExecutiveInsights } from "../lib/insights";
 
 export function Destaques({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
@@ -19,7 +19,7 @@ export function Destaques({ lista, onSelect }: { lista: ProjetoMetricas[]; onSel
         />
         <KpiCard
           label="Ajuste de Fluxo"
-          value={fmtBRL(risco.exposicaoFinanceira, true)}
+          value={formatCurrencyMillions(risco.exposicaoFinanceira)}
           tooltip="Valor total em risco de estouro ou não realização."
         />
         <KpiCard
@@ -54,7 +54,7 @@ export function Destaques({ lista, onSelect }: { lista: ProjetoMetricas[]; onSel
                 >
                   <span className="text-text truncate">{i + 1}. {p.nome}</span>
                   <span className="flex items-center gap-2 shrink-0">
-                    <span className="text-text-muted">{fmtBRL(p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0), true)}</span>
+                    <span className="text-text-muted">{formatCurrencyMillions(p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}</span>
                     <RiskBadge status={p.status} />
                   </span>
                 </button>

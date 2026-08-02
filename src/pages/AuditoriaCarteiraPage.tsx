@@ -7,14 +7,11 @@ import { DistribuicaoFinanceiraPlataforma } from "../components/Diagnostics";
 import { Rankings } from "../components/Rankings";
 import { ActionPlan } from "../components/ActionPlan";
 import { ProjectsTable } from "../components/ProjectsTable";
-import { ValidationPanel } from "../components/ValidationPanel";
 import { BentoCard } from "../components/ui/bento";
 
 interface Props {
   metricasFiltradas: ProjetoMetricas[];
-  metricas2026: ProjetoMetricas[];
   parsed: RelatorioParsing;
-  modoAuditoria: boolean;
   periodo: Periodo;
   onSetPeriodo: (p: Periodo) => void;
   onSelect: (p: ProjetoMetricas | null) => void;
@@ -22,9 +19,7 @@ interface Props {
 
 export function AuditoriaCarteiraPage({
   metricasFiltradas,
-  metricas2026,
   parsed,
-  modoAuditoria,
   periodo,
   onSetPeriodo,
   onSelect,
@@ -75,14 +70,6 @@ export function AuditoriaCarteiraPage({
           <ProjectsTable lista={metricasFiltradas} onSelect={onSelect} />
         </BentoCard>
       </div>
-
-      {modoAuditoria && (
-        <ValidationPanel
-          metricas2026={metricas2026}
-          parsed={parsed}
-          totalGeralProjetos={parsed.projetos.length}
-        />
-      )}
     </>
   );
 }

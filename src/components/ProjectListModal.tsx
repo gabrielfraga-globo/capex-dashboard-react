@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { X, Search, ArrowUpDown } from "lucide-react";
 import type { ProjetoMetricas } from "../types";
 import { RiskBadge } from "./ui/primitives";
-import { fmtBRL } from "../lib/format";
+import { formatCurrencyMillions } from "../lib/format";
 
 export function ProjectListModal({
   open,
@@ -18,7 +18,7 @@ export function ProjectListModal({
   onClose: () => void;
   title: string;
   projetos: ProjetoMetricas[];
-  valorFn: (p: ProjetoMetricas) => number;
+  valorFn: (p: ProjetoMetricas) => number | null;
   justificativaFn?: (p: ProjetoMetricas) => string;
   onSelectProject: (p: ProjetoMetricas) => void;
 }) {
@@ -27,7 +27,12 @@ export function ProjectListModal({
 
   const lista = useMemo(() => {
     const filtrados = projetos.filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()));
-    return filtrados.sort((a, b) => (ordem === "desc" ? valorFn(b) - valorFn(a) : valorFn(a) - valorFn(b)));
+    const sortVal = (v: number | null) => (v === null || Number.isNaN(v) ? Number.NEGATIVE_INFINITY : v);
+    return filtrados.sort((a, b) => {
+      const aVal = sortVal(valorFn(a));
+      const bVal = sortVal(valorFn(b));
+      return ordem === "desc" ? bVal - aVal : aVal - bVal;
+    });
   }, [projetos, busca, ordem, valorFn]);
 
   return (
@@ -76,7 +81,7 @@ export function ProjectListModal({
                     <p className="text-text truncate font-medium">{p.nome}</p>
                     {justificativaFn && <p className="text-text-faint text-[11px] truncate mt-0.5">{justificativaFn(p)}</p>}
                   </div>
-                  <span className="text-text-muted font-semibold shrink-0">{fmtBRL(valorFn(p), true)}</span>
+                  <span className="text-text-muted font-semibold shrink-0">{formatCurrencyMillions(valorFn(p))}</span>
                   <RiskBadge status={p.status} />
                 </button>
               ))

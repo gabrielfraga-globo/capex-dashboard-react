@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell,
 } from "recharts";
 import type { ProjetoMetricas } from "../types";
-import { fmtBRL } from "../lib/format";
+import { formatCurrencyMillions } from "../lib/format";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors, chartTooltipStyle } from "../lib/chartColors";
 
@@ -57,9 +57,9 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={porPlataforma} layout="vertical" margin={{ left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-            <XAxis type="number" tickFormatter={(v) => fmtBRL(v, true)} stroke={colors.axis} fontSize={11} />
+            <XAxis type="number" tickFormatter={(v) => formatCurrencyMillions(v)} stroke={colors.axis} fontSize={11} />
             <YAxis type="category" dataKey="plataforma" stroke={colors.axis} fontSize={11} width={130} />
-            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} {...tooltipStyle} />
+            <Tooltip formatter={(v: any) => formatCurrencyMillions(Number(v))} {...tooltipStyle} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="orcamento" name="Orçamento" fill="#3DA5F4" radius={[0, 4, 4, 0]} />
             <Bar dataKey="executado" name="Executado" fill="#7FD1B9" radius={[0, 4, 4, 0]} />
@@ -113,10 +113,10 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
         </ResponsiveContainer>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={distribuicaoStatus} dataKey="valor" nameKey="status" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => fmtBRL(e.valor, true)}>
+            <Pie data={distribuicaoStatus} dataKey="valor" nameKey="status" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => formatCurrencyMillions(e.valor)}>
               {distribuicaoStatus.map((d) => <Cell key={d.status} fill={RISK_COLORS[d.status]} />)}
             </Pie>
-            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} {...tooltipStyle} />
+            <Tooltip formatter={(v: any) => formatCurrencyMillions(Number(v))} {...tooltipStyle} />
           </PieChart>
         </ResponsiveContainer>
       </div>

@@ -12,7 +12,7 @@ import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { BrandMark } from "./components/ui/BrandMark";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
-import { AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
+import { AlertTriangle, Radar, ClipboardList } from "lucide-react";
 import { SkeletonRadar } from "./components/ui/SkeletonCard";
 
 // Lazy: o bundle da Auditoria só é baixado quando o usuário navega para essa aba
@@ -24,7 +24,6 @@ type ViewMode = "radar" | "auditoria";
 
 export default function App() {
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
-  const [modoAuditoria, setModoAuditoria] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
 
   // Seletores granulares — App.tsx só re-renderiza quando os valores que ele usa mudam
@@ -49,7 +48,7 @@ export default function App() {
   useThemeSync(theme);
 
   const { parsed, loadError } = usePortfolioData();
-  const { todasMetricas, metricas2026 } = usePortfolioMetrics(parsed, filtros.periodo);
+  const { todasMetricas } = usePortfolioMetrics(parsed, filtros.periodo);
   const { metricasFiltradas, comparaveis, periodoLabel } = useFilteredProjects(
     todasMetricas,
     filtros,
@@ -122,17 +121,6 @@ export default function App() {
               <ClipboardList size={13} aria-hidden="true" /> Auditoria da Carteira
             </button>
           </div>
-          {viewMode === "auditoria" && (
-            <button
-              onClick={() => setModoAuditoria((v) => !v)}
-              aria-pressed={modoAuditoria}
-              className={`flex items-center gap-1.5 text-xs rounded-md border px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 ${
-                modoAuditoria ? "border-accent text-accent bg-accent/10" : "border-border text-text-muted hover:text-text"
-              }`}
-            >
-              <ShieldCheck size={13} aria-hidden="true" /> Validação Técnica
-            </button>
-          )}
         </div>
       </header>
 
@@ -150,9 +138,7 @@ export default function App() {
         }>
           <AuditoriaCarteiraPage
             metricasFiltradas={metricasFiltradas}
-            metricas2026={metricas2026}
             parsed={parsed}
-            modoAuditoria={modoAuditoria}
             periodo={filtros.periodo}
             onSetPeriodo={setPeriodo}
             onSelect={setSelected}

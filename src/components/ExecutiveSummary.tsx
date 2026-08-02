@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Periodo, ProjetoMetricas } from "../types";
 import { KpiCard } from "./ui/primitives";
-import { fmtBRL } from "../lib/format";
+import { formatCurrencyMillions } from "../lib/format";
 import { generateExecutiveSummary } from "../lib/insights";
 
 /**
@@ -20,22 +20,22 @@ export function ExecutiveSummary({ lista, periodo }: { lista: ProjetoMetricas[];
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard
           label={`Orçamento ${periodoLabel}`}
-          value={fmtBRL(resumo.orcamentoPeriodo)}
+          value={formatCurrencyMillions(resumo.orcamentoPeriodo)}
           tooltip="Valor total aprovado para o período selecionado."
         />
         <KpiCard
           label="Executado"
-          value={fmtBRL(resumo.executado)}
+          value={formatCurrencyMillions(resumo.executado)}
           tooltip="Valor já pago ou reconhecido como gasto (Realizado + Em Pagamento)."
         />
         <KpiCard
           label="Emitido"
-          value={fmtBRL(resumo.compromisso)}
+          value={formatCurrencyMillions(resumo.compromisso)}
           tooltip="Valor já formalizado em contrato ou pedido de compra."
         />
         <KpiCard
           label="A Emitir"
-          value={fmtBRL(resumo.aEmitir)}
+          value={formatCurrencyMillions(resumo.aEmitir)}
           tooltip="Parcela do orçamento que ainda não entrou no fluxo financeiro. Orçamento − Executado − Emitido."
         />
       </div>

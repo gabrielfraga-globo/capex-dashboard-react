@@ -3,7 +3,7 @@ import type { ProjetoMetricas } from "../types";
 import { generateActionPlan } from "../lib/insights";
 import { RiskBadge } from "./ui/primitives";
 import { EmptyState } from "./ui/EmptyState";
-import { fmtBRL } from "../lib/format";
+import { formatCurrencyMillions } from "../lib/format";
 
 export function ActionPlan({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
   const grupos = useMemo(() => generateActionPlan(lista), [lista]);
@@ -31,7 +31,7 @@ export function ActionPlan({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
               >
                 <span className="text-text truncate">{p.nome}</span>
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-text-muted">{fmtBRL(p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0), true)}</span>
+                  <span className="text-text-muted">{formatCurrencyMillions(p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}</span>
                   <RiskBadge status={p.status} />
                 </span>
               </button>

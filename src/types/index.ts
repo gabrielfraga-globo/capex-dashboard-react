@@ -99,15 +99,6 @@ export interface LinhaIgnorada {
   contexto: string;
 }
 
-export interface ValidacaoResultado {
-  metrica: string;
-  valorCalculado: number;
-  valorStatusReport: number | null;
-  diferenca: number | null;
-  situacao: "OK" | "Divergência" | "Sem referência";
-  causaProvavel: string;
-}
-
 export interface RelatorioParsing {
   projetos: ProjetoBase[];
   gestores: Gestor[];

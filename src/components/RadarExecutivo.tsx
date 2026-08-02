@@ -5,7 +5,7 @@ import { useFilterStore } from "../store/filterStore";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors } from "../lib/chartColors";
 import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
-import { fmtBRL, fmtPct } from "../lib/format";
+import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { InfoTooltip, RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
 import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
@@ -64,11 +64,24 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
 
   // Métricas macro para a Regra dos 5 Segundos
   const pctVsPlano = useMemo(
-    () => (delta.planejadoAcumulado > 0 ? delta.executadoAcumulado / delta.planejadoAcumulado : null),
+    () =>
+      delta.planejadoAcumulado !== null &&
+      delta.planejadoAcumulado > 0 &&
+      delta.executadoAcumulado !== null
+        ? delta.executadoAcumulado / delta.planejadoAcumulado
+        : null,
     [delta]
   );
   const totalOrcamento = useMemo(
-    () => listaFocada.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0),
+    () => {
+      let hasValue = false;
+      const total = listaFocada.reduce((a, p) => {
+        if (p.orcamentoPeriodo === null) return a;
+        hasValue = true;
+        return a + p.orcamentoPeriodo;
+      }, 0);
+      return hasValue ? total : null;
+    },
     [listaFocada]
   );
 
@@ -246,7 +259,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
               <p className="text-[11px] text-white/70">CAPEX Total</p>
-              <p className="text-base font-bold">{fmtBRL(totalOrcamento, true)}</p>
+              <p className="text-base font-bold">{formatCurrencyMillions(totalOrcamento)}</p>
             </div>
             <div>
               <p className="text-[11px] text-white/70 flex items-center gap-1">
@@ -255,7 +268,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                   <InfoTooltip text="Executado = Realizado + Em Pagamento." />
                 </span>
               </p>
-              <p className="text-base font-bold">{fmtBRL(delta.executadoAcumulado, true)}</p>
+              <p className="text-base font-bold">{formatCurrencyMillions(delta.executadoAcumulado)}</p>
             </div>
             <div>
               <p className="text-[11px] text-white/70 flex items-center gap-1">
@@ -264,8 +277,8 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                   <InfoTooltip text="Executado Acumulado − Planejado Acumulado. Negativo é atrás do plano; positivo, à frente." />
                 </span>
               </p>
-              <p className={`text-lg font-extrabold ${delta.deltaYTD >= 0 ? "text-emerald-300" : "text-red-300"}`}>
-                {delta.deltaYTD >= 0 ? "▲ " : "▼ "}{fmtBRL(delta.deltaYTD, true)}
+              <p className={`text-lg font-extrabold ${delta.deltaYTD !== null && delta.deltaYTD >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                {delta.deltaYTD === null ? "N/D" : `${delta.deltaYTD >= 0 ? "▲ " : "▼ "}${formatCurrencyMillions(delta.deltaYTD)}`}
               </p>
             </div>
           </div>
@@ -313,7 +326,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                   <span className="font-semibold">{s}</span>
                   <span className="flex items-center gap-2">
                     <span>{b.n} proj.</span>
-                    <span className="font-bold">{fmtBRL(b.valor, true)}</span>
+                    <span className="font-bold">{formatCurrencyMillions(b.valor)}</span>
                     <ChevronRight size={12} />
                   </span>
                 </button>
@@ -346,7 +359,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                     className="w-full flex items-center justify-between gap-2 text-left text-xs rounded-lg px-2.5 py-2 hover:bg-card-alt transition-colors border border-transparent hover:border-border"
                   >
                     <span className="text-text truncate flex-1">{p.nome}</span>
-                    <span className="text-text-muted shrink-0">{fmtBRL(p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0), true)}</span>
+                    <span className="text-text-muted shrink-0">{formatCurrencyMillions(p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}</span>
                     <span className="text-accent font-semibold shrink-0">{acaoLabel(p)}</span>
                     <RiskBadge status={p.status} />
                   </button>
@@ -368,7 +381,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
             </div>
             <div className="text-3xl font-extrabold text-text mt-2">{revisaoCaixa.length}</div>
             <p className="text-xs text-text-muted mt-1">
-              {fmtBRL(revisaoCaixa.reduce((a, p) => a + Math.abs(p.aEmitir ?? 0), 0), true)} em replanejamento
+              {formatCurrencyMillions(revisaoCaixa.reduce((a, p) => a + Math.abs(p.aEmitir ?? 0), 0))} em replanejamento
             </p>
             {revisaoCaixa.length > 0 && (
               <div className="mt-3 space-y-1 border-t border-border-subtle pt-2">
@@ -379,7 +392,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
                     className="w-full flex items-center justify-between gap-2 text-left text-[11px] rounded px-1.5 py-1 hover:bg-card-alt transition-colors"
                   >
                     <span className="text-text truncate">{p.nome}</span>
-                    <span className="text-text-muted shrink-0">{fmtBRL(p.aEmitir, true)}</span>
+                    <span className="text-text-muted shrink-0">{formatCurrencyMillions(p.aEmitir)}</span>
                   </button>
                 ))}
               </div>
@@ -393,7 +406,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         onClose={() => setModalAberto(null)}
         title="Projetos para Decisão — todos"
         projetos={exigemAcao}
-        valorFn={(p) => (p.status === "Estouro" ? (p.desvioPlurianual ?? 0) : (p.aEmitir ?? 0))}
+        valorFn={(p) => (p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}
         justificativaFn={(p) => acaoLabel(p)}
         onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
       />
@@ -402,7 +415,7 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         onClose={() => setModalAberto(null)}
         title="Revisar Caixa Ano — todos"
         projetos={revisaoCaixa}
-        valorFn={(p) => Math.abs(p.aEmitir ?? 0)}
+        valorFn={(p) => (p.aEmitir === null ? null : Math.abs(p.aEmitir))}
         justificativaFn={() => "Potencial antecipação/postergação entre exercícios"}
         onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
       />
@@ -421,8 +434,8 @@ function FluxoTooltip({ active, payload, label, colors }: any) {
       style={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, color: colors.tooltipText }}
     >
       <p className="font-bold mb-1">{label}</p>
-      <p>Planejado: {fmtBRL(planejado)}</p>
-      <p>Executado: {executado != null ? fmtBRL(executado) : "—"}</p>
+      <p>Planejado: {formatCurrencyMillions(planejado)}</p>
+      <p>Executado: {executado != null ? formatCurrencyMillions(executado) : "N/D"}</p>
       {entry?.banda && (
         <p className="font-bold mt-1" style={{ color: entry.banda.cor }}>
           {entry.banda.label} ({fmtPct(Math.abs(entry.pct))})

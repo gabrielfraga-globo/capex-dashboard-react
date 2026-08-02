@@ -43,25 +43,39 @@ export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
 }
 
 export interface DeltaYTDSummary {
-  planejadoAcumulado: number;
-  executadoAcumulado: number;
-  deltaYTD: number;
+  planejadoAcumulado: number | null;
+  executadoAcumulado: number | null;
+  deltaYTD: number | null;
   headline: string; // ≤ 4 palavras de título, frase objetiva
   statusSimples: "Dentro do plano" | "Acompanhar" | "Requer ação";
+}
+
+function sumNullable(lista: ProjetoMetricas[], getter: (p: ProjetoMetricas) => number | null | undefined): number | null {
+  let hasValue = false;
+  const total = lista.reduce((acc, p) => {
+    const value = getter(p);
+    if (value === null || value === undefined || Number.isNaN(value)) return acc;
+    hasValue = true;
+    return acc + value;
+  }, 0);
+  return hasValue ? total : null;
 }
 
 /** Delta YTD agregado da carteira filtrada — o indicador executivo principal do Radar. */
 /** Delta YTD agregado — o indicador executivo principal. Executado − Planejado:
  * negativo = atrás do plano, positivo = à frente do plano. */
 export function generateDeltaYTD(lista: ProjetoMetricas[]): DeltaYTDSummary {
-  const planejadoAcumulado = lista.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0);
-  const executadoAcumulado = lista.reduce((a, p) => a + (p.executadoAcumulado ?? 0), 0);
-  const deltaYTD = executadoAcumulado - planejadoAcumulado;
+  const planejadoAcumulado = sumNullable(lista, (p) => p.planejadoAcumulado);
+  const executadoAcumulado = sumNullable(lista, (p) => p.executadoAcumulado);
+  const deltaYTD = planejadoAcumulado !== null && executadoAcumulado !== null ? executadoAcumulado - planejadoAcumulado : null;
 
-  const pctDelta = planejadoAcumulado > 0 ? deltaYTD / planejadoAcumulado : 0;
+  const pctDelta = planejadoAcumulado !== null && planejadoAcumulado > 0 && deltaYTD !== null ? deltaYTD / planejadoAcumulado : null;
   let headline: string;
   let statusSimples: "Dentro do plano" | "Acompanhar" | "Requer ação";
-  if (pctDelta < -0.15) { headline = "Requer ação — bem atrás do plano."; statusSimples = "Requer ação"; }
+  if (pctDelta === null) {
+    headline = "N/D no acumulado.";
+    statusSimples = "Acompanhar";
+  } else if (pctDelta < -0.15) { headline = "Requer ação — bem atrás do plano."; statusSimples = "Requer ação"; }
   else if (pctDelta < -0.05) { headline = "Acompanhar — levemente atrás do plano."; statusSimples = "Acompanhar"; }
   else if (pctDelta > 0.05) { headline = "À frente do plano."; statusSimples = "Dentro do plano"; }
   else { headline = "Dentro do plano."; statusSimples = "Dentro do plano"; }
@@ -71,20 +85,19 @@ export function generateDeltaYTD(lista: ProjetoMetricas[]): DeltaYTDSummary {
 
 export interface ExecutiveSummaryData {
   headline: string;
-  orcamentoPeriodo: number;
-  executado: number;
-  compromisso: number;
-  aEmitir: number;
+  orcamentoPeriodo: number | null;
+  executado: number | null;
+  compromisso: number | null;
+  aEmitir: number | null;
   coberturaFinanceira: number | null;
 }
 
 /** Frase de saúde geral — no máximo 8 palavras, é o único sinal de risco na primeira tela. */
 export function generateExecutiveSummary(lista: ProjetoMetricas[]): ExecutiveSummaryData {
-  const sum = (fn: (p: ProjetoMetricas) => number | null) => lista.reduce((a, p) => a + (fn(p) ?? 0), 0);
-  const orcamentoPeriodo = sum((p) => p.orcamentoPeriodo);
-  const executado = sum((p) => p.executado);
-  const compromisso = sum((p) => p.compromisso);
-  const aEmitir = sum((p) => p.aEmitir);
+  const orcamentoPeriodo = sumNullable(lista, (p) => p.orcamentoPeriodo);
+  const executado = sumNullable(lista, (p) => p.executado);
+  const compromisso = sumNullable(lista, (p) => p.compromisso);
+  const aEmitir = sumNullable(lista, (p) => p.aEmitir);
 
   const risco = generateRiskSummary(lista);
   let headline: string;
@@ -207,8 +220,12 @@ export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
 /** Insights específicos do Radar — narram o Delta YTD, não repetem cobertura/saldo a emitir. */
 export function generateRadarInsights(lista: ProjetoMetricas[], delta: DeltaYTDSummary): string[] {
   const out: string[] = [];
-  const sinal = delta.deltaYTD >= 0 ? "acima" : "abaixo";
-  out.push(`Execução está ${fmtBRL(Math.abs(delta.deltaYTD), true)} ${sinal} do planejado acumulado.`);
+  if (delta.deltaYTD === null) {
+    out.push("Execução acumulada sem base suficiente para comparação.");
+  } else {
+    const sinal = delta.deltaYTD >= 0 ? "acima" : "abaixo";
+    out.push(`Execução está ${fmtBRL(Math.abs(delta.deltaYTD), true)} ${sinal} do planejado acumulado.`);
+  }
 
   // Contribuição por plataforma para o delta (não para o orçamento)
   const porPlataforma = new Map<string, number>();
@@ -241,9 +258,15 @@ export function generateRadarInsights(lista: ProjetoMetricas[], delta: DeltaYTDS
  * status simples E o antigo card de insights. No máximo 1 frase, ~2 linhas.
  */
 export function generateHeroNarrative(lista: ProjetoMetricas[], delta: DeltaYTDSummary): string {
-  const pctDelta = delta.planejadoAcumulado > 0 ? delta.deltaYTD / delta.planejadoAcumulado : 0;
+  const pctDelta =
+    delta.planejadoAcumulado !== null &&
+    delta.planejadoAcumulado > 0 &&
+    delta.deltaYTD !== null
+      ? delta.deltaYTD / delta.planejadoAcumulado
+      : null;
   let base: string;
-  if (pctDelta > 0.05) base = "Carteira executa acima do plano acumulado";
+  if (pctDelta === null) base = "Sem base suficiente para comparar execução acumulada";
+  else if (pctDelta > 0.05) base = "Carteira executa acima do plano acumulado";
   else if (pctDelta < -0.05) base = "Carteira executa abaixo do plano acumulado";
   else base = "Execução segue aderente ao plano acumulado";
 

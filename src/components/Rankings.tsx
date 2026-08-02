@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ProjetoMetricas } from "../types";
 import { RiskBadge } from "./ui/primitives";
 import { EmptyState } from "./ui/EmptyState";
-import { fmtBRL, fmtPct } from "../lib/format";
+import { fmtPct, formatCurrencyMillions } from "../lib/format";
 
 type RankingKey = "menorCobertura" | "maiorAEmitir" | "maiorEstouro" | "participacaoRisco";
 
@@ -30,8 +30,8 @@ function getRanked(lista: ProjetoMetricas[], key: RankingKey): ProjetoMetricas[]
 function valueFor(p: ProjetoMetricas, key: RankingKey): string {
   switch (key) {
     case "menorCobertura": return fmtPct(p.coberturaFinanceira);
-    case "maiorAEmitir": return fmtBRL(p.aEmitir);
-    case "maiorEstouro": return fmtBRL(p.desvioPlurianual);
+    case "maiorAEmitir": return formatCurrencyMillions(p.aEmitir);
+    case "maiorEstouro": return formatCurrencyMillions(p.desvioPlurianual);
     case "participacaoRisco": return fmtPct(p.participacaoRisco);
   }
 }
