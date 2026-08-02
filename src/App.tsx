@@ -1,6 +1,7 @@
-import { useState } from "react";
-import type { ProjetoMetricas } from "./types";
+import { useState, lazy, Suspense, useCallback } from "react";
+import type { ProjetoMetricas, FiltrosState } from "./types";
 import { useFilterStore } from "./store/filterStore";
+import { useShallow } from "zustand/react/shallow";
 import { useThemeStore } from "./store/themeStore";
 import { usePortfolioData } from "./hooks/usePortfolioData";
 import { usePortfolioMetrics } from "./hooks/usePortfolioMetrics";
@@ -11,8 +12,12 @@ import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { BrandMark } from "./components/ui/BrandMark";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
-import { AuditoriaCarteiraPage } from "./pages/AuditoriaCarteiraPage";
 import { Loader2, AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
+
+// Lazy: o bundle da Auditoria só é baixado quando o usuário navega para essa aba
+const AuditoriaCarteiraPage = lazy(() =>
+  import("./pages/AuditoriaCarteiraPage").then((m) => ({ default: m.AuditoriaCarteiraPage }))
+);
 
 type ViewMode = "radar" | "auditoria";
 
@@ -21,8 +26,24 @@ export default function App() {
   const [modoAuditoria, setModoAuditoria] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
 
-  const filtros = useFilterStore();
-  const { theme } = useThemeStore();
+  // Seletores granulares — App.tsx só re-renderiza quando os valores que ele usa mudam
+  const filtros = useFilterStore(
+    useShallow((s): FiltrosState => ({
+      periodo: s.periodo,
+      plataforma: s.plataforma,
+      gestor: s.gestor,
+      projeto: s.projeto,
+      aprovador: s.aprovador,
+      status: s.status,
+      execucaoMin: s.execucaoMin,
+      execucaoMax: s.execucaoMax,
+      comprometimentoMin: s.comprometimentoMin,
+      comprometimentoMax: s.comprometimentoMax,
+      busca: s.busca,
+    }))
+  );
+  const setPeriodo = useFilterStore(s => s.setPeriodo);
+  const theme = useThemeStore(s => s.theme);
 
   useThemeSync(theme);
 
@@ -35,7 +56,8 @@ export default function App() {
   );
 
   // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
-  const handleSelectFromRadar = (p: ProjetoMetricas) => setSelected(p);
+  const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
+  const handleClosePanel = useCallback(() => setSelected(null), []);
 
   if (loadError) {
     return (
@@ -111,22 +133,28 @@ export default function App() {
       {viewMode === "radar" ? (
         <RadarExecutivoPage lista={metricasFiltradas} onSelect={handleSelectFromRadar} />
       ) : (
-        <AuditoriaCarteiraPage
-          metricasFiltradas={metricasFiltradas}
-          metricas2026={metricas2026}
-          parsed={parsed}
-          modoAuditoria={modoAuditoria}
-          periodo={filtros.periodo}
-          onSetPeriodo={filtros.setPeriodo}
-          onSelect={setSelected}
-        />
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-20 text-text-muted">
+            <Loader2 className="animate-spin text-accent" size={24} />
+          </div>
+        }>
+          <AuditoriaCarteiraPage
+            metricasFiltradas={metricasFiltradas}
+            metricas2026={metricas2026}
+            parsed={parsed}
+            modoAuditoria={modoAuditoria}
+            periodo={filtros.periodo}
+            onSetPeriodo={setPeriodo}
+            onSelect={setSelected}
+          />
+        </Suspense>
       )}
 
       <footer className="text-center text-[11px] text-text-faint py-4">
         Performance Plataformas · Radar Executivo Mensal · Uso Interno
       </footer>
 
-      <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={() => setSelected(null)} />
+      <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={handleClosePanel} />
     </div>
   );
 }

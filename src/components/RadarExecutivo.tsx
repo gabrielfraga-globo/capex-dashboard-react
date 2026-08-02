@@ -35,8 +35,9 @@ type Foco = "todos" | "dentro" | "acompanhar" | "acao";
  * substitui a tarja de status e o antigo card de insights.
  */
 export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
-  const filtros = useFilterStore();
-  const { theme } = useThemeStore();
+  const periodo = useFilterStore(s => s.periodo);
+  const setPeriodo = useFilterStore(s => s.setPeriodo);
+  const theme = useThemeStore(s => s.theme);
   const colors = getChartColors(theme);
   const [busca, setBusca] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -136,9 +137,9 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
             {(["2026", "2027", "Todos"] as const).map((p) => (
               <button
                 key={p}
-                onClick={() => filtros.setPeriodo(p)}
+                onClick={() => setPeriodo(p)}
                 className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                  filtros.periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+                  periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
                 }`}
               >
                 {p === "Todos" ? "Todos os anos" : p}

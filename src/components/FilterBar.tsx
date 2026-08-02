@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { X, SlidersHorizontal } from "lucide-react";
 import { useFilterStore } from "../store/filterStore";
+import { useShallow } from "zustand/react/shallow";
 import { Select } from "./ui/select";
 import { Button } from "./ui/primitives";
 import type { ProjetoBase, StatusRisco } from "../types";
@@ -13,7 +14,29 @@ const STATUS_QUICK: { value: StatusRisco | null; label: string }[] = [
 ];
 
 export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
-  const f = useFilterStore();
+  // Shallow selector: re-renderiza só quando um valor visível muda
+  const { status, busca, plataforma, gestor, aprovador, execucaoMin, execucaoMax, comprometimentoMin, comprometimentoMax } = useFilterStore(
+    useShallow(s => ({
+      status: s.status,
+      busca: s.busca,
+      plataforma: s.plataforma,
+      gestor: s.gestor,
+      aprovador: s.aprovador,
+      execucaoMin: s.execucaoMin,
+      execucaoMax: s.execucaoMax,
+      comprometimentoMin: s.comprometimentoMin,
+      comprometimentoMax: s.comprometimentoMax,
+    }))
+  );
+  // Ações têm referência estável no Zustand — esses seletores nunca disparam re-render
+  const setStatus = useFilterStore(s => s.setStatus);
+  const setBusca = useFilterStore(s => s.setBusca);
+  const setPlataforma = useFilterStore(s => s.setPlataforma);
+  const setGestor = useFilterStore(s => s.setGestor);
+  const setAprovador = useFilterStore(s => s.setAprovador);
+  const setExecucaoRange = useFilterStore(s => s.setExecucaoRange);
+  const setComprometimentoRange = useFilterStore(s => s.setComprometimentoRange);
+  const limparFiltros = useFilterStore(s => s.limparFiltros);
   const [showAvancados, setShowAvancados] = useState(false);
 
   const plataformas = useMemo(
@@ -30,7 +53,7 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
   );
 
   const filtrosAvancadosAtivos =
-    !!f.plataforma || !!f.gestor || !!f.aprovador || f.execucaoMin !== 0 || f.execucaoMax !== 100 || f.comprometimentoMin !== 0 || f.comprometimentoMax !== 100;
+    !!plataforma || !!gestor || !!aprovador || execucaoMin !== 0 || execucaoMax !== 100 || comprometimentoMin !== 0 || comprometimentoMax !== 100;
 
   return (
     <div className="mb-4">
@@ -38,9 +61,9 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
         {STATUS_QUICK.map((s) => (
           <button
             key={s.label}
-            onClick={() => f.setStatus(s.value)}
+            onClick={() => setStatus(s.value)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-              f.status === s.value ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+              status === s.value ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
             }`}
           >
             {s.label}
@@ -48,8 +71,8 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
         ))}
 
         <input
-          value={f.busca}
-          onChange={(e) => f.setBusca(e.target.value)}
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar projeto…"
           className="rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs text-text placeholder:text-text-faint w-44 outline-none focus:border-accent"
         />
@@ -61,8 +84,8 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
           <SlidersHorizontal size={13} /> Filtros avançados {filtrosAvancadosAtivos && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
         </button>
 
-        {(filtrosAvancadosAtivos || f.status || f.busca) && (
-          <Button variant="outline" className="flex items-center gap-1 text-xs" onClick={f.limparFiltros}>
+        {(filtrosAvancadosAtivos || status || busca) && (
+          <Button variant="outline" className="flex items-center gap-1 text-xs" onClick={limparFiltros}>
             <X size={13} /> Limpar
           </Button>
         )}
@@ -70,21 +93,21 @@ export function FilterBar({ projetos }: { projetos: ProjetoBase[] }) {
 
       {showAvancados && (
         <div className="flex flex-wrap items-center gap-2 mt-2 rounded-md border border-border bg-card p-2.5">
-          <Select value={f.plataforma} onValueChange={f.setPlataforma} options={plataformas} placeholder="Plataforma" />
-          <Select value={f.gestor} onValueChange={f.setGestor} options={gestores} placeholder="Gestor" />
-          <Select value={f.aprovador} onValueChange={f.setAprovador} options={aprovadores} placeholder="1º Aprovador" />
+          <Select value={plataforma} onValueChange={setPlataforma} options={plataformas} placeholder="Plataforma" />
+          <Select value={gestor} onValueChange={setGestor} options={gestores} placeholder="Gestor" />
+          <Select value={aprovador} onValueChange={setAprovador} options={aprovadores} placeholder="1º Aprovador" />
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span>Execução</span>
-            <input type="number" min={0} max={100} value={f.execucaoMin} onChange={(e) => f.setExecucaoRange(Number(e.target.value), f.execucaoMax)} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
+            <input type="number" min={0} max={100} value={execucaoMin} onChange={(e) => setExecucaoRange(Number(e.target.value), execucaoMax)} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
             <span>–</span>
-            <input type="number" min={0} max={100} value={f.execucaoMax} onChange={(e) => f.setExecucaoRange(f.execucaoMin, Number(e.target.value))} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
+            <input type="number" min={0} max={100} value={execucaoMax} onChange={(e) => setExecucaoRange(execucaoMin, Number(e.target.value))} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
             <span>%</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span>Emitido</span>
-            <input type="number" min={0} max={100} value={f.comprometimentoMin} onChange={(e) => f.setComprometimentoRange(Number(e.target.value), f.comprometimentoMax)} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
+            <input type="number" min={0} max={100} value={comprometimentoMin} onChange={(e) => setComprometimentoRange(Number(e.target.value), comprometimentoMax)} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
             <span>–</span>
-            <input type="number" min={0} max={100} value={f.comprometimentoMax} onChange={(e) => f.setComprometimentoRange(f.comprometimentoMin, Number(e.target.value))} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
+            <input type="number" min={0} max={100} value={comprometimentoMax} onChange={(e) => setComprometimentoRange(comprometimentoMin, Number(e.target.value))} className="w-14 rounded border border-border bg-card-alt px-1.5 py-1 text-text" />
             <span>%</span>
           </div>
         </div>
