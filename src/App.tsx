@@ -6,21 +6,12 @@ import { usePortfolioData } from "./hooks/usePortfolioData";
 import { usePortfolioMetrics } from "./hooks/usePortfolioMetrics";
 import { useFilteredProjects } from "./hooks/useFilteredProjects";
 import { useThemeSync } from "./hooks/useThemeSync";
-import { FilterBar } from "./components/FilterBar";
 import { ContextBar } from "./components/ContextBar";
-import { ExecutiveSummary } from "./components/ExecutiveSummary";
-import { Destaques } from "./components/Destaques";
-import { RadarExecutivo } from "./components/RadarExecutivo";
-import { RiskMatrix } from "./components/RiskMatrix";
-import { DistribuicaoFinanceiraPlataforma } from "./components/Diagnostics";
-import { Rankings } from "./components/Rankings";
-import { ActionPlan } from "./components/ActionPlan";
-import { ProjectsTable } from "./components/ProjectsTable";
 import { ProjectSidePanel } from "./components/ProjectSidePanel";
-import { ValidationPanel } from "./components/ValidationPanel";
-import { BentoCard } from "./components/ui/bento";
 import { BrandMark } from "./components/ui/BrandMark";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
+import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
+import { AuditoriaCarteiraPage } from "./pages/AuditoriaCarteiraPage";
 import { Loader2, AlertTriangle, ShieldCheck, Radar, ClipboardList } from "lucide-react";
 
 type ViewMode = "radar" | "auditoria";
@@ -117,60 +108,18 @@ export default function App() {
 
       <ContextBar parsed={parsed} totalFiltrado={metricasFiltradas.length} totalGeral={todasMetricas.length} periodoLabel={periodoLabel} />
 
-      {viewMode === "auditoria" && (
-        <div className="flex gap-2 mb-4">
-          {(["2026", "2027", "Todos"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => filtros.setPeriodo(p)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
-                filtros.periodo === p ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
-              }`}
-            >
-              {p === "Todos" ? "🗂️ Todos os anos" : `📅 ${p}`}
-            </button>
-          ))}
-        </div>
-      )}
-
       {viewMode === "radar" ? (
-        <RadarExecutivo lista={metricasFiltradas} onSelect={handleSelectFromRadar} />
+        <RadarExecutivoPage lista={metricasFiltradas} onSelect={handleSelectFromRadar} />
       ) : (
-        <>
-          <FilterBar projetos={parsed.projetos} />
-
-          <ExecutiveSummary lista={metricasFiltradas} periodo={filtros.periodo} />
-
-          <div className="space-y-3 mb-6">
-            <BentoCard title="Destaques" icon="🎯">
-              <Destaques lista={metricasFiltradas} onSelect={setSelected} />
-            </BentoCard>
-
-            <BentoCard title="Matriz de Risco" icon="🧭">
-              <RiskMatrix lista={metricasFiltradas} onSelect={setSelected} />
-            </BentoCard>
-
-            <BentoCard title="Composição por Plataforma" icon="🏗️">
-              <DistribuicaoFinanceiraPlataforma lista={metricasFiltradas} />
-            </BentoCard>
-
-            <BentoCard title="Projetos Prioritários" icon="📋">
-              <Rankings lista={metricasFiltradas} onSelect={setSelected} />
-            </BentoCard>
-
-            <BentoCard title="Plano de Ação" icon="✅">
-              <ActionPlan lista={metricasFiltradas} onSelect={setSelected} />
-            </BentoCard>
-
-            <BentoCard title="Detalhamento Completo" icon="🗂️" tooltip="Tabela completa, ordenável e exportável.">
-              <ProjectsTable lista={metricasFiltradas} onSelect={setSelected} />
-            </BentoCard>
-          </div>
-
-          {modoAuditoria && (
-            <ValidationPanel metricas2026={metricas2026} parsed={parsed} totalGeralProjetos={parsed.projetos.length} />
-          )}
-        </>
+        <AuditoriaCarteiraPage
+          metricasFiltradas={metricasFiltradas}
+          metricas2026={metricas2026}
+          parsed={parsed}
+          modoAuditoria={modoAuditoria}
+          periodo={filtros.periodo}
+          onSetPeriodo={filtros.setPeriodo}
+          onSelect={setSelected}
+        />
       )}
 
       <footer className="text-center text-[11px] text-text-faint py-4">
