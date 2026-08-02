@@ -6,6 +6,17 @@ export type Ano = "2026" | "2027";
 export type Periodo = "2026" | "2027" | "Todos";
 
 export type StatusRisco = "Estouro" | "Revisar Caixa Ano" | "Risco de Não Realização" | "Normal" | "Dados insuficientes";
+export type StatusSemaforo = "verde" | "amarelo" | "vermelho" | "nd";
+
+export interface KPIEstrategicoCarteira {
+  id: "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro";
+  nome: string;
+  valor: number | null;
+  status: StatusSemaforo;
+  direcao: "up" | "down" | "none";
+  meta: string;
+  formula: string;
+}
 
 export interface Gestor {
   n3: string;

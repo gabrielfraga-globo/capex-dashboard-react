@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import type { ProjetoMetricas } from "../types";
+import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
 import { useFilterStore } from "../store/filterStore";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors } from "../lib/chartColors";
 import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
-import { InfoTooltip, RiskBadge } from "./ui/primitives";
+import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
 import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
 
@@ -34,7 +34,33 @@ type Foco = "todos" | "dentro" | "acompanhar" | "acao";
  * (período, Programa, status) escondidos por padrão. Uma única frase de síntese
  * substitui a tarja de status e o antigo card de insights.
  */
-export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; onSelect: (p: ProjetoMetricas) => void }) {
+const KPI_STATUS_STYLE: Record<Exclude<StatusSemaforo, "nd">, string> = {
+  verde: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
+  amarelo: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+  vermelho: "border-red-500/40 bg-red-500/10 text-red-700",
+};
+
+function fmtKpiRatio(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return "N/D";
+  return `${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
+}
+
+function labelSemaforo(status: StatusSemaforo): string {
+  if (status === "verde") return "Verde";
+  if (status === "amarelo") return "Amarelo";
+  if (status === "vermelho") return "Vermelho";
+  return "N/D";
+}
+
+export function RadarExecutivo({
+  lista,
+  kpisEstrategicos,
+  onSelect,
+}: {
+  lista: ProjetoMetricas[];
+  kpisEstrategicos: KPIEstrategicoCarteira[];
+  onSelect: (p: ProjetoMetricas) => void;
+}) {
   const periodo = useFilterStore(s => s.periodo);
   const setPeriodo = useFilterStore(s => s.setPeriodo);
   const theme = useThemeStore(s => s.theme);
@@ -72,19 +98,6 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         : null,
     [delta]
   );
-  const totalOrcamento = useMemo(
-    () => {
-      let hasValue = false;
-      const total = listaFocada.reduce((a, p) => {
-        if (p.orcamentoPeriodo === null) return a;
-        hasValue = true;
-        return a + p.orcamentoPeriodo;
-      }, 0);
-      return hasValue ? total : null;
-    },
-    [listaFocada]
-  );
-
   const exigemAcao = useMemo(
     () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
       .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
@@ -228,6 +241,27 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
         </div>
       )}
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        {kpisEstrategicos.map((kpi) => {
+          const statusClass = kpi.status === "nd" ? "border-border bg-card-alt text-text-muted" : KPI_STATUS_STYLE[kpi.status];
+          const seta = kpi.direcao === "up" ? "▲" : kpi.direcao === "down" ? "▼" : "-";
+          return (
+            <article
+              key={kpi.id}
+              className={`rounded-card border p-4 shadow-card ${statusClass}`}
+              aria-label={`${kpi.nome}: ${fmtKpiRatio(kpi.valor)}. Semáforo ${labelSemaforo(kpi.status)}.`}
+            >
+              <p className="text-[11px] uppercase tracking-wide font-semibold opacity-90 mb-1">{kpi.nome}</p>
+              <div className="flex items-end justify-between gap-2">
+                <p className="text-3xl font-extrabold tabular-nums">{fmtKpiRatio(kpi.valor)}</p>
+                <span className="text-base font-bold" aria-hidden="true">{seta}</span>
+              </div>
+              <p className="text-[11px] mt-1 opacity-90">Meta: {kpi.meta}</p>
+            </article>
+          );
+        })}
+      </div>
+
       {/* Linha 1: Execução do Plano + Saúde da Carteira */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div className="lg:col-span-2 rounded-card bg-hero p-6 shadow-card text-white flex flex-col">
@@ -255,33 +289,6 @@ export function RadarExecutivo({ lista, onSelect }: { lista: ProjetoMetricas[]; 
           )}
 
           <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativa}</p>
-
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-[11px] text-white/70">CAPEX Total</p>
-              <p className="text-base font-bold">{formatCurrencyMillions(totalOrcamento)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-white/70 flex items-center gap-1">
-                Executado YTD
-                <span className="[&_.info-icon]:text-white/70 [&_.info-icon:hover]:text-white">
-                  <InfoTooltip text="Executado = Realizado + Em Pagamento." />
-                </span>
-              </p>
-              <p className="text-base font-bold">{formatCurrencyMillions(delta.executadoAcumulado)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-white/70 flex items-center gap-1">
-                Delta YTD
-                <span className="[&_.info-icon]:text-white/70 [&_.info-icon:hover]:text-white">
-                  <InfoTooltip text="Executado Acumulado − Planejado Acumulado. Negativo é atrás do plano; positivo, à frente." />
-                </span>
-              </p>
-              <p className={`text-lg font-extrabold ${delta.deltaYTD !== null && delta.deltaYTD >= 0 ? "text-emerald-300" : "text-red-300"}`}>
-                {delta.deltaYTD === null ? "N/D" : `${delta.deltaYTD >= 0 ? "▲ " : "▼ "}${formatCurrencyMillions(delta.deltaYTD)}`}
-              </p>
-            </div>
-          </div>
 
           <div className="bg-white/10 rounded-xl p-2">
             {temFluxoReal ? (
