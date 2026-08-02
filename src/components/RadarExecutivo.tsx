@@ -11,7 +11,9 @@ import { ProjectListModal } from "./ProjectListModal";
 import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const MES_ATUAL = new Date().getMonth() + 1;
+// Trava M-1: barras do gráfico só são coloridas até o mês fechado anterior.
+const _mesRealRadar = new Date().getMonth() + 1;
+const MES_ATUAL = _mesRealRadar === 1 ? 12 : _mesRealRadar - 1;
 
 const SAUDE_STYLE: Record<string, string> = {
   "Dentro do Plano": "bg-risk-baixo/10 border-risk-baixo/30 text-risk-baixo",

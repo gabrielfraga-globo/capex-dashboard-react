@@ -2,8 +2,11 @@ import type { Periodo, ProjetoBase, ProjetoMetricas, StatusRisco } from "../type
 
 const MESES_2026_TOTAL = 12;
 const MESES_2027_TOTAL = 3; // a planilha só tem jan-mar/2027 orçado
-const MES_ATUAL = new Date().getMonth() + 1; // 1-12
-const ANO_ATUAL = new Date().getFullYear();
+// Trava M-1: análises executivas sempre usam o mês anterior fechado.
+const _mesReal = new Date().getMonth() + 1; // 1-12
+const _anoReal = new Date().getFullYear();
+const MES_ATUAL = _mesReal === 1 ? 12 : _mesReal - 1;
+const ANO_ATUAL = _mesReal === 1 ? _anoReal - 1 : _anoReal;
 const JANELA_RISCO_MESES = 6; // "menos de 6 meses do fim do exercício"
 const COBERTURA_MINIMA = 0.95; // "cobertura financeira < 95%"
 

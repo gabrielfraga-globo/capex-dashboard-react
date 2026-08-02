@@ -22,6 +22,13 @@ const AuditoriaCarteiraPage = lazy(() =>
 
 type ViewMode = "radar" | "auditoria";
 
+// Badge M-1: período de referência executivo (mês anterior fechado), calculado uma vez.
+const _hoje = new Date();
+const _mesRefIdx = _hoje.getMonth() === 0 ? 11 : _hoje.getMonth() - 1; // 0-indexed
+const _anoRef = _hoje.getMonth() === 0 ? _hoje.getFullYear() - 1 : _hoje.getFullYear();
+const _MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const PERIODO_M1_LABEL = `${_MESES_PT[_mesRefIdx]} / ${_anoRef}`;
+
 export default function App() {
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
@@ -92,7 +99,15 @@ export default function App() {
         <div className="flex items-center gap-2.5">
           <BrandMark size={28} />
           <div>
-            <h1 className="text-lg font-bold leading-tight">Carteira CAPEX</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold leading-tight">Carteira CAPEX</h1>
+              <span
+                className="rounded border border-accent/50 bg-accent/10 text-accent text-[11px] font-bold px-2 py-0.5 tracking-wide"
+                title="Período de referência: mês anterior fechado (M-1)"
+              >
+                [ {PERIODO_M1_LABEL} ]
+              </span>
+            </div>
             <p className="text-[11px] text-text-muted">
               {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
             </p>
@@ -124,7 +139,7 @@ export default function App() {
         </div>
       </header>
 
-      <ContextBar parsed={parsed} totalFiltrado={metricasFiltradas.length} totalGeral={todasMetricas.length} periodoLabel={periodoLabel} />
+      <ContextBar parsed={parsed} periodoLabel={periodoLabel} />
 
       {viewMode === "radar" ? (
         <RadarExecutivoPage lista={metricasFiltradas} kpisEstrategicos={kpisEstrategicos} onSelect={handleSelectFromRadar} />
