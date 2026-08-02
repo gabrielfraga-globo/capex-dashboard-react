@@ -8,6 +8,7 @@ import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
+import { ExecutiveInsights } from "./ExecutiveInsights";
 import { Search, SlidersHorizontal, ChevronRight } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -236,6 +237,8 @@ export function RadarExecutivo({
           )}
         </div>
       )}
+
+      <ExecutiveInsights kpis={kpisEstrategicos} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         {kpisEstrategicos.map((kpi) => {
