@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { KPIEstrategicoCarteira, ProjetoBase, ProjetoMetricas, RelatorioParsing } from "../types";
+import type { KPIEstrategicoCarteira, ProjetoBase, ProjetoMetricas, RelatorioParsing, StatusSemaforo } from "../types";
 import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
 import type { Periodo } from "../types";
 
@@ -67,8 +67,7 @@ function resolveStatusLabel(
 function generateDescricaoExecutiva(
   id: "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
   value: number | null,
-  status: StatusSemaforo,
-  statusLabel: string | null
+  status: StatusSemaforo
 ): string {
   if (status === "nd" || value === null) {
     const msgs: Record<typeof id, string> = {
@@ -213,7 +212,7 @@ export function usePortfolioMetrics(
         valor: velocidade,
         status: velStatus,
         statusLabel: velLabel,
-        descricaoExecutiva: generateDescricaoExecutiva("velocidadeCaixa", velocidade, velStatus, velLabel),
+        descricaoExecutiva: generateDescricaoExecutiva("velocidadeCaixa", velocidade, velStatus),
         direcao: directionByCenter(velocidade, 1),
         meta: "0,90 a 1,10",
         formula: "Realizado Acumulado / Planejado Acumulado",
@@ -224,7 +223,7 @@ export function usePortfolioMetrics(
         valor: empenho,
         status: empStatus,
         statusLabel: empLabel,
-        descricaoExecutiva: generateDescricaoExecutiva("empenho", empenho, empStatus, empLabel),
+        descricaoExecutiva: generateDescricaoExecutiva("empenho", empenho, empStatus),
         direcao: directionByCenter(empenho, 1),
         meta: "0,95 a 1,05",
         formula: "Empenho / (Planejado - Executado - Compromisso)",
@@ -235,7 +234,7 @@ export function usePortfolioMetrics(
         valor: equilibrio,
         status: eqStatus,
         statusLabel: eqLabel,
-        descricaoExecutiva: generateDescricaoExecutiva("equilibrioFinanceiro", equilibrio, eqStatus, eqLabel),
+        descricaoExecutiva: generateDescricaoExecutiva("equilibrioFinanceiro", equilibrio, eqStatus),
         direcao: directionByCenter(equilibrio, 1),
         meta: "0,95 a 1,05",
         formula: "Provisionado / Orçamento",
