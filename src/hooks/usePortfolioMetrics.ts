@@ -221,9 +221,6 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
   const capacidadeExecucao =
     denCapExec !== null && denCapExec > 0 ? safeDiv(numCapExec, denCapExec) : null;
 
-  // Consumo do Orçamento: (Executado + Emitido) / Orçamento Anual
-  const consumoOrcamento = safeDiv(totalProvisionado, totalOrcamento);
-
   const velStatus = statusByBands(ritmoExecucao, 0.9, 1.1, 0.85, 1.15);
   const empStatus = statusByBands(capacidadeExecucao, 0.95, 1.05, 0.9, 1.1);
 
