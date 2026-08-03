@@ -8,7 +8,7 @@ import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
-import { usePctExecucaoPlano } from "../hooks/usePortfolioMetrics";
+import { usePctExecucaoPlano, useAEmitirAno } from "../hooks/usePortfolioMetrics";
 
 import { Search, SlidersHorizontal, ChevronRight, HelpCircle, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 
@@ -128,24 +128,25 @@ export function RadarExecutivo({
   const temFluxoReal = useMemo(() => listaFocada.some((p) => p.executadoMensal2026 !== null), [listaFocada]);
   const fluxoData = useMemo(() => {
     const planejadoMensal = Array(12).fill(0);
-    const executadoMensal = Array(12).fill(0);
+    // realizadoMensal = caixa puro por data de pagamento (aba "Realizado detalhado"), sem Em Pagamento.
+    const realizadoMensalArr = Array(12).fill(0);
     for (const p of listaFocada) {
       if (p.meses2026) p.meses2026.forEach((v, i) => { planejadoMensal[i] += v; });
-      if (p.executadoMensal2026) p.executadoMensal2026.forEach((v, i) => { executadoMensal[i] += v; });
+      if (p.executadoMensal2026) p.executadoMensal2026.forEach((v, i) => { realizadoMensalArr[i] += v; });
     }
     let acumuladoPlan = 0;
-    let acumuladoExec = 0;
+    let acumuladoReal = 0;
     return MESES.map((m, i) => {
       acumuladoPlan += planejadoMensal[i];
-      acumuladoExec += executadoMensal[i];
+      acumuladoReal += realizadoMensalArr[i];
       const temExecEsteMes = i + 1 <= MES_ATUAL;
-      const executado = temFluxoReal && temExecEsteMes ? acumuladoExec : null;
-      const pct = executado !== null && acumuladoPlan > 0 ? (executado - acumuladoPlan) / acumuladoPlan : null;
+      const realizado = temFluxoReal && temExecEsteMes ? acumuladoReal : null;
+      const pct = realizado !== null && acumuladoPlan > 0 ? (realizado - acumuladoPlan) / acumuladoPlan : null;
       const banda = pct !== null ? bandaDelta(Math.abs(pct)) : null;
       return {
         mes: m,
         Planejado: Math.round(acumuladoPlan),
-        Realizado: executado !== null ? Math.round(executado) : null,
+        Realizado: realizado !== null ? Math.round(realizado) : null,
         pct, banda,
       };
     });
@@ -158,8 +159,9 @@ export function RadarExecutivo({
     const estouraoTotal = listaFocada
       .filter(p => p.status === "Estouro")
       .reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0);
-    const pctExec = delta.planejadoAcumulado !== null && delta.planejadoAcumulado > 0 && delta.executadoAcumulado !== null
-      ? delta.executadoAcumulado / delta.planejadoAcumulado
+    // Compara caixa puro (realizadoAcumulado) contra o planejado — sem Em Pagamento.
+    const pctExec = totalPlanejadoAcumulado > 0
+      ? totalRealizadoBreakdown / totalPlanejadoAcumulado
       : null;
     const execBase = pctExec === null
       ? "Carteira"
@@ -173,12 +175,9 @@ export function RadarExecutivo({
       return `${execBase}, com leve descasamento abaixo do planejado em BG e orçamento (${formatCurrencyMillions(estouraoTotal)} em possível estouro).`;
     }
     return narrativa;
-  }, [listaFocada, delta, narrativa]);
+  }, [listaFocada, delta, narrativa, totalRealizadoBreakdown, totalPlanejadoAcumulado]);
 
-  const aEmitirTotal = useMemo(
-    () => listaFocada.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0),
-    [listaFocada]
-  );
+  const aEmitirAno = useAEmitirAno(listaFocada);
   const totalRealizadoBreakdown = useMemo(
     () => listaFocada.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0),
     [listaFocada]
@@ -189,6 +188,14 @@ export function RadarExecutivo({
   );
   const totalEmitidoBreakdown = useMemo(
     () => listaFocada.reduce((a, p) => a + (p.compromisso ?? 0), 0),
+    [listaFocada]
+  );
+  const totalOrcamentoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0),
+    [listaFocada]
+  );
+  const totalPlanejadoAcumulado = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0),
     [listaFocada]
   );
 
@@ -296,7 +303,7 @@ export function RadarExecutivo({
             kpi.id === "velocidadeCaixa" && kpi.valor !== null
               ? `Desvio plan x real acumulado: ${Math.abs(kpi.valor - 1) < 0.1 ? "< 10%" : fmtPct(Math.abs(kpi.valor - 1))}`
               : kpi.id === "empenho"
-              ? `A emitir ano ≈ ${formatCurrencyMillions(aEmitirTotal)}`
+              ? `A emitir ano = ${aEmitirAno !== null ? formatCurrencyMillions(aEmitirAno) : "N/D"}`
               : kpi.id === "equilibrioFinanceiro" && kpi.valor !== null
               ? `Resultado: ${fmtKpiValue(kpi)} do orçamento comprometido`
               : "N/D";
@@ -363,16 +370,22 @@ export function RadarExecutivo({
                 {fmtPct(pctVsPlano)}
               </span>
               <span className="text-[11px] text-white/70 mb-1.5 leading-tight">
-                do plano<br />realizado
+                % Execução<br />provisionada
               </span>
             </div>
           )}
           {pctVsPlano !== null && (
-            <p className="text-[11px] text-white/55 mb-3 leading-snug">
-              ({formatCurrencyMillions(totalRealizadoBreakdown)} Realizado
-              {" / "}{formatCurrencyMillions(totalEmPagamentoBreakdown)} Em pagamento
-              {" / "}{formatCurrencyMillions(totalEmitidoBreakdown)} Emitidos)
-            </p>
+            <div className="flex flex-col gap-1 mb-3">
+              <span className="text-[11px] text-white/55 leading-snug">
+                {totalOrcamentoBreakdown > 0 ? fmtPct(totalRealizadoBreakdown / totalOrcamentoBreakdown) : "N/D"} – {formatCurrencyMillions(totalRealizadoBreakdown)} Realizado
+              </span>
+              <span className="text-[11px] text-white/55 leading-snug">
+                {totalOrcamentoBreakdown > 0 ? fmtPct(totalEmPagamentoBreakdown / totalOrcamentoBreakdown) : "N/D"} – {formatCurrencyMillions(totalEmPagamentoBreakdown)} Em pagamento
+              </span>
+              <span className="text-[11px] text-white/55 leading-snug">
+                {totalOrcamentoBreakdown > 0 ? fmtPct(totalEmitidoBreakdown / totalOrcamentoBreakdown) : "N/D"} – {formatCurrencyMillions(totalEmitidoBreakdown)} Emitidos
+              </span>
+            </div>
           )}
 
           <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativaRisco}</p>

@@ -144,7 +144,7 @@ function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {
   };
 }
 
-function buildKpisEstrategicos(list: ProjetoMetricas[]): { kpis: KPIEstrategicoCarteira[]; pctExecucaoPlano: number | null } {
+function buildKpisEstrategicos(list: ProjetoMetricas[]): { kpis: KPIEstrategicoCarteira[]; pctExecucaoPlano: number | null; aEmitirAno: number | null } {
   const ndKpis: KPIEstrategicoCarteira[] = ([
     "velocidadeCaixa",
     "empenho",
@@ -166,7 +166,7 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): { kpis: KPIEstrategicoC
       id === "velocidadeCaixa" ? "0,90 a 1,10" : "0,95 a 1,05", null, null),
   }));
 
-  if (list.length === 0) return { kpis: ndKpis, pctExecucaoPlano: null };
+  if (list.length === 0) return { kpis: ndKpis, pctExecucaoPlano: null, aEmitirAno: null };
 
   const totalRealizadoAcumulado = sumNullable(list, (p) => p.realizadoAcumulado);
   const totalPlanejado = sumNullable(list, (p) => p.planejadoAcumulado);
@@ -207,6 +207,12 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): { kpis: KPIEstrategicoC
 
   const pctExecucaoPlano = safeDiv(totalProvisionado, totalOrcamento);
 
+  // A emitir ano = Orçamento - (Realizado + Em Pagamento) - Total Emitido
+  const aEmitirAno =
+    totalOrcamento !== null && totalExecutado !== null && totalCompromisso !== null
+      ? totalOrcamento - totalExecutado - totalCompromisso
+      : null;
+
   return {
     kpis: [
     {
@@ -241,6 +247,7 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): { kpis: KPIEstrategicoC
     },
   ],
     pctExecucaoPlano,
+    aEmitirAno,
   };
 }
 
@@ -250,6 +257,10 @@ export function useKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCart
 
 export function usePctExecucaoPlano(list: ProjetoMetricas[]): number | null {
   return useMemo(() => buildKpisEstrategicos(list).pctExecucaoPlano, [list]);
+}
+
+export function useAEmitirAno(list: ProjetoMetricas[]): number | null {
+  return useMemo(() => buildKpisEstrategicos(list).aEmitirAno, [list]);
 }
 
 export function usePortfolioMetrics(
