@@ -109,42 +109,20 @@ function generateDescricaoExecutiva(
 
 function buildTooltipDetalhado(
   id: "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
-  valor: number | null,
-  status: StatusSemaforo,
-  meta: string,
+  _valor: number | null,
+  _status: StatusSemaforo,
+  _meta: string,
   num: number | null,
   den: number | null
 ): string {
   const fmtM = (v: number | null) => formatCurrencyMillions(v);
-  const fmtPct = (v: number | null) => v !== null ? `${(v * 100).toFixed(1)}%` : "N/D";
-  const fmtRatio = (v: number | null) => v !== null ? `${v.toFixed(2)}x` : "N/D";
-
-  const oQueMede: Record<typeof id, string> = {
-    velocidadeCaixa: "Compara o ritmo real de pagamentos (Realizado Acumulado) com o cronograma previsto (Planejado Acumulado).",
-    empenho: "Mede a cobertura de empenhos e liquidações pendentes sobre o saldo orçamentário ainda disponível.",
-    equilibrioFinanceiro: "Apura o percentual do orçamento anual já comprometido (Executado + Emitido).",
-  };
-  const formula: Record<typeof id, string> = {
-    velocidadeCaixa: "Realizado Acumulado ÷ Planejado Acumulado",
-    empenho: "(Emitido + Em Pagamento) ÷ (Orçamento Anual − Realizado Acumulado)",
-    equilibrioFinanceiro: "(Executado + Emitido) ÷ Orçamento Anual",
-  };
-  const valoresLabel: Record<typeof id, string> = {
-    velocidadeCaixa: `Caixa realizado acumulado (${fmtM(num)}) / Caixa planejado acumulado (${fmtM(den)})`,
-    empenho: `Total emitido (${fmtM(num)}) / Caixa a realizar (${fmtM(den)})`,
-    equilibrioFinanceiro: `Comprometido = ${fmtM(num)} | Orçamento = ${fmtM(den)}`,
-  };
-
-  const resultadoStr = id === "equilibrioFinanceiro" ? fmtPct(valor) : fmtRatio(valor);
-  const impacto = generateDescricaoExecutiva(id, valor, status);
-
-  return [
-    `O que mede: ${oQueMede[id]}`,
-    `Como calcula: ${formula[id]}`,
-    `Valores: ${valoresLabel[id]}`,
-    `Resultado: ${resultadoStr} (meta: ${meta})`,
-    `Impacto: ${impacto}`,
-  ].join("\n");
+  if (id === "velocidadeCaixa") {
+    return `Fórmula: Caixa Realizado (${fmtM(num)}) / Caixa Planejado (${fmtM(den)})`;
+  }
+  if (id === "empenho") {
+    return `Fórmula: Total Emitido (${fmtM(num)}) / Caixa a Realizar (${fmtM(den)})`;
+  }
+  return `Fórmula: Comprometido (${fmtM(num)}) / Orçamento (${fmtM(den)})`;
 }
 
 function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {

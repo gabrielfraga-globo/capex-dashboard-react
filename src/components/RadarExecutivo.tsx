@@ -9,7 +9,7 @@ import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
 import { usePctExecucaoPlano } from "../hooks/usePortfolioMetrics";
-import { ExecutiveInsights } from "./ExecutiveInsights";
+
 import { Search, SlidersHorizontal, ChevronRight, HelpCircle, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -145,7 +145,7 @@ export function RadarExecutivo({
       return {
         mes: m,
         Planejado: Math.round(acumuladoPlan),
-        Executado: executado !== null ? Math.round(executado) : null,
+        Realizado: executado !== null ? Math.round(executado) : null,
         pct, banda,
       };
     });
@@ -174,6 +174,23 @@ export function RadarExecutivo({
     }
     return narrativa;
   }, [listaFocada, delta, narrativa]);
+
+  const aEmitirTotal = useMemo(
+    () => listaFocada.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0),
+    [listaFocada]
+  );
+  const totalRealizadoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0),
+    [listaFocada]
+  );
+  const totalEmPagamentoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + Math.max((p.executado ?? 0) - (p.realizadoAcumulado ?? 0), 0), 0),
+    [listaFocada]
+  );
+  const totalEmitidoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.compromisso ?? 0), 0),
+    [listaFocada]
+  );
 
   const mostrarAcao = foco !== "acompanhar";
   const mostrarRevisao = foco === "todos" || foco === "acompanhar";
@@ -262,8 +279,6 @@ export function RadarExecutivo({
         </div>
       )}
 
-      <ExecutiveInsights kpis={kpisEstrategicos} lista={listaFocada} />
-
       {/* Grid de KPIs Estratégicos com novo design — Interpretação em primeiro plano */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         {kpisEstrategicos.map((kpi) => {
@@ -278,9 +293,13 @@ export function RadarExecutivo({
           const tooltipContent = kpi.tooltipDetalhado;
 
           const footerText =
-            kpi.id === "equilibrioFinanceiro" && kpi.valor !== null
+            kpi.id === "velocidadeCaixa" && kpi.valor !== null
+              ? `Desvio plan x real acumulado: ${Math.abs(kpi.valor - 1) < 0.1 ? "< 10%" : fmtPct(Math.abs(kpi.valor - 1))}`
+              : kpi.id === "empenho"
+              ? `A emitir ano ≈ ${formatCurrencyMillions(aEmitirTotal)}`
+              : kpi.id === "equilibrioFinanceiro" && kpi.valor !== null
               ? `Resultado: ${fmtKpiValue(kpi)} do orçamento comprometido`
-              : `Resultado técnico: ${fmtKpiValue(kpi)}`;
+              : "N/D";
 
           return (
             <article
@@ -330,7 +349,7 @@ export function RadarExecutivo({
 
           {/* Regra dos 5 Segundos: % vs plano é o indicador macro dominante */}
           {pctVsPlano !== null && (
-            <div className="flex items-end gap-2.5 mb-2">
+            <div className="flex items-end gap-2.5 mb-1">
               <span
                 aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
                 className={`text-5xl font-extrabold leading-none tabular-nums ${
@@ -348,6 +367,13 @@ export function RadarExecutivo({
               </span>
             </div>
           )}
+          {pctVsPlano !== null && (
+            <p className="text-[11px] text-white/55 mb-3 leading-snug">
+              ({formatCurrencyMillions(totalRealizadoBreakdown)} Realizado
+              {" / "}{formatCurrencyMillions(totalEmPagamentoBreakdown)} Em pagamento
+              {" / "}{formatCurrencyMillions(totalEmitidoBreakdown)} Emitidos)
+            </p>
+          )}
 
           <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativaRisco}</p>
 
@@ -359,7 +385,7 @@ export function RadarExecutivo({
                   <Tooltip content={<FluxoTooltip colors={colors} />} />
                   <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
                   <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="Executado" name="Executado" radius={[3, 3, 0, 0]}>
+                  <Bar dataKey="Realizado" name="Realizado" radius={[3, 3, 0, 0]}>
                     {fluxoData.map((d, i) => (
                       <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
                     ))}
@@ -494,7 +520,7 @@ export function RadarExecutivo({
 function FluxoTooltip({ active, payload, label, colors }: any) {
   if (!active || !payload?.length) return null;
   const planejado = payload.find((p: any) => p.dataKey === "Planejado")?.value;
-  const executado = payload.find((p: any) => p.dataKey === "Executado")?.value;
+  const realizado = payload.find((p: any) => p.dataKey === "Realizado")?.value;
   const entry = payload[0]?.payload;
   return (
     <div
@@ -503,7 +529,7 @@ function FluxoTooltip({ active, payload, label, colors }: any) {
     >
       <p className="font-bold mb-1">{label}</p>
       <p>Planejado: {formatCurrencyMillions(planejado)}</p>
-      <p>Executado: {executado != null ? formatCurrencyMillions(executado) : "N/D"}</p>
+      <p>Realizado: {realizado != null ? formatCurrencyMillions(realizado) : "N/D"}</p>
       {entry?.banda && (
         <p className="font-bold mt-1" style={{ color: entry.banda.cor }}>
           {entry.banda.label} ({fmtPct(Math.abs(entry.pct))})
