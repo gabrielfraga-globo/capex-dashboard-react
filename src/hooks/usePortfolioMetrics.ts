@@ -226,7 +226,6 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
 
   const velStatus = statusByBands(ritmoExecucao, 0.9, 1.1, 0.85, 1.15);
   const empStatus = statusByBands(capacidadeExecucao, 0.95, 1.05, 0.9, 1.1);
-  const eqStatus  = statusByBands(consumoOrcamento,  0.95, 1.05, 0.9, 1.1);
 
   const velLabel = resolveStatusLabel("velocidadeCaixa", ritmoExecucao, velStatus);
   const empLabel = resolveStatusLabel("empenho", capacidadeExecucao, empStatus);
