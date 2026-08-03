@@ -265,7 +265,8 @@ function buildProjetos(
     if (linha.data.getFullYear() !== 2026) continue; // fluxo mensal real só cobre o ano corrente
     let arr = executadoMensalMap.get(key);
     if (!arr) { arr = Array(12).fill(0); executadoMensalMap.set(key, arr); }
-    arr[linha.data.getMonth()] += linha.pago + linha.pendente;
+    // Apenas caixa puro (pago). "pendente" = Em Pagamento, excluído para consistência com realizadoAcumulado.
+    arr[linha.data.getMonth()] += linha.pago;
   }
 
   // agrupa Realizado por chave, deduplicando Compromisso (mesmo valor repetido em 2026 e 2027)

@@ -73,7 +73,7 @@ export interface ProjetoBase {
   h2_2026: number | null;
   meses2026: number[] | null; // jan..dez, só disponível quando o projeto existe na aba Orçamento
   meses2027: number[] | null; // jan..mar
-  executadoMensal2026: number[] | null; // jan..dez — DADO REAL (Realizado detalhado), nunca estimado
+  executadoMensal2026: number[] | null; // jan..dez — caixa puro (só "pago"), sem Em Pagamento — deve bater com realizadoAcumulado
 
   realizado2026: number | null;
   emPagamento2026: number | null;
