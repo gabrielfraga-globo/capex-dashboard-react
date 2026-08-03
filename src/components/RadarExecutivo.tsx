@@ -152,6 +152,28 @@ export function RadarExecutivo({
     });
   }, [listaFocada, temFluxoReal]);
 
+  const aEmitirAno = useAEmitirAno(listaFocada);
+  const totalRealizadoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0),
+    [listaFocada]
+  );
+  const totalEmPagamentoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + Math.max((p.executado ?? 0) - (p.realizadoAcumulado ?? 0), 0), 0),
+    [listaFocada]
+  );
+  const totalEmitidoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.compromisso ?? 0), 0),
+    [listaFocada]
+  );
+  const totalOrcamentoBreakdown = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0),
+    [listaFocada]
+  );
+  const totalPlanejadoAcumulado = useMemo(
+    () => listaFocada.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0),
+    [listaFocada]
+  );
+
   const narrativaRisco = useMemo(() => {
     const represadoTotal = listaFocada
       .filter(p => p.status === "Risco de Não Realização")
@@ -176,28 +198,6 @@ export function RadarExecutivo({
     }
     return narrativa;
   }, [listaFocada, delta, narrativa, totalRealizadoBreakdown, totalPlanejadoAcumulado]);
-
-  const aEmitirAno = useAEmitirAno(listaFocada);
-  const totalRealizadoBreakdown = useMemo(
-    () => listaFocada.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0),
-    [listaFocada]
-  );
-  const totalEmPagamentoBreakdown = useMemo(
-    () => listaFocada.reduce((a, p) => a + Math.max((p.executado ?? 0) - (p.realizadoAcumulado ?? 0), 0), 0),
-    [listaFocada]
-  );
-  const totalEmitidoBreakdown = useMemo(
-    () => listaFocada.reduce((a, p) => a + (p.compromisso ?? 0), 0),
-    [listaFocada]
-  );
-  const totalOrcamentoBreakdown = useMemo(
-    () => listaFocada.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0),
-    [listaFocada]
-  );
-  const totalPlanejadoAcumulado = useMemo(
-    () => listaFocada.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0),
-    [listaFocada]
-  );
 
   const mostrarAcao = foco !== "acompanhar";
   const mostrarRevisao = foco === "todos" || foco === "acompanhar";
