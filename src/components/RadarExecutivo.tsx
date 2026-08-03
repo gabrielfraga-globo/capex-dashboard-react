@@ -127,6 +127,10 @@ export function RadarExecutivo({
   // (preferimos mostrar menos do que mostrar algo sem respaldo nos dados).
   const temFluxoReal = useMemo(() => listaFocada.some((p) => p.executadoMensal2026 !== null), [listaFocada]);
   const fluxoData = useMemo(() => {
+    // Canonical totals mirror exactly what the breakdown text displays — single source of truth.
+    const canonicalRealizado = listaFocada.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0);
+    const canonicalPlanejado = listaFocada.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0);
+
     const planejadoMensal = Array(12).fill(0);
     // realizadoMensal = caixa puro por data de pagamento (aba "Realizado detalhado"), sem Em Pagamento.
     const realizadoMensalArr = Array(12).fill(0);
@@ -134,6 +138,20 @@ export function RadarExecutivo({
       if (p.meses2026) p.meses2026.forEach((v, i) => { planejadoMensal[i] += v; });
       if (p.executadoMensal2026) p.executadoMensal2026.forEach((v, i) => { realizadoMensalArr[i] += v; });
     }
+
+    // Reconcile: inject any delta into the last closed month so that the cumulative
+    // at MES_ATUAL matches the canonical totals. This prevents divergence between the
+    // "Realizado detalhado" sheet and the project-level totals used by the breakdown.
+    const lastIdx = MES_ATUAL - 1;
+    if (lastIdx >= 0) {
+      if (temFluxoReal) {
+        const sumReal = realizadoMensalArr.slice(0, MES_ATUAL).reduce((a, b) => a + b, 0);
+        realizadoMensalArr[lastIdx] += canonicalRealizado - sumReal;
+      }
+      const sumPlan = planejadoMensal.slice(0, MES_ATUAL).reduce((a, b) => a + b, 0);
+      planejadoMensal[lastIdx] += canonicalPlanejado - sumPlan;
+    }
+
     let acumuladoPlan = 0;
     let acumuladoReal = 0;
     return MESES.map((m, i) => {
