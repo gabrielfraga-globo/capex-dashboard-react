@@ -8,6 +8,7 @@ import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
+import { usePctExecucaoPlano } from "../hooks/usePortfolioMetrics";
 import { ExecutiveInsights } from "./ExecutiveInsights";
 import { Search, SlidersHorizontal, ChevronRight, HelpCircle, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 
@@ -94,14 +95,7 @@ export function RadarExecutivo({
   const narrativa = useMemo(() => generateHeroNarrative(listaFocada, delta), [listaFocada, delta]);
 
   // Métricas macro para a Regra dos 5 Segundos
-  const pctVsPlano = useMemo(() => {
-    let num = 0, den = 0, hasNum = false, hasDen = false;
-    for (const p of listaFocada) {
-      if (p.valorComprometidoTotal !== null) { num += p.valorComprometidoTotal; hasNum = true; }
-      if (p.orcamentoPeriodo !== null) { den += p.orcamentoPeriodo; hasDen = true; }
-    }
-    return hasNum && hasDen && den > 0 ? num / den : null;
-  }, [listaFocada]);
+  const pctVsPlano = usePctExecucaoPlano(listaFocada);
   const exigemAcao = useMemo(
     () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
       .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))

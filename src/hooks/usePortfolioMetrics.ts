@@ -166,7 +166,7 @@ function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {
   };
 }
 
-function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[] {
+function buildKpisEstrategicos(list: ProjetoMetricas[]): { kpis: KPIEstrategicoCarteira[]; pctExecucaoPlano: number | null } {
   const ndKpis: KPIEstrategicoCarteira[] = ([
     "velocidadeCaixa",
     "empenho",
@@ -188,7 +188,7 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
       id === "velocidadeCaixa" ? "0,90 a 1,10" : "0,95 a 1,05", null, null),
   }));
 
-  if (list.length === 0) return ndKpis;
+  if (list.length === 0) return { kpis: ndKpis, pctExecucaoPlano: null };
 
   const totalRealizadoAcumulado = sumNullable(list, (p) => p.realizadoAcumulado);
   const totalPlanejado = sumNullable(list, (p) => p.planejadoAcumulado);
@@ -227,7 +227,10 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
   const velLabel = resolveStatusLabel("velocidadeCaixa", ritmoExecucao, velStatus);
   const empLabel = resolveStatusLabel("empenho", capacidadeExecucao, empStatus);
 
-  return [
+  const pctExecucaoPlano = safeDiv(totalProvisionado, totalOrcamento);
+
+  return {
+    kpis: [
     {
       id: "velocidadeCaixa" as const,
       nome: KPI_NOME.velocidadeCaixa,
@@ -258,11 +261,17 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
         numCapExec, denCapExec
       ),
     },
-  ];
+  ],
+    pctExecucaoPlano,
+  };
 }
 
 export function useKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[] {
-  return useMemo(() => buildKpisEstrategicos(list), [list]);
+  return useMemo(() => buildKpisEstrategicos(list).kpis, [list]);
+}
+
+export function usePctExecucaoPlano(list: ProjetoMetricas[]): number | null {
+  return useMemo(() => buildKpisEstrategicos(list).pctExecucaoPlano, [list]);
 }
 
 export function usePortfolioMetrics(
