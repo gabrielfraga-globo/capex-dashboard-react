@@ -209,13 +209,15 @@ export function RadarExecutivo({
       ? "Carteira tem realizado dentro do plano"
       : pctExec > 1 ? "Carteira tem realizado acima do plano" : "Carteira tem realizado abaixo do plano";
     if (represadoTotal > estouraoTotal && represadoTotal > 0) {
-      return `${execBase}, porém o maior impacto está nos ${formatCurrencyMillions(represadoTotal)} represados aguardando emissão.`;
+      // Usa aEmitirAno — mesma variável do rodapé do card "Gestão do Empenho" (SSOT).
+      const valorRepresadoGlobal = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : represadoTotal;
+      return `${execBase}, porém o maior impacto está nos ${formatCurrencyMillions(valorRepresadoGlobal)} represados aguardando emissão.`;
     }
     if (estouraoTotal > 0) {
       return `${execBase}, com leve descasamento abaixo do planejado em BG e orçamento (${formatCurrencyMillions(estouraoTotal)} em possível estouro).`;
     }
     return narrativa;
-  }, [listaFocada, delta, narrativa, totalRealizadoBreakdown, totalPlanejadoAcumulado]);
+  }, [listaFocada, delta, narrativa, totalRealizadoBreakdown, totalPlanejadoAcumulado, aEmitirAno]);
 
   const mostrarAcao = foco !== "acompanhar";
   const mostrarRevisao = foco === "todos" || foco === "acompanhar";
