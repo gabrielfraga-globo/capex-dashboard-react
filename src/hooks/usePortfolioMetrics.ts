@@ -175,7 +175,7 @@ export function usePortfolioMetrics(
       ];
     }
 
-    const totalRealizado = sumNullable(todasMetricas, (p) => p.realizadoPeriodo);
+    const totalRealizadoAcumulado = sumNullable(todasMetricas, (p) => p.realizadoAcumulado);
     const totalPlanejado = sumNullable(todasMetricas, (p) => p.planejadoAcumulado);
     const totalCompromisso = sumNullable(todasMetricas, (p) => p.compromisso);
     const totalExecutado = sumNullable(todasMetricas, (p) => p.executado);
@@ -183,7 +183,8 @@ export function usePortfolioMetrics(
     const totalProvisionado =
       totalExecutado !== null || totalCompromisso !== null ? (totalExecutado ?? 0) + (totalCompromisso ?? 0) : null;
 
-    const velocidade = safeDiv(totalRealizado, totalPlanejado);
+    // Velocidade do Caixa: Realizado Acumulado / Planejado Acumulado (sem Em Pagamento)
+    const velocidade = safeDiv(totalRealizadoAcumulado, totalPlanejado);
 
     // Sem campo explícito de "Empenho" no dataset, usamos "Compromisso" como proxy de empenho carteira.
     const saldoDisponivelEmpenho =

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { KPIEstrategicoCarteira } from "../types";
+import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
+import { formatCurrencyMillions } from "../lib/format";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -9,54 +10,75 @@ function monthReferenceLabel(date: Date): string {
 }
 
 /**
- * Gera uma narrativa executiva fluida baseada nas descrições dos 3 KPIs.
- * Exemplo de saída:
- * "A carteira executa dentro do ritmo planejado para Jul/2026.
- * O orçamento comprometido atingiu 65% do limite anual.
- * Não foi possível calcular a cobertura futura de execução para o período atual."
+ * Heurística de Risco: o risco sistêmico primário é o volume represado (a emitir),
+ * não o estouro — que pode ser descasamento de apropriação.
  */
-function generateFluidNarrative(kpis: KPIEstrategicoCarteira[]): string {
-  const kpiById = new Map<KPIEstrategicoCarteira["id"], KPIEstrategicoCarteira>();
-  for (const kpi of kpis) kpiById.set(kpi.id, kpi);
-
-  const velocidade = kpiById.get("velocidadeCaixa");
-  const empenho = kpiById.get("empenho");
-  const equilibrio = kpiById.get("equilibrioFinanceiro");
-
+function generateRiskNarrative(
+  kpis: KPIEstrategicoCarteira[],
+  lista: ProjetoMetricas[]
+): React.ReactNode {
+  const velocidade = kpis.find((k) => k.id === "velocidadeCaixa");
   const referenciaMes = monthReferenceLabel(new Date());
 
-  // Constrói frases com base nas descrições executivas (que já vêm textualizadas e em português)
-  const frases: string[] = [];
-
-  if (velocidade) {
-    // Primeira frase: contexto de período + status de velocidade
-    frases.push(`A carteira executa com ${velocidade.descricaoExecutiva.toLowerCase().replace(/\.$/g, "")} para ${referenciaMes}.`);
+  if (!velocidade || velocidade.status === "nd") {
+    return "Sem dados suficientes para avaliar o ritmo de execução neste período.";
   }
 
-  if (empenho) {
-    // Segunda frase: status de empenho
-    frases.push(`Quanto ao empenho, ${empenho.descricaoExecutiva.toLowerCase().replace(/\.$/g, "")}.`);
+  const ritmoTexto =
+    velocidade.status === "verde"
+      ? "mantém ritmo de execução compatível com o planejado"
+      : velocidade.status === "amarelo"
+      ? (velocidade.valor !== null && velocidade.valor < 1
+          ? "executa ligeiramente abaixo do ritmo planejado"
+          : "executa em ritmo ligeiramente acima do planejado")
+      : velocidade.valor !== null && velocidade.valor < 1
+      ? "executa com ritmo significativamente abaixo do planejado"
+      : "executa em patamar acima do planejado";
+
+  // Risco primário: projetos represados (a emitir)
+  const represados = lista.filter((p) => p.status === "Risco de Não Realização");
+  const valorRepresado = represados.reduce((acc, p) => acc + Math.abs(p.aEmitir ?? 0), 0);
+
+  // Risco secundário: projetos em estouro
+  const estouros = lista.filter((p) => p.status === "Estouro");
+  const valorEstouro = estouros.reduce((acc, p) => acc + Math.abs(p.desvioPlurianual ?? 0), 0);
+
+  const partes: React.ReactNode[] = [];
+
+  partes.push(`A carteira ${ritmoTexto} em ${referenciaMes}.`);
+
+  if (represados.length > 0) {
+    partes.push(
+      " O risco sistêmico que ameaça a meta do ano é o montante represado: ",
+      <strong key="represado">{formatCurrencyMillions(valorRepresado)}</strong>,
+      ` em ${represados.length} projeto${represados.length > 1 ? "s" : ""} com emissão pendente — se não desbloqueados, esse volume compromete diretamente a realização orçamentária.`
+    );
+  } else {
+    partes.push(" Nenhum volume financeiro expressivo está represado neste período.");
   }
 
-  if (equilibrio) {
-    // Terceira frase: status de equilíbrio
-    frases.push(`Em termos de cobertura, ${equilibrio.descricaoExecutiva.toLowerCase().replace(/\.$/g, "")}.`);
+  if (estouros.length > 0) {
+    partes.push(
+      " Adicionalmente, ",
+      <strong key="estouro">{formatCurrencyMillions(valorEstouro)}</strong>,
+      ` apontam possível estouro em ${estouros.length} projeto${estouros.length > 1 ? "s" : ""} — pode refletir descasamento de apropriação; requer validação antes de qualquer ação corretiva.`
+    );
   }
 
-  return frases.join(" ");
+  return partes;
 }
 
-export function ExecutiveInsights({ kpis }: { kpis: KPIEstrategicoCarteira[] }) {
-  const narrativa = useMemo(() => generateFluidNarrative(kpis), [kpis]);
-
-  // Cores de status para destaque na narrativa
-  const hasAmarelo = kpis.some((k) => k.status === "amarelo");
-  const hasVermelho = kpis.some((k) => k.status === "vermelho");
-
-  const accentColor = hasVermelho ? "text-red-600" : hasAmarelo ? "text-amber-600" : "text-emerald-600";
+export function ExecutiveInsights({
+  kpis,
+  lista,
+}: {
+  kpis: KPIEstrategicoCarteira[];
+  lista: ProjetoMetricas[];
+}) {
+  const narrativa = useMemo(() => generateRiskNarrative(kpis, lista), [kpis, lista]);
 
   return (
-    <p className={`mb-4 text-sm leading-relaxed ${accentColor} font-medium`} aria-live="polite">
+    <p className="mb-4 text-sm leading-relaxed text-muted-foreground" aria-live="polite">
       {narrativa}
     </p>
   );
