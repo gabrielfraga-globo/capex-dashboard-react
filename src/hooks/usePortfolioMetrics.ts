@@ -230,7 +230,6 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
 
   const velLabel = resolveStatusLabel("velocidadeCaixa", ritmoExecucao, velStatus);
   const empLabel = resolveStatusLabel("empenho", capacidadeExecucao, empStatus);
-  const eqLabel  = resolveStatusLabel("equilibrioFinanceiro", consumoOrcamento, eqStatus);
 
   return [
     {

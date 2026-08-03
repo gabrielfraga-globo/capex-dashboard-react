@@ -29,6 +29,11 @@ function bandaDelta(pctAbs: number): { cor: string; label: string } {
   return { cor: "#C0392B", label: "Requer Ação" };
 }
 
+function acaoLabel(p: ProjetoMetricas): string {
+  if (p.status === "Estouro") return "Replanejar";
+  return "Risco NR";
+}
+
 type Foco = "todos" | "dentro" | "acompanhar" | "acao";
 
 /**
