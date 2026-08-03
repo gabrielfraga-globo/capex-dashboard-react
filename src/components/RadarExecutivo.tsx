@@ -43,9 +43,12 @@ const KPI_STATUS_STYLE: Record<Exclude<StatusSemaforo, "nd">, string> = {
   vermelho: "border-red-500/40 bg-red-500/10 text-red-700",
 };
 
-function fmtKpiRatio(value: number | null): string {
-  if (value === null || Number.isNaN(value)) return "N/D";
-  return `${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
+function fmtKpiValue(kpi: KPIEstrategicoCarteira): string {
+  if (kpi.valor === null || Number.isNaN(kpi.valor)) return "N/D";
+  if (kpi.id === "equilibrioFinanceiro") {
+    return `${(kpi.valor * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%`;
+  }
+  return `${kpi.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
 }
 
 
@@ -251,7 +254,12 @@ export function RadarExecutivo({
             kpi.status === "vermelho" ? <XCircle className="w-5 h-5 text-red-500" aria-hidden="true" /> :
             <HelpCircle className="w-5 h-5 text-text-faint" aria-hidden="true" />;
 
-          const tooltipContent = `Métrica: ${kpi.nome}\nFórmula: ${kpi.formula}\nMeta esperada: ${kpi.meta}\nResultado técnico: ${fmtKpiRatio(kpi.valor)}\nStatus: ${kpi.statusLabel ?? "Dados insuficientes"}`;
+          const tooltipContent = kpi.tooltipDetalhado;
+
+          const footerText =
+            kpi.id === "equilibrioFinanceiro" && kpi.valor !== null
+              ? `Resultado: ${fmtKpiValue(kpi)} do orçamento comprometido`
+              : `Resultado técnico: ${fmtKpiValue(kpi)}`;
 
           return (
             <article
@@ -287,7 +295,7 @@ export function RadarExecutivo({
 
               {/* Rodapé com linha divisória */}
               <div className="border-t border-border mt-auto pt-2 w-full">
-                <p className="text-[10px] text-text-faint">Resultado técnico: <span className="font-mono font-bold">{fmtKpiRatio(kpi.valor)}</span></p>
+                <p className="text-[10px] text-text-faint">{footerText}</p>
               </div>
             </article>
           );

@@ -20,6 +20,8 @@ export interface KPIEstrategicoCarteira {
   direcao: "up" | "down" | "none";
   meta: string;
   formula: string;
+  /** Texto completo do tooltip (5 pontos: o que mede, fórmula, valores, resultado, impacto). */
+  tooltipDetalhado: string;
 }
 
 export interface Gestor {

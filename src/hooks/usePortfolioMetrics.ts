@@ -2,10 +2,10 @@ import { useMemo } from "react";
 import type { KPIEstrategicoCarteira, ProjetoBase, ProjetoMetricas, RelatorioParsing, StatusSemaforo } from "../types";
 import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
 import type { Periodo } from "../types";
+import { formatCurrencyMillions } from "../lib/format";
 
 interface PortfolioMetricsResult {
   todasMetricas: ProjetoMetricas[];
-  kpisEstrategicos: KPIEstrategicoCarteira[];
 }
 
 function sumNullable(list: ProjetoMetricas[], pick: (p: ProjetoMetricas) => number | null): number | null {
@@ -36,6 +36,12 @@ function directionByCenter(value: number | null, center: number): "up" | "down" 
   return value >= center ? "up" : "down";
 }
 
+const KPI_NOME: Record<"velocidadeCaixa" | "empenho" | "equilibrioFinanceiro", string> = {
+  velocidadeCaixa: "Ritmo de Execução",
+  empenho: "Capacidade de Execução",
+  equilibrioFinanceiro: "Consumo do Orçamento",
+};
+
 const STATUS_LABEL: Record<
   "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
   { verde: string; baixo: string; alto: string }
@@ -57,13 +63,6 @@ function resolveStatusLabel(
   return value < 1 ? map.baixo : map.alto;
 }
 
-/**
- * Gera uma descrição executiva fluida para cada KPI.
- * Exemplos:
- * - "Execução financeira compatível com o plano."
- * - "Ritmo de execução acelerado em relação ao orçamento."
- * - "Não foi possível avaliar a cobertura para o período."
- */
 function generateDescricaoExecutiva(
   id: "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
   value: number | null,
@@ -72,15 +71,15 @@ function generateDescricaoExecutiva(
   if (status === "nd" || value === null) {
     const msgs: Record<typeof id, string> = {
       velocidadeCaixa: "Não foi possível avaliar o ritmo de execução para o período.",
-      empenho: "Não foi possível calcular a cobertura de empenho para o período.",
-      equilibrioFinanceiro: "Não foi possível avaliar o equilíbrio financeiro para o período.",
+      empenho: "Não foi possível calcular a capacidade de execução para o período.",
+      equilibrioFinanceiro: "Não foi possível avaliar o consumo do orçamento para o período.",
     };
     return msgs[id];
   }
 
   if (id === "velocidadeCaixa") {
-    if (status === "verde") return "Execução financeira compatível com o plano.";
-    if (status === "amarelo") return value < 1 
+    if (status === "verde") return "Ritmo de execução compatível com o plano.";
+    if (status === "amarelo") return value < 1
       ? "Ritmo de execução ligeiramente abaixo do orçamento — Acompanhamento recomendado."
       : "Ritmo de execução acelerado em relação ao orçamento.";
     return value < 1
@@ -89,23 +88,63 @@ function generateDescricaoExecutiva(
   }
 
   if (id === "empenho") {
-    if (status === "verde") return "Empenho da carteira dentro do esperado para o período.";
+    if (status === "verde") return "Capacidade de execução dentro do esperado para o período.";
     if (status === "amarelo") return value < 1
-      ? "Empenho abaixo do esperado — Possível atraso em decisões de compra."
-      : "Empenho acelerado — Possível acelução em execução.";
+      ? "Capacidade de execução abaixo do esperado — Possível volume represado."
+      : "Volume emitido acelerado — Monitorar sustentabilidade.";
     return value < 1
-      ? "Empenho significativamente reduzido — Investigar bloqueios."
-      : "Empenho crítico acima da previsão — Avaliar sustentabilidade.";
+      ? "Capacidade de execução crítica — Investigar bloqueios e volumes a emitir."
+      : "Volume emitido crítico acima da previsão — Avaliar urgente.";
   }
 
   // equilibrioFinanceiro
-  if (status === "verde") return "Orçamento provisionado em linha com os limites definidos.";
+  if (status === "verde") return "Orçamento comprometido dentro dos limites definidos.";
   if (status === "amarelo") return value < 1
-    ? "Orçamento com margem de cobertura abaixo do esperado."
-    : "Orçamento provisionado acima do limite — Revisar comprometimentos.";
+    ? "Orçamento com comprometimento abaixo do esperado para o período."
+    : "Orçamento comprometido acima do limite — Revisar posições.";
   return value < 1
-    ? "Orçamento com cobertura crítica — Ação necessária."
-    : "Orçamento com provisão crítica acima do limite — Ação urgente.";
+    ? "Comprometimento crítico abaixo do necessário — Ação necessária."
+    : "Comprometimento crítico acima do orçamento — Ação urgente.";
+}
+
+function buildTooltipDetalhado(
+  id: "velocidadeCaixa" | "empenho" | "equilibrioFinanceiro",
+  valor: number | null,
+  status: StatusSemaforo,
+  meta: string,
+  num: number | null,
+  den: number | null
+): string {
+  const fmtM = (v: number | null) => formatCurrencyMillions(v);
+  const fmtPct = (v: number | null) => v !== null ? `${(v * 100).toFixed(1)}%` : "N/D";
+  const fmtRatio = (v: number | null) => v !== null ? `${v.toFixed(2)}x` : "N/D";
+
+  const oQueMede: Record<typeof id, string> = {
+    velocidadeCaixa: "Compara o ritmo real de pagamentos (Realizado Acumulado) com o cronograma previsto (Planejado Acumulado).",
+    empenho: "Mede a cobertura de empenhos e liquidações pendentes sobre o saldo orçamentário ainda disponível.",
+    equilibrioFinanceiro: "Apura o percentual do orçamento anual já comprometido (Executado + Emitido).",
+  };
+  const formula: Record<typeof id, string> = {
+    velocidadeCaixa: "Realizado Acumulado ÷ Planejado Acumulado",
+    empenho: "(Emitido + Em Pagamento) ÷ (Orçamento Anual − Realizado Acumulado)",
+    equilibrioFinanceiro: "(Executado + Emitido) ÷ Orçamento Anual",
+  };
+  const valoresLabel: Record<typeof id, string> = {
+    velocidadeCaixa: `Real = ${fmtM(num)} | Planejado = ${fmtM(den)}`,
+    empenho: `Emitido+EmPag = ${fmtM(num)} | Saldo Disponível = ${fmtM(den)}`,
+    equilibrioFinanceiro: `Comprometido = ${fmtM(num)} | Orçamento = ${fmtM(den)}`,
+  };
+
+  const resultadoStr = id === "equilibrioFinanceiro" ? fmtPct(valor) : fmtRatio(valor);
+  const impacto = generateDescricaoExecutiva(id, valor, status);
+
+  return [
+    `O que mede: ${oQueMede[id]}`,
+    `Como calcula: ${formula[id]}`,
+    `Valores: ${valoresLabel[id]}`,
+    `Resultado: ${resultadoStr} (meta: ${meta})`,
+    `Impacto: ${impacto}`,
+  ].join("\n");
 }
 
 function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {
@@ -127,6 +166,126 @@ function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {
   };
 }
 
+function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[] {
+  const ndKpis: KPIEstrategicoCarteira[] = ([
+    "velocidadeCaixa",
+    "empenho",
+    "equilibrioFinanceiro",
+  ] as const).map((id) => ({
+    id,
+    nome: KPI_NOME[id],
+    valor: null,
+    status: "nd" as const,
+    statusLabel: "Dados insuficientes",
+    descricaoExecutiva: generateDescricaoExecutiva(id, null, "nd"),
+    direcao: "none" as const,
+    meta: id === "velocidadeCaixa" ? "0,90 a 1,10" : "0,95 a 1,05",
+    formula: id === "velocidadeCaixa"
+      ? "Realizado Acumulado / Planejado Acumulado"
+      : id === "empenho"
+      ? "(Emitido + Em Pagamento) / (Orçamento Anual − Realizado Acumulado)"
+      : "(Executado + Emitido) / Orçamento Anual",
+    tooltipDetalhado: buildTooltipDetalhado(id, null, "nd",
+      id === "velocidadeCaixa" ? "0,90 a 1,10" : "0,95 a 1,05", null, null),
+  }));
+
+  if (list.length === 0) return ndKpis;
+
+  const totalRealizadoAcumulado = sumNullable(list, (p) => p.realizadoAcumulado);
+  const totalPlanejado = sumNullable(list, (p) => p.planejadoAcumulado);
+  const totalCompromisso = sumNullable(list, (p) => p.compromisso);
+  const totalExecutado = sumNullable(list, (p) => p.executado);
+  const totalOrcamento = sumNullable(list, (p) => p.orcamentoPeriodo);
+  const totalProvisionado =
+    totalExecutado !== null || totalCompromisso !== null
+      ? (totalExecutado ?? 0) + (totalCompromisso ?? 0)
+      : null;
+
+  // Ritmo de Execução: Realizado Acumulado / Planejado Acumulado
+  const ritmoExecucao = safeDiv(totalRealizadoAcumulado, totalPlanejado);
+
+  // Capacidade de Execução: (Emitido + Em Pagamento) / (Orçamento Anual - Realizado Acumulado)
+  // Emitido = compromisso; Em Pagamento = executado - realizadoAcumulado
+  const totalEmPagamento =
+    totalExecutado !== null && totalRealizadoAcumulado !== null
+      ? totalExecutado - totalRealizadoAcumulado
+      : null;
+  const numCapExec =
+    totalCompromisso !== null || totalEmPagamento !== null
+      ? (totalCompromisso ?? 0) + (totalEmPagamento ?? 0)
+      : null;
+  const denCapExec =
+    totalOrcamento !== null && totalRealizadoAcumulado !== null
+      ? totalOrcamento - totalRealizadoAcumulado
+      : null;
+  // Só retorna null se o divisor for zero ou negativo
+  const capacidadeExecucao =
+    denCapExec !== null && denCapExec > 0 ? safeDiv(numCapExec, denCapExec) : null;
+
+  // Consumo do Orçamento: (Executado + Emitido) / Orçamento Anual
+  const consumoOrcamento = safeDiv(totalProvisionado, totalOrcamento);
+
+  const velStatus = statusByBands(ritmoExecucao, 0.9, 1.1, 0.85, 1.15);
+  const empStatus = statusByBands(capacidadeExecucao, 0.95, 1.05, 0.9, 1.1);
+  const eqStatus  = statusByBands(consumoOrcamento,  0.95, 1.05, 0.9, 1.1);
+
+  const velLabel = resolveStatusLabel("velocidadeCaixa", ritmoExecucao, velStatus);
+  const empLabel = resolveStatusLabel("empenho", capacidadeExecucao, empStatus);
+  const eqLabel  = resolveStatusLabel("equilibrioFinanceiro", consumoOrcamento, eqStatus);
+
+  return [
+    {
+      id: "velocidadeCaixa" as const,
+      nome: KPI_NOME.velocidadeCaixa,
+      valor: ritmoExecucao,
+      status: velStatus,
+      statusLabel: velLabel,
+      descricaoExecutiva: generateDescricaoExecutiva("velocidadeCaixa", ritmoExecucao, velStatus),
+      direcao: directionByCenter(ritmoExecucao, 1),
+      meta: "0,90 a 1,10",
+      formula: "Realizado Acumulado / Planejado Acumulado",
+      tooltipDetalhado: buildTooltipDetalhado(
+        "velocidadeCaixa", ritmoExecucao, velStatus, "0,90 a 1,10",
+        totalRealizadoAcumulado, totalPlanejado
+      ),
+    },
+    {
+      id: "empenho" as const,
+      nome: KPI_NOME.empenho,
+      valor: capacidadeExecucao,
+      status: empStatus,
+      statusLabel: empLabel,
+      descricaoExecutiva: generateDescricaoExecutiva("empenho", capacidadeExecucao, empStatus),
+      direcao: directionByCenter(capacidadeExecucao, 1),
+      meta: "0,95 a 1,05",
+      formula: "(Emitido + Em Pagamento) / (Orçamento Anual − Realizado Acumulado)",
+      tooltipDetalhado: buildTooltipDetalhado(
+        "empenho", capacidadeExecucao, empStatus, "0,95 a 1,05",
+        numCapExec, denCapExec
+      ),
+    },
+    {
+      id: "equilibrioFinanceiro" as const,
+      nome: KPI_NOME.equilibrioFinanceiro,
+      valor: consumoOrcamento,
+      status: eqStatus,
+      statusLabel: eqLabel,
+      descricaoExecutiva: generateDescricaoExecutiva("equilibrioFinanceiro", consumoOrcamento, eqStatus),
+      direcao: directionByCenter(consumoOrcamento, 1),
+      meta: "0,95 a 1,05",
+      formula: "(Executado + Emitido) / Orçamento Anual",
+      tooltipDetalhado: buildTooltipDetalhado(
+        "equilibrioFinanceiro", consumoOrcamento, eqStatus, "0,95 a 1,05",
+        totalProvisionado, totalOrcamento
+      ),
+    },
+  ];
+}
+
+export function useKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[] {
+  return useMemo(() => buildKpisEstrategicos(list), [list]);
+}
+
 export function usePortfolioMetrics(
   parsed: RelatorioParsing | null,
   periodo: Periodo
@@ -136,112 +295,5 @@ export function usePortfolioMetrics(
     return withParticipacaoRisco(parsed.projetos.map((p) => computeMetricas(normalizeProjetoBase(p), periodo)));
   }, [parsed, periodo]);
 
-  const kpisEstrategicos = useMemo<KPIEstrategicoCarteira[]>(() => {
-    if (todasMetricas.length === 0) {
-      return [
-        {
-          id: "velocidadeCaixa" as const,
-          nome: "Velocidade do Caixa",
-          valor: null,
-          status: "nd" as const,
-          statusLabel: "Dados insuficientes",
-          descricaoExecutiva: "Não foi possível avaliar o ritmo de execução para o período.",
-          direcao: "none" as const,
-          meta: "0,90 a 1,10",
-          formula: "Realizado Acumulado / Planejado Acumulado",
-        },
-        {
-          id: "empenho" as const,
-          nome: "Empenho",
-          valor: null,
-          status: "nd" as const,
-          statusLabel: "Dados insuficientes",
-          descricaoExecutiva: "Não foi possível calcular a cobertura de empenho para o período.",
-          direcao: "none" as const,
-          meta: "0,95 a 1,05",
-          formula: "Empenho / (Planejado - Executado - Compromisso)",
-        },
-        {
-          id: "equilibrioFinanceiro" as const,
-          nome: "Equilíbrio Financeiro",
-          valor: null,
-          status: "nd" as const,
-          statusLabel: "Dados insuficientes",
-          descricaoExecutiva: "Não foi possível avaliar o equilíbrio financeiro para o período.",
-          direcao: "none" as const,
-          meta: "0,95 a 1,05",
-          formula: "Provisionado / Orçamento",
-        },
-      ];
-    }
-
-    const totalRealizadoAcumulado = sumNullable(todasMetricas, (p) => p.realizadoAcumulado);
-    const totalPlanejado = sumNullable(todasMetricas, (p) => p.planejadoAcumulado);
-    const totalCompromisso = sumNullable(todasMetricas, (p) => p.compromisso);
-    const totalExecutado = sumNullable(todasMetricas, (p) => p.executado);
-    const totalOrcamento = sumNullable(todasMetricas, (p) => p.orcamentoPeriodo);
-    const totalProvisionado =
-      totalExecutado !== null || totalCompromisso !== null ? (totalExecutado ?? 0) + (totalCompromisso ?? 0) : null;
-
-    // Velocidade do Caixa: Realizado Acumulado / Planejado Acumulado (sem Em Pagamento)
-    const velocidade = safeDiv(totalRealizadoAcumulado, totalPlanejado);
-
-    // Sem campo explícito de "Empenho" no dataset, usamos "Compromisso" como proxy de empenho carteira.
-    const saldoDisponivelEmpenho =
-      totalPlanejado !== null && totalExecutado !== null && totalCompromisso !== null
-        ? totalPlanejado - totalExecutado - totalCompromisso
-        : null;
-    // Denominador <= 0 indica carteira estourada — rácio seria irreal; retorna null (N/D).
-    const empenho = saldoDisponivelEmpenho !== null && saldoDisponivelEmpenho > 0
-      ? safeDiv(totalCompromisso, saldoDisponivelEmpenho)
-      : null;
-
-    const equilibrio = safeDiv(totalProvisionado, totalOrcamento);
-
-    const velStatus  = statusByBands(velocidade, 0.9, 1.1, 0.85, 1.15);
-    const empStatus  = statusByBands(empenho,    0.95, 1.05, 0.9, 1.1);
-    const eqStatus   = statusByBands(equilibrio, 0.95, 1.05, 0.9, 1.1);
-
-    const velLabel = resolveStatusLabel("velocidadeCaixa", velocidade, velStatus);
-    const empLabel = resolveStatusLabel("empenho", empenho, empStatus);
-    const eqLabel = resolveStatusLabel("equilibrioFinanceiro", equilibrio, eqStatus);
-
-    return [
-      {
-        id: "velocidadeCaixa" as const,
-        nome: "Velocidade do Caixa",
-        valor: velocidade,
-        status: velStatus,
-        statusLabel: velLabel,
-        descricaoExecutiva: generateDescricaoExecutiva("velocidadeCaixa", velocidade, velStatus),
-        direcao: directionByCenter(velocidade, 1),
-        meta: "0,90 a 1,10",
-        formula: "Realizado Acumulado / Planejado Acumulado",
-      },
-      {
-        id: "empenho" as const,
-        nome: "Empenho",
-        valor: empenho,
-        status: empStatus,
-        statusLabel: empLabel,
-        descricaoExecutiva: generateDescricaoExecutiva("empenho", empenho, empStatus),
-        direcao: directionByCenter(empenho, 1),
-        meta: "0,95 a 1,05",
-        formula: "Empenho / (Planejado - Executado - Compromisso)",
-      },
-      {
-        id: "equilibrioFinanceiro" as const,
-        nome: "Equilíbrio Financeiro",
-        valor: equilibrio,
-        status: eqStatus,
-        statusLabel: eqLabel,
-        descricaoExecutiva: generateDescricaoExecutiva("equilibrioFinanceiro", equilibrio, eqStatus),
-        direcao: directionByCenter(equilibrio, 1),
-        meta: "0,95 a 1,05",
-        formula: "Provisionado / Orçamento",
-      },
-    ];
-  }, [todasMetricas]);
-
-  return { todasMetricas, kpisEstrategicos };
+  return { todasMetricas };
 }

@@ -4,7 +4,7 @@ import { useFilterStore } from "./store/filterStore";
 import { useShallow } from "zustand/react/shallow";
 import { useThemeStore } from "./store/themeStore";
 import { usePortfolioData } from "./hooks/usePortfolioData";
-import { usePortfolioMetrics } from "./hooks/usePortfolioMetrics";
+import { usePortfolioMetrics, useKpisEstrategicos } from "./hooks/usePortfolioMetrics";
 import { useFilteredProjects } from "./hooks/useFilteredProjects";
 import { useThemeSync } from "./hooks/useThemeSync";
 import { ContextBar } from "./components/ContextBar";
@@ -55,12 +55,14 @@ export default function App() {
   useThemeSync(theme);
 
   const { parsed, loadError } = usePortfolioData();
-  const { todasMetricas, kpisEstrategicos } = usePortfolioMetrics(parsed, filtros.periodo);
+  const { todasMetricas } = usePortfolioMetrics(parsed, filtros.periodo);
   const { metricasFiltradas, comparaveis, periodoLabel } = useFilteredProjects(
     todasMetricas,
     filtros,
     selected
   );
+  // KPIs reagem aos filtros: calculados a partir da lista filtrada, não da base bruta.
+  const kpisEstrategicos = useKpisEstrategicos(metricasFiltradas);
 
   // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);

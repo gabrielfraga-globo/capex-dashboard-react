@@ -10,58 +10,54 @@ function monthReferenceLabel(date: Date): string {
 }
 
 /**
- * Heurística de Risco: o risco sistêmico primário é o volume represado (a emitir),
- * não o estouro — que pode ser descasamento de apropriação.
+ * Narrativa executiva direta: ritmo + risco primário (represados) + risco secundário (estouros).
+ * Tom: objetivo, sem adjetivos desnecessários.
  */
 function generateRiskNarrative(
   kpis: KPIEstrategicoCarteira[],
   lista: ProjetoMetricas[]
 ): React.ReactNode {
-  const velocidade = kpis.find((k) => k.id === "velocidadeCaixa");
+  const ritmoKpi = kpis.find((k) => k.id === "velocidadeCaixa");
   const referenciaMes = monthReferenceLabel(new Date());
 
-  if (!velocidade || velocidade.status === "nd") {
+  if (!ritmoKpi || ritmoKpi.status === "nd") {
     return "Sem dados suficientes para avaliar o ritmo de execução neste período.";
   }
 
   const ritmoTexto =
-    velocidade.status === "verde"
-      ? "mantém ritmo de execução compatível com o planejado"
-      : velocidade.status === "amarelo"
-      ? (velocidade.valor !== null && velocidade.valor < 1
-          ? "executa ligeiramente abaixo do ritmo planejado"
-          : "executa em ritmo ligeiramente acima do planejado")
-      : velocidade.valor !== null && velocidade.valor < 1
-      ? "executa com ritmo significativamente abaixo do planejado"
-      : "executa em patamar acima do planejado";
+    ritmoKpi.status === "verde"
+      ? "compatível com o plano"
+      : ritmoKpi.status === "amarelo"
+      ? ritmoKpi.valor !== null && ritmoKpi.valor < 1
+        ? "ligeiramente abaixo do planejado"
+        : "ligeiramente acima do planejado"
+      : ritmoKpi.valor !== null && ritmoKpi.valor < 1
+      ? "significativamente abaixo do planejado"
+      : "acima do planejado";
 
-  // Risco primário: projetos represados (a emitir)
   const represados = lista.filter((p) => p.status === "Risco de Não Realização");
   const valorRepresado = represados.reduce((acc, p) => acc + Math.abs(p.aEmitir ?? 0), 0);
 
-  // Risco secundário: projetos em estouro
   const estouros = lista.filter((p) => p.status === "Estouro");
   const valorEstouro = estouros.reduce((acc, p) => acc + Math.abs(p.desvioPlurianual ?? 0), 0);
 
   const partes: React.ReactNode[] = [];
 
-  partes.push(`A carteira ${ritmoTexto} em ${referenciaMes}.`);
+  partes.push(`Ritmo de execução ${ritmoTexto} em ${referenciaMes}.`);
 
   if (represados.length > 0) {
     partes.push(
-      " O risco sistêmico que ameaça a meta do ano é o montante represado: ",
+      " Atenção: ",
       <strong key="represado">{formatCurrencyMillions(valorRepresado)}</strong>,
-      ` em ${represados.length} projeto${represados.length > 1 ? "s" : ""} com emissão pendente — se não desbloqueados, esse volume compromete diretamente a realização orçamentária.`
+      ` represados em ${represados.length} projeto${represados.length > 1 ? "s" : ""} aguardam emissão e travam a meta.`
     );
-  } else {
-    partes.push(" Nenhum volume financeiro expressivo está represado neste período.");
   }
 
   if (estouros.length > 0) {
     partes.push(
-      " Adicionalmente, ",
+      " Secundariamente, ",
       <strong key="estouro">{formatCurrencyMillions(valorEstouro)}</strong>,
-      ` apontam possível estouro em ${estouros.length} projeto${estouros.length > 1 ? "s" : ""} — pode refletir descasamento de apropriação; requer validação antes de qualquer ação corretiva.`
+      ` apontam possível descasamento em ${estouros.length} projeto${estouros.length > 1 ? "s" : ""}, exigindo validação prévia.`
     );
   }
 
