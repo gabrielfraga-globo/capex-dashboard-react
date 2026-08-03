@@ -89,15 +89,14 @@ export function RadarExecutivo({
   const narrativa = useMemo(() => generateHeroNarrative(listaFocada, delta), [listaFocada, delta]);
 
   // Métricas macro para a Regra dos 5 Segundos
-  const pctVsPlano = useMemo(
-    () =>
-      delta.planejadoAcumulado !== null &&
-      delta.planejadoAcumulado > 0 &&
-      delta.executadoAcumulado !== null
-        ? delta.executadoAcumulado / delta.planejadoAcumulado
-        : null,
-    [delta]
-  );
+  const pctVsPlano = useMemo(() => {
+    let num = 0, den = 0, hasNum = false, hasDen = false;
+    for (const p of listaFocada) {
+      if (p.valorComprometidoTotal !== null) { num += p.valorComprometidoTotal; hasNum = true; }
+      if (p.orcamentoPeriodo !== null) { den += p.orcamentoPeriodo; hasDen = true; }
+    }
+    return hasNum && hasDen && den > 0 ? num / den : null;
+  }, [listaFocada]);
   const exigemAcao = useMemo(
     () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
       .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
@@ -153,7 +152,30 @@ export function RadarExecutivo({
     });
   }, [listaFocada, temFluxoReal]);
 
-  const acaoLabel = (p: ProjetoMetricas) => (p.status === "Estouro" ? "Validar estouro" : "Priorizar emissão");
+  const narrativaRisco = useMemo(() => {
+    const represadoTotal = listaFocada
+      .filter(p => p.status === "Risco de Não Realização")
+      .reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
+    const estouraoTotal = listaFocada
+      .filter(p => p.status === "Estouro")
+      .reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0);
+    const pctExec = delta.planejadoAcumulado !== null && delta.planejadoAcumulado > 0 && delta.executadoAcumulado !== null
+      ? delta.executadoAcumulado / delta.planejadoAcumulado
+      : null;
+    const execBase = pctExec === null
+      ? "Carteira"
+      : Math.abs(pctExec - 1) <= 0.05
+      ? "Carteira tem realizado dentro do plano"
+      : pctExec > 1 ? "Carteira tem realizado acima do plano" : "Carteira tem realizado abaixo do plano";
+    if (represadoTotal > estouraoTotal && represadoTotal > 0) {
+      return `${execBase}, porém o maior impacto está nos ${formatCurrencyMillions(represadoTotal)} represados aguardando emissão.`;
+    }
+    if (estouraoTotal > 0) {
+      return `${execBase}, com leve descasamento abaixo do planejado em BG e orçamento (${formatCurrencyMillions(estouraoTotal)} em possível estouro).`;
+    }
+    return narrativa;
+  }, [listaFocada, delta, narrativa]);
+
   const mostrarAcao = foco !== "acompanhar";
   const mostrarRevisao = foco === "todos" || foco === "acompanhar";
   const focoLabel = { todos: null, dentro: "Dentro do Plano", acompanhar: "Acompanhar", acao: "Requer Ação" }[foco];
@@ -244,7 +266,7 @@ export function RadarExecutivo({
       <ExecutiveInsights kpis={kpisEstrategicos} lista={listaFocada} />
 
       {/* Grid de KPIs Estratégicos com novo design — Interpretação em primeiro plano */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         {kpisEstrategicos.map((kpi) => {
           const badgeClass = kpi.status === "nd" ? "border-border/60 bg-card-alt text-text-faint" : KPI_STATUS_STYLE[kpi.status];
 
@@ -311,7 +333,7 @@ export function RadarExecutivo({
           {pctVsPlano !== null && (
             <div className="flex items-end gap-2.5 mb-2">
               <span
-                aria-label={`${fmtPct(pctVsPlano)} do plano YTD executado`}
+                aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
                 className={`text-5xl font-extrabold leading-none tabular-nums ${
                   Math.abs(pctVsPlano - 1) <= 0.05
                     ? "text-emerald-300"
@@ -323,12 +345,12 @@ export function RadarExecutivo({
                 {fmtPct(pctVsPlano)}
               </span>
               <span className="text-[11px] text-white/70 mb-1.5 leading-tight">
-                do plano<br />executado
+                do plano<br />realizado
               </span>
             </div>
           )}
 
-          <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativa}</p>
+          <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativaRisco}</p>
 
           <div className="bg-white/10 rounded-xl p-2">
             {temFluxoReal ? (

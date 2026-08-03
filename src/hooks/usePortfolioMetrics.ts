@@ -37,8 +37,8 @@ function directionByCenter(value: number | null, center: number): "up" | "down" 
 }
 
 const KPI_NOME: Record<"velocidadeCaixa" | "empenho" | "equilibrioFinanceiro", string> = {
-  velocidadeCaixa: "Ritmo de Execução",
-  empenho: "Capacidade de Execução",
+  velocidadeCaixa: "Gestão do caixa",
+  empenho: "Gestão do empenho",
   equilibrioFinanceiro: "Consumo do Orçamento",
 };
 
@@ -88,12 +88,12 @@ function generateDescricaoExecutiva(
   }
 
   if (id === "empenho") {
-    if (status === "verde") return "Capacidade de execução dentro do esperado para o período.";
+    if (status === "verde") return "Ritmo de emissões compatível com compromisso de caixa ano.";
     if (status === "amarelo") return value < 1
-      ? "Capacidade de execução abaixo do esperado — Possível volume represado."
+      ? "Ritmo de emissões insuficiente para compromisso de caixa ano."
       : "Volume emitido acelerado — Monitorar sustentabilidade.";
     return value < 1
-      ? "Capacidade de execução crítica — Investigar bloqueios e volumes a emitir."
+      ? "Ritmo de emissões insuficiente para compromisso de caixa ano — Investigar bloqueios urgente."
       : "Volume emitido crítico acima da previsão — Avaliar urgente.";
   }
 
@@ -130,8 +130,8 @@ function buildTooltipDetalhado(
     equilibrioFinanceiro: "(Executado + Emitido) ÷ Orçamento Anual",
   };
   const valoresLabel: Record<typeof id, string> = {
-    velocidadeCaixa: `Real = ${fmtM(num)} | Planejado = ${fmtM(den)}`,
-    empenho: `Emitido+EmPag = ${fmtM(num)} | Saldo Disponível = ${fmtM(den)}`,
+    velocidadeCaixa: `Caixa realizado acumulado (${fmtM(num)}) / Caixa planejado acumulado (${fmtM(den)})`,
+    empenho: `Total emitido (${fmtM(num)}) / Caixa a realizar (${fmtM(den)})`,
     equilibrioFinanceiro: `Comprometido = ${fmtM(num)} | Orçamento = ${fmtM(den)}`,
   };
 
@@ -170,7 +170,6 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
   const ndKpis: KPIEstrategicoCarteira[] = ([
     "velocidadeCaixa",
     "empenho",
-    "equilibrioFinanceiro",
   ] as const).map((id) => ({
     id,
     nome: KPI_NOME[id],
@@ -262,21 +261,6 @@ function buildKpisEstrategicos(list: ProjetoMetricas[]): KPIEstrategicoCarteira[
       tooltipDetalhado: buildTooltipDetalhado(
         "empenho", capacidadeExecucao, empStatus, "0,95 a 1,05",
         numCapExec, denCapExec
-      ),
-    },
-    {
-      id: "equilibrioFinanceiro" as const,
-      nome: KPI_NOME.equilibrioFinanceiro,
-      valor: consumoOrcamento,
-      status: eqStatus,
-      statusLabel: eqLabel,
-      descricaoExecutiva: generateDescricaoExecutiva("equilibrioFinanceiro", consumoOrcamento, eqStatus),
-      direcao: directionByCenter(consumoOrcamento, 1),
-      meta: "0,95 a 1,05",
-      formula: "(Executado + Emitido) / Orçamento Anual",
-      tooltipDetalhado: buildTooltipDetalhado(
-        "equilibrioFinanceiro", consumoOrcamento, eqStatus, "0,95 a 1,05",
-        totalProvisionado, totalOrcamento
       ),
     },
   ];
