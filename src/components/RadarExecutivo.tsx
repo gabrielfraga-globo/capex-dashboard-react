@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { ComposedChart, Area, Line, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { ComposedChart, Area, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { SkeletonBlock } from "./ui/SkeletonCard";
-import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
+import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { useFilterStore } from "../store/filterStore";
 import { generateRiskSummary } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { usePctExecucaoPlano, useAEmitirAno } from "../hooks/usePortfolioMetrics";
 import { ProjectListModal } from "./ProjectListModal";
 
-import { Search, SlidersHorizontal, ChevronRight, HelpCircle, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 // Trava M-1: barras do gráfico só são coloridas até o mês fechado anterior.
@@ -87,21 +87,6 @@ function CustomTooltipFluxo({ active, payload, label }: { active?: boolean; payl
  * (período, Programa, status) escondidos por padrão. Uma única frase de síntese
  * substitui a tarja de status e o antigo card de insights.
  */
-const KPI_STATUS_STYLE: Record<Exclude<StatusSemaforo, "nd">, string> = {
-  verde: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
-  amarelo: "border-amber-500/40 bg-amber-500/10 text-amber-700",
-  vermelho: "border-red-500/40 bg-red-500/10 text-red-700",
-};
-
-function fmtKpiValue(kpi: KPIEstrategicoCarteira): string {
-  if (kpi.valor === null || Number.isNaN(kpi.valor)) return "N/D";
-  if (kpi.id === "equilibrioFinanceiro") {
-    return `${(kpi.valor * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%`;
-  }
-  return `${kpi.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}x`;
-}
-
-
 export function RadarExecutivo({
   lista,
   kpisEstrategicos,
@@ -287,6 +272,17 @@ export function RadarExecutivo({
     return `${ritmoTexto} · Atenção: ${formatCurrencyMillions(pendente)} pendente de emissão`;
   }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
 
+  const caixaKpi = useMemo(
+    () => kpisEstrategicos.find((kpi) => kpi.id === "velocidadeCaixa") ?? null,
+    [kpisEstrategicos]
+  );
+  const empenhoKpi = useMemo(
+    () => kpisEstrategicos.find((kpi) => kpi.id === "empenho") ?? null,
+    [kpisEstrategicos]
+  );
+  const pendenteEmissao = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
+  const periodoFechado = `${MESES[MES_ATUAL - 1] ?? "-"}/2026`;
+
   const focoLabel = {
     todos: null,
     dentro: "Dentro do Plano",
@@ -329,9 +325,30 @@ export function RadarExecutivo({
   };
 
   return (
-    <div>
-      {/* Filtros — escondidos por padrão */}
-      <div className="mb-4">
+    <div className="h-screen max-h-[calc(100vh-12rem)] overflow-hidden flex flex-col max-lg:h-auto max-lg:max-h-none max-lg:overflow-visible">
+      <div className="mb-2 shrink-0">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <h2 className="text-lg font-semibold text-text leading-tight">Radar Executivo</h2>
+            <p className="text-xs text-text-muted mt-0.5">Período fechado: [{periodoFechado}]</p>
+          </div>
+          {(programa || focoLabel) && (
+            <div className="flex flex-wrap justify-end gap-2">
+              {programa && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+                  Programa: {programa}
+                </span>
+              )}
+              {focoLabel && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+                  Filtrado: {focoLabel}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Filtros — escondidos por padrão */}
         <button
           onClick={() => setMostrarFiltros((v) => !v)}
           aria-expanded={mostrarFiltros}
@@ -341,7 +358,7 @@ export function RadarExecutivo({
           <SlidersHorizontal size={13} aria-hidden="true" /> Filtros
         </button>
         {mostrarFiltros && (
-          <div id="radar-filtros-panel" className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2.5">
+          <div id="radar-filtros-panel" className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-2">
             {(["2026", "2027", "Todos"] as const).map((p) => (
               <button
                 key={p}
@@ -396,35 +413,17 @@ export function RadarExecutivo({
         )}
       </div>
 
-      {(programa || focoLabel) && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {programa && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
-              Programa: {programa}
-            </span>
-          )}
-          {focoLabel && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
-              Filtrado: {focoLabel}
-            </span>
-          )}
-        </div>
-      )}
+      <div className="grid grid-cols-12 gap-4 flex-1 min-h-0 max-lg:grid-cols-1 max-lg:h-auto">
+        <section className="col-span-8 min-h-0 flex flex-col gap-4 max-lg:col-span-1">
+          <article className="rounded-card border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 p-4 text-white shadow-card shrink-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/75 mb-2">Execução do Plano</p>
 
-      {/* ✅ Linha 1: Execução do Plano — bloco único acima da linha de risco */}
-      <div className="mb-4">
-        <div className="rounded-card bg-hero p-2.5 md:p-3 shadow-card text-white flex flex-col">
-          <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-1.5">Execução do Plano</p>
-
-          {/* Regra dos 5 Segundos: % vs plano é o indicador macro dominante */}
-          {pctVsPlano !== null && (
-            <div className="flex flex-col gap-1 mb-1.5">
-              {/* Número + Barra de composição lado a lado */}
-              <div className="flex flex-col md:flex-row md:items-center gap-2.5 md:gap-3">
-                <div className="flex flex-col shrink-0">
-                  <span
+            {pctVsPlano !== null && (
+              <div className="flex flex-row items-center justify-between w-full gap-4">
+                <div className="shrink-0">
+                  <p
                     aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
-                    className={`text-[2.15rem] md:text-4xl font-extrabold leading-none tabular-nums ${
+                    className={`text-[3rem] leading-none font-extrabold tabular-nums ${
                       Math.abs(pctVsPlano - 1) <= 0.05
                         ? "text-emerald-300"
                         : Math.abs(pctVsPlano - 1) <= 0.15
@@ -433,11 +432,12 @@ export function RadarExecutivo({
                     }`}
                   >
                     {fmtPct(pctVsPlano)}
-                  </span>
-                  <span className="text-[10px] text-white/55 leading-tight mt-0.5">vs. plano YTD</span>
+                  </p>
+                  <p className="text-[11px] text-white/65 mt-1">vs. Plano YTD</p>
                 </div>
-                <div className="flex flex-col gap-1 flex-1 min-w-0 md:max-w-[520px]">
-                  <div className="flex w-full h-4 rounded-md overflow-hidden bg-white/15 gap-0.5">
+
+                <div className="flex-1 min-w-0 max-w-[620px]">
+                  <div className="flex h-4 rounded-md overflow-hidden bg-white/15 gap-0.5">
                     {breakdownSegments.map((seg) => (
                       <div
                         key={seg.key}
@@ -445,13 +445,13 @@ export function RadarExecutivo({
                         style={{ width: `${seg.pct}%` }}
                         title={`${seg.label}: ${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}`}
                       >
-                        {seg.pct >= 20 ? fmtPct(seg.pct / 100) : ""}
+                        {seg.pct >= 18 ? fmtPct(seg.pct / 100) : ""}
                       </div>
                     ))}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                     {breakdownSegments.filter((seg) => seg.pct > 0).map((seg) => (
-                      <span key={`legend-${seg.key}`} className="text-[9px] text-white/90 leading-none flex items-center gap-1">
+                      <span key={`legend-${seg.key}`} className="text-[10px] text-white/90 leading-none flex items-center gap-1">
                         <span className={`w-2 h-2 rounded-full ${seg.bg}`} aria-hidden="true" />
                         {seg.label}: {fmtPct(seg.pct / 100)}
                       </span>
@@ -459,227 +459,219 @@ export function RadarExecutivo({
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 mb-2 text-[13px] text-white/90 leading-snug max-w-full">
-            {risco.emissoesExcedentes.n > 0 ? (
-              <AlertTriangle size={15} className="shrink-0 text-amber-300" aria-hidden="true" />
-            ) : (
-              <CheckCircle2 size={15} className="shrink-0 text-emerald-300" aria-hidden="true" />
             )}
-            <p className="whitespace-nowrap overflow-hidden text-ellipsis">{insightLinha}</p>
-          </div>
 
-          <div className="bg-white/10 rounded-xl p-1.5 md:p-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/75 mb-1 px-1">
-              Fluxo de caixa: planejado × realizado
+            <div className="mt-2.5 flex items-center gap-2 text-[12px] leading-snug text-white/90">
+              {risco.emissoesExcedentes.n > 0 ? (
+                <AlertTriangle size={14} className="shrink-0 text-amber-300" aria-hidden="true" />
+              ) : (
+                <CheckCircle2 size={14} className="shrink-0 text-emerald-300" aria-hidden="true" />
+              )}
+              <p className="truncate">{insightLinha}</p>
+            </div>
+            <p className="mt-1 text-[12px] font-semibold text-amber-200">
+              {formatCurrencyMillions(pendenteEmissao)} pendentes de emissão
             </p>
+          </article>
+
+          <article className="rounded-card border border-border bg-card p-3 shadow-card flex-1 min-h-0">
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <p className="text-sm font-semibold text-text">Fluxo de Caixa: Planejado × Realizado</p>
+                <p className="text-[11px] text-text-muted">Séries acumuladas com cores fixas e comparação mensal no tooltip</p>
+              </div>
+              {foco !== "todos" && (
+                <button
+                  onClick={() => { setFoco("todos"); setModalFoco(null); }}
+                  className="shrink-0 text-[11px] font-semibold text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 rounded"
+                >
+                  Limpar filtro
+                </button>
+              )}
+            </div>
+
             {temFluxoReal ? (
-              <ResponsiveContainer width="100%" height={112}>
+              <ResponsiveContainer width="100%" height="90%">
                 <ComposedChart data={fluxoData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="gradGapPositivo" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#EF4444" stopOpacity={0.55} />
-                      <stop offset="100%" stopColor="#EF4444" stopOpacity={0.20} />
+                    <linearGradient id="areaPlanejado" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.32} />
+                      <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.07} />
                     </linearGradient>
-                    <linearGradient id="gradGapNegativo" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22C55E" stopOpacity={0.52} />
-                      <stop offset="100%" stopColor="#22C55E" stopOpacity={0.18} />
+                    <linearGradient id="areaRealizado" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity={0.33} />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity={0.08} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
+
+                  <XAxis dataKey="mes" stroke="rgba(82,82,91,0.9)" fontSize={11} tickLine={false} axisLine={false} />
                   <YAxis
-                    domain={['auto', 'auto']}
-                    stroke="rgba(255,255,255,0.9)"
-                    tick={{ fill: "rgba(255,255,255,0.92)", fontSize: 10, fontWeight: 700 }}
+                    domain={["auto", "auto"]}
+                    stroke="rgba(82,82,91,0.9)"
+                    tick={{ fill: "rgba(82,82,91,0.9)", fontSize: 11, fontWeight: 600 }}
                     tickLine={false}
                     axisLine={false}
-                    width={46}
+                    width={48}
                     tickFormatter={(v) => formatCurrencyMillions(Number(v ?? 0)).replace("R$ ", "")}
                   />
-                  <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
-                  <Tooltip content={<CustomTooltipFluxo />} cursor={{ stroke: "rgba(255,255,255,0.2)", strokeWidth: 1 }} />
-                  <Area dataKey="baseGapPositivo" stackId="gapPositivo" stroke="none" fill="transparent" isAnimationActive={false} legendType="none" />
-                  <Area dataKey="gapPositivo" stackId="gapPositivo" stroke="#EF4444" strokeWidth={1.1} fill="url(#gradGapPositivo)" isAnimationActive={false} legendType="none" />
-                  <Area dataKey="baseGapNegativo" stackId="gapNegativo" stroke="none" fill="transparent" isAnimationActive={false} legendType="none" />
-                  <Area dataKey="gapNegativo" stackId="gapNegativo" stroke="#22C55E" strokeWidth={1.1} fill="url(#gradGapNegativo)" isAnimationActive={false} legendType="none" />
-                  <Line dataKey="planejadoAcumulado" name="Planejado (acum.)" stroke="#BFDBFE" strokeDasharray="6 4" strokeWidth={2.2} dot={false} activeDot={{ r: 3, fill: "#BFDBFE" }} />
-                  <Line dataKey="realizadoAcumulado" name="Realizado (acum.)" stroke="#22D3EE" strokeWidth={3.2} dot={false} activeDot={{ r: 3, fill: "#22D3EE" }} connectNulls={false} />
+                  <Tooltip content={<CustomTooltipFluxo />} cursor={{ stroke: "rgba(82,82,91,0.25)", strokeWidth: 1 }} />
+
+                  <Area
+                    type="monotone"
+                    dataKey="planejadoAcumulado"
+                    name="Planejado (acum.)"
+                    stroke="#2563EB"
+                    strokeWidth={2.2}
+                    fill="url(#areaPlanejado)"
+                    dot={false}
+                    activeDot={{ r: 3, fill: "#2563EB" }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="planejadoAcumulado"
+                    stroke="#2563EB"
+                    strokeWidth={2.2}
+                    dot={false}
+                    activeDot={false}
+                    legendType="none"
+                  />
+
+                  <Area
+                    type="monotone"
+                    dataKey="realizadoAcumulado"
+                    name="Realizado (acum.)"
+                    stroke="#059669"
+                    strokeWidth={2.4}
+                    fill="url(#areaRealizado)"
+                    dot={false}
+                    activeDot={{ r: 3, fill: "#059669" }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="realizadoAcumulado"
+                    stroke="#059669"
+                    strokeWidth={2.4}
+                    dot={false}
+                    activeDot={false}
+                    connectNulls={false}
+                    legendType="none"
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             ) : isLoadingCompromisso ? (
-              <div
-                role="status"
-                aria-label="Carregando gráfico de fluxo…"
-                className="h-[112px] w-full rounded-lg bg-white/10 animate-pulse"
-              />
+              <div role="status" aria-label="Carregando gráfico de fluxo…" className="h-[86%] w-full rounded-lg bg-card-alt animate-pulse" />
             ) : (
-              <div className="h-[112px] flex items-center justify-center text-center px-6">
-                <p className="text-xs text-white/80 leading-snug">
+              <div className="h-[86%] flex items-center justify-center text-center px-6">
+                <p className="text-xs text-text-muted leading-snug">
                   Sem dado mensal real de Executado nesta planilha (aba "Realizado detalhado" ausente).
-                  Nenhuma estimativa é exibida — Executado YTD acima é o único valor confiável disponível.
+                  Nenhuma estimativa é exibida.
                 </p>
               </div>
             )}
+          </article>
+        </section>
+
+        <aside className="col-span-4 min-h-0 rounded-card border border-border bg-card p-3 shadow-card flex flex-col gap-3 max-lg:col-span-1">
+          <div>
+            <p className="text-sm font-semibold text-text">Análise de Risco</p>
+            <p className="text-[11px] text-text-muted">Saúde, sinais de caixa/empenho e ofensores de emissão</p>
           </div>
-        </div>
-      </div>
 
-      {/* ✅ Linha 2: Gestão de Risco — 3 cards iguais sob cabeçalho único */}
-      <div className="mb-4">
-        <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Gestão de Risco (Caixa / Empenho)</p>
-        {foco !== "todos" && (
-          <button
-            onClick={() => { setFoco("todos"); setModalFoco(null); }}
-            className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 rounded"
-          >
-            ✕ Limpar filtro
-          </button>
-        )}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <button
-            onClick={() => {
-              if (foco === "faltantes") { setFoco("todos"); setModalFoco(null); }
-              else { setFoco("faltantes"); setModalFoco("faltantes"); setModalOpen(true); }
-            }}
-            aria-pressed={foco === "faltantes"}
-            className={`rounded-card bg-card-alt p-4 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-              foco === "faltantes" ? "ring-2 ring-accent" : ""
-            }`}
-          >
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões faltantes</p>
-            {isLoadingCompromisso ? (
-              <>
-                <SkeletonBlock className="h-8 w-16 mt-2" />
-                <SkeletonBlock className="h-3 w-32 mt-2" />
-              </>
-            ) : (
-              <>
-                <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesFaltantes.n}</div>
-                <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesFaltantes.valor)} em pendência</p>
-              </>
-            )}
-            <p className="text-[11px] text-accent/80 mt-3 pt-2 border-t border-border-subtle">Ver lista completa →</p>
-          </button>
-
-          <button
-            onClick={() => {
-              if (foco === "excedentes") { setFoco("todos"); setModalFoco(null); }
-              else { setFoco("excedentes"); setModalFoco("excedentes"); setModalOpen(true); }
-            }}
-            aria-pressed={foco === "excedentes"}
-            className={`rounded-card bg-card-alt p-4 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-              foco === "excedentes" ? "ring-2 ring-accent" : ""
-            }`}
-          >
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões excedentes</p>
-            {isLoadingCompromisso ? (
-              <>
-                <SkeletonBlock className="h-8 w-16 mt-2" />
-                <SkeletonBlock className="h-3 w-32 mt-2" />
-              </>
-            ) : (
-              <>
-                <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesExcedentes.n}</div>
-                <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(Math.abs(risco.emissoesExcedentes.valor))} de exposição excedente</p>
-              </>
-            )}
-            <p className="text-[11px] text-accent/80 mt-3 pt-2 border-t border-border-subtle">Ver lista completa →</p>
-          </button>
-
-            <div className="rounded-card bg-card-alt p-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Saúde da Carteira</p>
-            <div className="space-y-2">
-              {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
-                const b = saude[s];
-                const focoAlvo: Foco = s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
-                const ativo = foco === focoAlvo;
-                return (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      if (foco === focoAlvo) { setFoco("todos"); setModalFoco(null); }
-                      else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
-                    }}
-                    aria-pressed={ativo}
-                    className={`w-full rounded-lg px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
-                  >
-                    <span className="font-semibold">{s}</span>
-                    <span className="flex items-center gap-2">
-                      <span>{b.n} proj.</span>
-                      <span className="font-bold">{formatCurrencyMillions(b.valor)}</span>
-                      <ChevronRight size={12} />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Grid de KPIs Estratégicos com novo design — Interpretação em primeiro plano */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 mt-4">
-        {kpisEstrategicos.map((kpi) => {
-          const badgeClass = kpi.status === "nd" ? "border-border/60 bg-card-alt text-text-faint" : KPI_STATUS_STYLE[kpi.status];
-
-          const statusIcon =
-            kpi.status === "verde" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" aria-hidden="true" /> :
-            kpi.status === "amarelo" ? <AlertTriangle className="w-5 h-5 text-amber-500" aria-hidden="true" /> :
-            kpi.status === "vermelho" ? <XCircle className="w-5 h-5 text-red-500" aria-hidden="true" /> :
-            <HelpCircle className="w-5 h-5 text-text-faint" aria-hidden="true" />;
-
-          const tooltipContent = kpi.tooltipDetalhado;
-
-          const footerText =
-            kpi.id === "velocidadeCaixa" && kpi.valor !== null
-              ? `Desvio plan x real acumulado: ${Math.abs(kpi.valor - 1) < 0.1 ? "< 10%" : fmtPct(Math.abs(kpi.valor - 1))}`
-              : kpi.id === "empenho"
-              ? `A emitir ano = ${aEmitirAno !== null ? formatCurrencyMillions(aEmitirAno) : "N/D"}`
-              : kpi.id === "equilibrioFinanceiro" && kpi.valor !== null
-              ? `Resultado: ${fmtKpiValue(kpi)} do orçamento comprometido`
-              : "N/D";
-
-          return (
-            <article
-              key={kpi.id}
-              className="rounded-card border border-border bg-card p-4 shadow-card flex flex-col gap-2 items-start text-left"
-              aria-label={`${kpi.nome}: ${kpi.statusLabel}. ${kpi.descricaoExecutiva}`}
-            >
-              {/* Topo: Título uppercase + ajuda */}
-              <div className="flex items-center justify-between gap-2 w-full">
-                <p className="text-[11px] uppercase tracking-wide font-semibold text-text-muted">{kpi.nome}</p>
+          <section className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Saúde da Carteira</p>
+            {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
+              const b = saude[s];
+              const focoAlvo: Foco = s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
+              const ativo = foco === focoAlvo;
+              return (
                 <button
-                  type="button"
-                  className="text-text-faint hover:text-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 rounded"
-                  aria-label={`Informações sobre ${kpi.nome}`}
-                  title={tooltipContent}
+                  key={s}
+                  onClick={() => {
+                    if (foco === focoAlvo) { setFoco("todos"); setModalFoco(null); }
+                    else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
+                  }}
+                  aria-pressed={ativo}
+                  className={`w-full rounded-lg px-3 py-2.5 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                 >
-                  <HelpCircle size={14} />
+                  <span className={`font-semibold ${s === "Requer Ação" ? "text-sm" : ""}`}>{s}</span>
+                  <span className="flex items-center gap-2">
+                    <span>{b.n} proj.</span>
+                    <span className="font-bold">{formatCurrencyMillions(b.valor)}</span>
+                    <ChevronRight size={12} />
+                  </span>
                 </button>
-              </div>
+              );
+            })}
+          </section>
 
-              {/* Meio: Ícone Lucide + Badge de Status */}
-              <div className="flex items-center gap-2">
-                {statusIcon}
-                <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${badgeClass}`}>
-                  {kpi.statusLabel ?? "Dados insuficientes"}
-                </span>
+          <section className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Fatores de Risco (Caixa / Empenho)</p>
+            {[{ id: "CAIXA", kpi: caixaKpi }, { id: "EMPENHO", kpi: empenhoKpi }].map(({ id, kpi }) => (
+              <div key={id} className="rounded-lg bg-card-alt px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold tracking-wide text-text-muted">{id}</span>
+                  <span className="text-xs font-semibold text-text">{kpi?.statusLabel ?? "Dados insuficientes"}</span>
+                </div>
+                <p className="mt-1 text-xs text-text-muted leading-snug">{kpi?.descricaoExecutiva ?? "Sem dados suficientes para avaliação."}</p>
               </div>
+            ))}
+          </section>
 
-              {/* Descrição Executiva */}
-              <p className="text-sm text-text-muted leading-relaxed text-left">
-                {kpi.descricaoExecutiva}
-              </p>
+          <section className="space-y-2 min-h-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Top Ofensores</p>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                onClick={() => {
+                  if (foco === "faltantes") { setFoco("todos"); setModalFoco(null); }
+                  else { setFoco("faltantes"); setModalFoco("faltantes"); setModalOpen(true); }
+                }}
+                aria-pressed={foco === "faltantes"}
+                className={`rounded-lg bg-card-alt px-3 py-2.5 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  foco === "faltantes" ? "ring-2 ring-accent" : ""
+                }`}
+              >
+                <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Emissões Faltantes</p>
+                {isLoadingCompromisso ? (
+                  <>
+                    <SkeletonBlock className="h-6 w-14 mt-2" />
+                    <SkeletonBlock className="h-3 w-28 mt-2" />
+                  </>
+                ) : (
+                  <div className="mt-1.5 flex items-center justify-between gap-3">
+                    <span className="text-2xl font-extrabold text-text">{risco.emissoesFaltantes.n}</span>
+                    <span className="text-xs font-semibold text-text-muted">{formatCurrencyMillions(risco.emissoesFaltantes.valor)}</span>
+                  </div>
+                )}
+              </button>
 
-              {/* Rodapé com linha divisória */}
-              <div className="border-t border-border mt-auto pt-2 w-full">
-                <p className="text-[10px] text-text-faint">{footerText}</p>
-              </div>
-            </article>
-          );
-        })}
+              <button
+                onClick={() => {
+                  if (foco === "excedentes") { setFoco("todos"); setModalFoco(null); }
+                  else { setFoco("excedentes"); setModalFoco("excedentes"); setModalOpen(true); }
+                }}
+                aria-pressed={foco === "excedentes"}
+                className={`rounded-lg bg-card-alt px-3 py-2.5 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  foco === "excedentes" ? "ring-2 ring-accent" : ""
+                }`}
+              >
+                <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Emissões Excedentes</p>
+                {isLoadingCompromisso ? (
+                  <>
+                    <SkeletonBlock className="h-6 w-14 mt-2" />
+                    <SkeletonBlock className="h-3 w-28 mt-2" />
+                  </>
+                ) : (
+                  <div className="mt-1.5 flex items-center justify-between gap-3">
+                    <span className="text-2xl font-extrabold text-text">{risco.emissoesExcedentes.n}</span>
+                    <span className="text-xs font-semibold text-text-muted">{formatCurrencyMillions(Math.abs(risco.emissoesExcedentes.valor))}</span>
+                  </div>
+                )}
+              </button>
+            </div>
+          </section>
+        </aside>
       </div>
 
       {/* Modal de Lista de Projetos Filtrada */}
