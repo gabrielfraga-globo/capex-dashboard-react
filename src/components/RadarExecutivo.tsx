@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
 import { useFilterStore } from "../store/filterStore";
 import { generateRiskSummary } from "../lib/insights";
