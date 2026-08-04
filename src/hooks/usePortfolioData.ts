@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { RelatorioParsing } from "../types";
 
-// ✅ UI não congela: fetch é async, parse roda em Web Worker separado em 2 fases.
-const DATA_URL = `${import.meta.env.BASE_URL}data/carteira.xlsx`;
+const PROCESSED_DATA_URL = `${import.meta.env.BASE_URL}data/carteira-processed.json`;
+const RAW_DATA_URL = `${import.meta.env.BASE_URL}data/carteira.xlsx`;
+const ENABLE_RAW_XLSX_FALLBACK = import.meta.env.DEV && import.meta.env.VITE_USE_RAW_EXCEL === "true";
 
 interface PortfolioDataResult {
   parsed: RelatorioParsing | null;
@@ -19,63 +20,88 @@ export function usePortfolioData(): PortfolioDataResult {
   const t0Ref = useRef<number>(0);
 
   useEffect(() => {
-    const worker = new Worker(
-      new URL('../lib/excelWorker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    let worker: Worker | null = null;
 
-    worker.onmessage = (e: MessageEvent) => {
-      const data = e.data as {
-        ok: boolean;
-        phase?: 'base' | 'full';
-        result?: RelatorioParsing;
-        error?: string;
+    const loadFromRawExcelWorker = () => {
+      worker = new Worker(
+        new URL("../lib/excelWorker.ts", import.meta.url),
+        { type: "module" }
+      );
+
+      worker.onmessage = (e: MessageEvent) => {
+        const data = e.data as {
+          ok: boolean;
+          phase?: "base" | "full";
+          result?: RelatorioParsing;
+          error?: string;
+        };
+
+        if (data.ok && data.result) {
+          const elapsed = (performance.now() - t0Ref.current).toFixed(1);
+          if (data.phase === "base") {
+            console.log(`[usePortfolioData] Fallback Worker phase=base: +${elapsed}ms`);
+            setParsed(data.result);
+            setIsLoadingCompromisso(true);
+          } else {
+            console.log(`[usePortfolioData] Fallback Worker phase=full: +${elapsed}ms`);
+            setParsed(data.result);
+            setIsLoadingCompromisso(false);
+            worker?.terminate();
+          }
+        } else {
+          setLoadError(data.error ?? "Falha ao processar os dados da carteira.");
+          worker?.terminate();
+        }
       };
 
-      if (data.ok && data.result) {
-        const elapsed = (performance.now() - t0Ref.current).toFixed(1);
-        if (data.phase === 'base') {
-          console.log(`[usePortfolioData] Phase 1 (base) recebida no main thread: +${elapsed}ms`);
-          setParsed(data.result);
-          setIsLoadingCompromisso(true);
-        } else {
-          console.log(`[usePortfolioData] Phase 2 (full) recebida no main thread: +${elapsed}ms`);
-          setParsed(data.result);
-          setIsLoadingCompromisso(false);
-          worker.terminate();
-        }
-      } else {
-        setLoadError(data.error ?? 'Falha ao processar os dados da carteira.');
-        worker.terminate();
-      }
-    };
+      worker.onerror = (e) => {
+        setLoadError(e.message ?? "Erro no processamento dos dados.");
+        worker?.terminate();
+      };
 
-    worker.onerror = (e) => {
-      setLoadError(e.message ?? 'Erro no processamento dos dados.');
-      worker.terminate();
+      fetch(RAW_DATA_URL, { cache: "no-store" })
+        .then((res) => {
+          if (!res.ok) throw new Error(`Não foi possível carregar ${RAW_DATA_URL} (HTTP ${res.status}).`);
+          return res.arrayBuffer();
+        })
+        .then((buf) => {
+          worker?.postMessage({ buf, fileName: "carteira.xlsx" }, [buf]);
+        })
+        .catch((err: unknown) => {
+          setLoadError(err instanceof Error ? err.message : "Falha ao carregar os dados da carteira.");
+          worker?.terminate();
+        });
     };
 
     t0Ref.current = performance.now();
-    console.log(`[usePortfolioData] Fetch iniciado: ${t0Ref.current.toFixed(1)}ms`);
+    setLoadError(null);
+    setIsLoadingCompromisso(false);
+    console.log(`[usePortfolioData] Fetch JSON pré-processado iniciado: ${t0Ref.current.toFixed(1)}ms`);
 
-    fetch(DATA_URL, { cache: 'no-store' })
+    fetch(PROCESSED_DATA_URL, { cache: "no-store" })
       .then((res) => {
         const elapsed = (performance.now() - t0Ref.current).toFixed(1);
-        console.log(`[usePortfolioData] Fetch concluído: +${elapsed}ms`);
-        if (!res.ok) throw new Error(`Não foi possível carregar ${DATA_URL} (HTTP ${res.status}).`);
-        return res.arrayBuffer();
+        console.log(`[usePortfolioData] Fetch JSON concluído: +${elapsed}ms`);
+        if (!res.ok) throw new Error(`Não foi possível carregar ${PROCESSED_DATA_URL} (HTTP ${res.status}).`);
+        return res.json() as Promise<RelatorioParsing>;
       })
-      .then((buf) => {
+      .then((json) => {
         const elapsed = (performance.now() - t0Ref.current).toFixed(1);
-        console.log(`[usePortfolioData] Enviando para Worker: +${elapsed}ms`);
-        worker.postMessage({ buf, fileName: 'carteira.xlsx' }, [buf]);
+        console.log(`[usePortfolioData] JSON aplicado no estado: +${elapsed}ms`);
+        setParsed(json);
+        setIsLoadingCompromisso(false);
       })
       .catch((err: unknown) => {
-        setLoadError(err instanceof Error ? err.message : 'Falha ao carregar os dados da carteira.');
-        worker.terminate();
+        if (ENABLE_RAW_XLSX_FALLBACK) {
+          console.warn("[usePortfolioData] Falha no JSON pré-processado; usando fallback RAW XLSX em Worker.", err);
+          loadFromRawExcelWorker();
+          return;
+        }
+        setLoadError(err instanceof Error ? err.message : "Falha ao carregar os dados da carteira.");
+        worker?.terminate();
       });
 
-    return () => { worker.terminate(); };
+    return () => { worker?.terminate(); };
   }, []);
 
   return { parsed, isLoadingCompromisso, loadError };
