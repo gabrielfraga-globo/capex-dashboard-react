@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Legend, LabelList } from "recharts";
+import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Legend, LabelList, Tooltip } from "recharts";
 import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
 import { useFilterStore } from "../store/filterStore";
 import { generateRiskSummary } from "../lib/insights";
@@ -27,6 +27,44 @@ function bandaDelta(pctAbs: number): { cor: string; label: string } {
 }
 
 type Foco = "todos" | "dentro" | "acompanhar" | "acao" | "faltantes" | "excedentes";
+
+type FluxoEntry = {
+  mes: string;
+  Planejado: number;
+  Realizado: number | null;
+  planejadoAcumulado: number;
+  realizadoAcumulado: number | null;
+  pct: number | null;
+  banda: { cor: string; label: string } | null;
+};
+
+function CustomTooltipFluxo({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: FluxoEntry }>; label?: string }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-border bg-white/95 p-3 shadow-lg text-xs min-w-[200px] dark:bg-zinc-900/95">
+      <p className="mb-2 font-bold text-text">{label}</p>
+      <p className="text-[10px] uppercase tracking-wide text-text-muted">Acumulado até o mês</p>
+      <p className="font-semibold text-violet-300">Planejado: {formatCurrencyMillions(d.planejadoAcumulado)}</p>
+      {d.realizadoAcumulado !== null && (
+        <p className="font-semibold" style={{ color: d.banda?.cor ?? '#8B7FE8' }}>
+          Realizado: {formatCurrencyMillions(d.realizadoAcumulado)}
+        </p>
+      )}
+      <hr className="my-1.5 border-border-subtle" />
+      <p className="text-[10px] uppercase tracking-wide text-text-muted">Incremento do mês</p>
+      <p className="text-text-muted">Planejado: {formatCurrencyMillions(d.Planejado)}</p>
+      {d.Realizado !== null && (
+        <p className="text-text-muted">Realizado: {formatCurrencyMillions(d.Realizado)}</p>
+      )}
+      {d.pct !== null && (
+        <p className="mt-1 font-bold" style={{ color: d.banda?.cor }}>
+          Desvio mensal: {d.pct >= 0 ? '+' : ''}{fmtPct(d.pct)}
+        </p>
+      )}
+    </div>
+  );
+}
 
 /**
  * Radar Executivo — Bento Grid fixo, 2 linhas x 2 colunas (Execução do Plano + Saúde
@@ -134,16 +172,25 @@ export function RadarExecutivo({
       planejadoMensal[lastIdx] += canonicalPlanejado - sumPlan;
     }
 
+    let sumPlanejado = 0;
+    let sumRealizado = 0;
+
     return MESES.map((m, i) => {
       const temExecEsteMes = i + 1 <= MES_ATUAL;
       const planejado = Math.round(planejadoMensal[i]);
       const realizado = temFluxoReal && temExecEsteMes ? Math.round(realizadoMensalArr[i]) : null;
+
+      sumPlanejado += planejado;
+      if (realizado !== null) sumRealizado += realizado;
+
       const pct = realizado !== null && planejado > 0 ? (realizado - planejado) / planejado : null;
       const banda = pct !== null ? bandaDelta(Math.abs(pct)) : null;
       return {
         mes: m,
         Planejado: planejado,
         Realizado: realizado,
+        planejadoAcumulado: sumPlanejado,
+        realizadoAcumulado: realizado !== null ? sumRealizado : null,
         pct, banda,
       };
     });
@@ -372,21 +419,22 @@ export function RadarExecutivo({
                 <BarChart data={fluxoData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
                   <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
                   <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
-                  <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]}>
+                  <Tooltip content={<CustomTooltipFluxo />} cursor={{ fill: "rgba(255,255,255,0.08)" }} />
+                  <Bar dataKey="planejadoAcumulado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]}>
                     <LabelList
-                      dataKey="Planejado"
+                      dataKey="planejadoAcumulado"
                       position="top"
                       fontSize={10}
                       fill="#FFFFFF"
                       formatter={(value) => (typeof value === "number" ? formatCurrencyMillions(value) : "")}
                     />
                   </Bar>
-                  <Bar dataKey="Realizado" name="Realizado" radius={[3, 3, 0, 0]}>
+                  <Bar dataKey="realizadoAcumulado" name="Realizado" radius={[3, 3, 0, 0]}>
                     {fluxoData.map((d, i) => (
                       <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
                     ))}
                     <LabelList
-                      dataKey="Realizado"
+                      dataKey="realizadoAcumulado"
                       position="top"
                       fontSize={10}
                       fill="#FFFFFF"
