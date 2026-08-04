@@ -1,10 +1,10 @@
-import { useState, lazy, Suspense, useCallback, useMemo } from "react";
+import { useState, lazy, Suspense, useCallback } from "react";
 import type { ProjetoMetricas, FiltrosState } from "./types";
 import { useFilterStore } from "./store/filterStore";
 import { useShallow } from "zustand/react/shallow";
 import { useThemeStore } from "./store/themeStore";
 import { usePortfolioData } from "./hooks/usePortfolioData";
-import { usePortfolioMetrics, useKpisEstrategicos, useAEmitirAno } from "./hooks/usePortfolioMetrics";
+import { usePortfolioMetrics, useKpisEstrategicos } from "./hooks/usePortfolioMetrics";
 import { useFilteredProjects } from "./hooks/useFilteredProjects";
 import { useThemeSync } from "./hooks/useThemeSync";
 import { ContextBar } from "./components/ContextBar";
@@ -63,18 +63,6 @@ export default function App() {
   );
   // KPIs reagem aos filtros: calculados a partir da lista filtrada, não da base bruta.
   const kpisEstrategicos = useKpisEstrategicos(metricasFiltradas);
-  const aEmitirAno = useAEmitirAno(metricasFiltradas);
-  const executiveSummary = useMemo(() => {
-    const caixa = kpisEstrategicos.find((kpi) => kpi.id === "velocidadeCaixa");
-    const empenho = kpisEstrategicos.find((kpi) => kpi.id === "empenho");
-    return {
-      caixaStatus: caixa?.statusLabel ?? "Dados insuficientes",
-      caixaStatusCode: caixa?.status ?? "nd",
-      caixaValor: caixa?.valor ?? null,
-      empenhoStatus: empenho?.statusLabel ?? "Dados insuficientes",
-      pendenteEmissao: aEmitirAno,
-    };
-  }, [aEmitirAno, kpisEstrategicos]);
 
   // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
@@ -154,7 +142,6 @@ export default function App() {
       <ContextBar
         parsed={parsed}
         periodoLabel={periodoLabel}
-        executiveSummary={viewMode === "radar" ? executiveSummary : null}
       />
 
       {viewMode === "radar" ? (

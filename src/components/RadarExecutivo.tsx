@@ -8,18 +8,12 @@ import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { usePctExecucaoPlano, useAEmitirAno } from "../hooks/usePortfolioMetrics";
 import { ProjectListModal } from "./ProjectListModal";
 
-import { Search, SlidersHorizontal, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Search, SlidersHorizontal, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 // Trava M-1: barras do gráfico só são coloridas até o mês fechado anterior.
 const _mesRealRadar = new Date().getMonth() + 1;
 const MES_ATUAL = _mesRealRadar === 1 ? 12 : _mesRealRadar - 1;
-
-const SAUDE_STYLE: Record<string, string> = {
-  "Dentro do Plano": "bg-risk-baixo/10 border-risk-baixo/30 text-risk-baixo",
-  "Acompanhar": "bg-risk-medio/10 border-risk-medio/30 text-amber-600",
-  "Requer Ação": "bg-risk-alto/10 border-risk-alto/30 text-risk-alto",
-};
 
 /** Paleta semântica para segmentos de composição do Gráfico A.
  *  Emitido = comprometido mas não pago → neutro/informacional, nunca vermelho. */
@@ -35,6 +29,12 @@ function bandaDelta(pctAbs: number): { cor: string; label: string } {
   if (pctAbs <= 0.05) return { cor: "#2A9D6F", label: "Dentro do Plano" };
   if (pctAbs <= 0.15) return { cor: "#E0B429", label: "Acompanhar" };
   return { cor: "#C0392B", label: "Requer Ação" };
+}
+
+function kpiSeverity(status: KPIEstrategicoCarteira["status"] | undefined): number {
+  if (!status || status === "nd" || status === "verde") return 0;
+  if (status === "amarelo") return 1;
+  return 2;
 }
 
 type Foco = "todos" | "dentro" | "acompanhar" | "acao" | "faltantes" | "excedentes";
@@ -262,14 +262,15 @@ export function RadarExecutivo({
     const ritmo = totalPlanejadoAcumulado > 0 ? totalRealizadoBreakdown / totalPlanejadoAcumulado : null;
     const ritmoTexto =
       ritmo === null
-        ? "Ritmo de caixa N/D"
+        ? "Caixa N/D"
         : Math.abs(ritmo - 1) <= 0.05
-        ? "Ritmo de caixa ok"
+        ? "Caixa dentro da meta"
         : ritmo > 1
-        ? "Ritmo de caixa acima do plano"
-        : "Ritmo de caixa abaixo do plano";
+        ? "Caixa acima do plano"
+        : "Caixa abaixo do plano";
     const pendente = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
-    return `${ritmoTexto} · Pontos de atenção: ${formatCurrencyMillions(pendente)} pendentes de emissão`;
+    const iconCaixa = ritmo !== null && Math.abs(ritmo - 1) <= 0.05 ? "🟢" : "⚠";
+    return `${iconCaixa} ${ritmoTexto} · ⚠ ${formatCurrencyMillions(pendente)} pendentes de emissão`;
   }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
 
   const pendenteEmissao = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
@@ -281,6 +282,24 @@ export function RadarExecutivo({
     () => kpisEstrategicos.find((kpi) => kpi.id === "empenho") ?? null,
     [kpisEstrategicos]
   );
+  const principalAlerta = useMemo(() => {
+    const caixaSeverity = kpiSeverity(caixaKpi?.status);
+    const empenhoSeverity = kpiSeverity(empenhoKpi?.status);
+
+    if (caixaSeverity === 0 && empenhoSeverity === 0) {
+      return { tipo: "none" as const, titulo: "Nenhum alerta ativo" };
+    }
+
+    const alvo =
+      empenhoSeverity >= caixaSeverity
+        ? { nome: "Empenho", statusLabel: empenhoKpi?.statusLabel ?? "Atenção" }
+        : { nome: "Caixa", statusLabel: caixaKpi?.statusLabel ?? "Atenção" };
+
+    return {
+      tipo: "alert" as const,
+      titulo: `${alvo.nome}: ${alvo.statusLabel}`,
+    };
+  }, [caixaKpi?.status, caixaKpi?.statusLabel, empenhoKpi?.status, empenhoKpi?.statusLabel]);
 
   const focoLabel = {
     todos: null,
@@ -407,26 +426,35 @@ export function RadarExecutivo({
       </div>
 
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0 max-lg:grid-cols-1 max-lg:h-auto">
-        <section className="col-span-8 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible max-lg:pr-0" style={{ scrollbarGutter: "stable" }}>
+        <section className="col-span-7 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible max-lg:pr-0" style={{ scrollbarGutter: "stable" }}>
           <article className="rounded-card border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 p-4 text-white shadow-card shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-white/75 mb-2">Execução do Plano</p>
 
             {pctVsPlano !== null && (
               <div className="flex flex-row items-center justify-between w-full gap-4">
-                <div className="shrink-0">
-                  <p
-                    aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
-                    className={`text-[3rem] leading-none font-extrabold tabular-nums ${
-                      Math.abs(pctVsPlano - 1) <= 0.05
-                        ? "text-emerald-300"
-                        : Math.abs(pctVsPlano - 1) <= 0.15
-                        ? "text-amber-300"
-                        : "text-red-300"
-                    }`}
-                  >
-                    {fmtPct(pctVsPlano)}
-                  </p>
-                  <p className="text-[11px] text-white/65 mt-1">vs. Plano YTD</p>
+                <div className="shrink-0 grid grid-cols-2 gap-4 min-w-[270px]">
+                  <div>
+                    <p
+                      aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
+                      className={`text-[2.8rem] leading-none font-extrabold tabular-nums ${
+                        Math.abs(pctVsPlano - 1) <= 0.05
+                          ? "text-emerald-300"
+                          : Math.abs(pctVsPlano - 1) <= 0.15
+                          ? "text-amber-300"
+                          : "text-red-300"
+                      }`}
+                    >
+                      {fmtPct(pctVsPlano)}
+                    </p>
+                    <p className="text-[11px] text-white/65 mt-1">Execução</p>
+                    <p className="text-[10px] text-white/55">vs. Plano YTD</p>
+                  </div>
+                  <div>
+                    <p className="text-[2rem] leading-none font-extrabold tabular-nums text-amber-200">
+                      {formatCurrencyMillions(pendenteEmissao)}
+                    </p>
+                    <p className="text-[11px] text-white/65 mt-1">Pendentes de emissão</p>
+                  </div>
                 </div>
 
                 <div className="flex-1 min-w-0 max-w-[620px]">
@@ -455,16 +483,8 @@ export function RadarExecutivo({
             )}
 
             <div className="mt-2.5 flex items-center gap-2 text-[12px] leading-snug text-white/90">
-              {risco.emissoesExcedentes.n > 0 ? (
-                <AlertTriangle size={14} className="shrink-0 text-amber-300" aria-hidden="true" />
-              ) : (
-                <CheckCircle2 size={14} className="shrink-0 text-emerald-300" aria-hidden="true" />
-              )}
               <p className="truncate">{insightLinha}</p>
             </div>
-            <p className="mt-1 text-[12px] font-semibold text-amber-200">
-              {formatCurrencyMillions(pendenteEmissao)} pendentes de emissão
-            </p>
           </article>
 
           <article className="rounded-card border border-border bg-card p-3 shadow-card flex-1 min-h-0">
@@ -507,6 +527,43 @@ export function RadarExecutivo({
                     tickFormatter={(v) => formatCurrencyMillions(Number(v ?? 0)).replace("R$ ", "")}
                   />
                   <Tooltip content={<CustomTooltipFluxo />} cursor={{ stroke: "rgba(82,82,91,0.25)", strokeWidth: 1 }} />
+
+                  <Area
+                    type="monotone"
+                    dataKey="baseGapPositivo"
+                    stackId="gapPos"
+                    stroke="none"
+                    fill="transparent"
+                    isAnimationActive={false}
+                    connectNulls={false}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="gapPositivo"
+                    stackId="gapPos"
+                    stroke="none"
+                    fill="rgba(37, 99, 235, 0.24)"
+                    isAnimationActive={false}
+                    connectNulls={false}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="baseGapNegativo"
+                    stackId="gapNeg"
+                    stroke="none"
+                    fill="transparent"
+                    isAnimationActive={false}
+                    connectNulls={false}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="gapNegativo"
+                    stackId="gapNeg"
+                    stroke="none"
+                    fill="rgba(5, 150, 105, 0.22)"
+                    isAnimationActive={false}
+                    connectNulls={false}
+                  />
 
                   <Area
                     type="monotone"
@@ -565,18 +622,18 @@ export function RadarExecutivo({
           </article>
         </section>
 
-        <aside className="col-span-4 min-h-0 rounded-card border border-border bg-card p-2 shadow-card flex flex-col gap-2 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible" style={{ scrollbarGutter: "stable" }}>
+        <aside className="col-span-5 min-h-0 rounded-card border border-border bg-card p-2 shadow-card flex flex-col gap-2 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible" style={{ scrollbarGutter: "stable" }}>
           <div>
             <p className="text-sm font-semibold text-text">Análise de Risco</p>
-            <p className="text-[11px] text-text-muted">Saúde, sinais de caixa/empenho e ofensores de emissão</p>
           </div>
 
           <section className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Saúde da Carteira</p>
+            <p className="text-xs font-semibold text-text">Status Geral</p>
             {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
               const b = saude[s];
               const focoAlvo: Foco = s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
               const ativo = foco === focoAlvo;
+              const dotColor = s === "Dentro do Plano" ? "bg-emerald-500" : s === "Acompanhar" ? "bg-amber-500" : "bg-red-500";
               return (
                 <button
                   key={s}
@@ -585,13 +642,15 @@ export function RadarExecutivo({
                     else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
                   }}
                   aria-pressed={ativo}
-                  className={`w-full rounded-lg px-2.5 py-1.5 flex items-center justify-between text-[11px] ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+                  className={`w-full rounded-md border border-border-subtle bg-card-alt px-2.5 py-1.5 flex items-center justify-between text-[11px] ${ativo ? "ring-2 ring-accent" : ""} hover:bg-card transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                 >
-                  <span className={`font-semibold ${s === "Requer Ação" ? "text-sm" : ""}`}>{s}</span>
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2 font-semibold text-text">
+                    <span className={`h-2 w-2 rounded-full ${dotColor}`} aria-hidden="true" />
+                    {s}
+                  </span>
+                  <span className="flex items-center gap-2 text-text-muted">
                     <span>{b.n} proj.</span>
                     <span className="font-bold">{formatCurrencyMillions(b.valor)}</span>
-                    <ChevronRight size={12} />
                   </span>
                 </button>
               );
@@ -599,16 +658,22 @@ export function RadarExecutivo({
           </section>
 
           <section className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Fatores de Risco (Caixa / Empenho)</p>
-            {[{ id: "CAIXA", kpi: caixaKpi }, { id: "EMPENHO", kpi: empenhoKpi }].map(({ id, kpi }) => (
-              <div key={id} className="rounded-lg bg-card-alt px-2.5 py-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold tracking-wide text-text-muted">{id}</span>
-                  <span className="text-xs font-semibold text-text">{kpi?.statusLabel ?? "Dados insuficientes"}</span>
-                </div>
-                <p className="mt-0.5 text-[11px] text-text-muted leading-snug">{kpi?.descricaoExecutiva ?? "Sem dados suficientes para avaliação."}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Principal Alerta</p>
+            {principalAlerta.tipo === "alert" ? (
+              <div className="rounded-md border border-red-400/40 bg-red-500/10 px-2.5 py-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                  <AlertTriangle size={14} aria-hidden="true" />
+                  {principalAlerta.titulo}
+                </p>
               </div>
-            ))}
+            ) : (
+              <div className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 size={14} aria-hidden="true" />
+                  Nenhum alerta ativo
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="space-y-1 min-h-0">
