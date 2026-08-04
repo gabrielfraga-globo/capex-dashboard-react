@@ -86,6 +86,7 @@ export default function App() {
     );
   }
 
+  
   if (!parsed) {
     return (
       <div className="min-h-screen bg-bg px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
