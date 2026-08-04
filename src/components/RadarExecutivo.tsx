@@ -387,17 +387,19 @@ export function RadarExecutivo({
                     style={{ width: `${seg.pct}%` }}
                     title={`${seg.label}: ${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}`}
                   >
-                    {seg.pct >= 14 ? `${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}` : ""}
+                    {seg.pct >= 14 ? fmtPct(seg.pct / 100) : ""}
                   </div>
                 ))}
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                {breakdownSegments.map((seg) => (
-                  <span key={`${seg.key}-legend`} className="text-[10px] text-white/70 leading-snug">
-                    {seg.label}: {fmtPct(seg.pct / 100)} · {formatCurrencyMillions(seg.valor)}
-                  </span>
-                ))}
-              </div>
+              {breakdownSegments.some((seg) => seg.pct > 0 && seg.pct < 14) && (
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0">
+                  {breakdownSegments.filter((seg) => seg.pct > 0 && seg.pct < 14).map((seg) => (
+                    <span key={`${seg.key}-narrow`} className="text-[10px] text-white/55 leading-snug">
+                      {seg.label}: {fmtPct(seg.pct / 100)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -420,25 +422,25 @@ export function RadarExecutivo({
                   <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
                   <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
                   <Tooltip content={<CustomTooltipFluxo />} cursor={{ fill: "rgba(255,255,255,0.08)" }} />
-                  <Bar dataKey="planejadoAcumulado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]}>
+                  <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]}>
                     <LabelList
-                      dataKey="planejadoAcumulado"
+                      dataKey="Planejado"
                       position="top"
                       fontSize={10}
                       fill="#FFFFFF"
-                      formatter={(value) => (typeof value === "number" ? formatCurrencyMillions(value) : "")}
+                      formatter={(value) => (typeof value === "number" && value > 0 ? formatCurrencyMillions(value) : "")}
                     />
                   </Bar>
-                  <Bar dataKey="realizadoAcumulado" name="Realizado" radius={[3, 3, 0, 0]}>
+                  <Bar dataKey="Realizado" name="Realizado" radius={[3, 3, 0, 0]}>
                     {fluxoData.map((d, i) => (
                       <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
                     ))}
                     <LabelList
-                      dataKey="realizadoAcumulado"
+                      dataKey="Realizado"
                       position="top"
                       fontSize={10}
                       fill="#FFFFFF"
-                      formatter={(value) => (typeof value === "number" ? formatCurrencyMillions(value) : "")}
+                      formatter={(value) => (typeof value === "number" && value > 0 ? formatCurrencyMillions(value) : "")}
                     />
                   </Bar>
                 </BarChart>
