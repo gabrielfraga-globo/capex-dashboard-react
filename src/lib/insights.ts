@@ -10,6 +10,8 @@ export interface RiskSummary {
   estouro: { n: number; valor: number };
   riscoNaoRealizacao: { n: number; valor: number };
   revisaoFluxoCaixa: { n: number; valor: number };
+  emissoesFaltantes: { n: number; valor: number };
+  emissoesExcedentes: { n: number; valor: number };
   normal: { n: number };
   coberturaFinanceira: number | null;
   exposicaoFinanceira: number;
@@ -35,6 +37,16 @@ export function generateRiskSummary(lista: ProjetoMetricas[]): RiskSummary {
     estouro: { n: estourados.length, valor: estourados.reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0) },
     riscoNaoRealizacao: { n: riscoNaoReal.length, valor: riscoNaoReal.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0) },
     revisaoFluxoCaixa: { n: revisaoFluxo.length, valor: revisaoFluxo.reduce((a, p) => a + (p.aEmitir ?? 0), 0) },
+    emissoesFaltantes: {
+      n: riscoNaoReal.length,
+      valor: riscoNaoReal.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0),
+    },
+    emissoesExcedentes: {
+      n: estourados.length + revisaoFluxo.length,
+      valor:
+        estourados.reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0) +
+        revisaoFluxo.reduce((a, p) => a + (p.aEmitir ?? 0), 0),
+    },
     normal: { n: normal.length },
     coberturaFinanceira,
     exposicaoFinanceira,

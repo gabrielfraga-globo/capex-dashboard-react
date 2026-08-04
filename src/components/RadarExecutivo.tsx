@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
-import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Legend, LabelList } from "recharts";
 import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
 import { useFilterStore } from "../store/filterStore";
-import { useThemeStore } from "../store/themeStore";
-import { getChartColors } from "../lib/chartColors";
-import { generateDeltaYTD, generateHeroNarrative, generateRiskSummary } from "../lib/insights";
+import { generateRiskSummary } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
-import { RiskBadge } from "./ui/primitives";
-import { ProjectListModal } from "./ProjectListModal";
 import { usePctExecucaoPlano, useAEmitirAno } from "../hooks/usePortfolioMetrics";
 
 import { Search, SlidersHorizontal, ChevronRight, HelpCircle, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
@@ -30,12 +26,7 @@ function bandaDelta(pctAbs: number): { cor: string; label: string } {
   return { cor: "#C0392B", label: "Requer Ação" };
 }
 
-function acaoLabel(p: ProjetoMetricas): string {
-  if (p.status === "Estouro") return "Replanejar";
-  return "Risco NR";
-}
-
-type Foco = "todos" | "dentro" | "acompanhar" | "acao";
+type Foco = "todos" | "dentro" | "acompanhar" | "acao" | "faltantes" | "excedentes";
 
 /**
  * Radar Executivo — Bento Grid fixo, 2 linhas x 2 colunas (Execução do Plano + Saúde
@@ -61,7 +52,7 @@ function fmtKpiValue(kpi: KPIEstrategicoCarteira): string {
 export function RadarExecutivo({
   lista,
   kpisEstrategicos,
-  onSelect,
+  onSelect: _onSelect,
 }: {
   lista: ProjetoMetricas[];
   kpisEstrategicos: KPIEstrategicoCarteira[];
@@ -69,13 +60,10 @@ export function RadarExecutivo({
 }) {
   const periodo = useFilterStore(s => s.periodo);
   const setPeriodo = useFilterStore(s => s.setPeriodo);
-  const theme = useThemeStore(s => s.theme);
-  const colors = getChartColors(theme);
   const [busca, setBusca] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [foco, setFoco] = useState<Foco>("todos");
   const [programa, setPrograma] = useState<string | null>(null);
-  const [modalAberto, setModalAberto] = useState<"acao" | "revisao" | null>(null);
 
   const programas = useMemo(() => Array.from(new Set(lista.map((p) => p.n4Curta))).sort(), [lista]);
 
@@ -84,29 +72,21 @@ export function RadarExecutivo({
     () => (programa ? lista.filter((p) => p.n4Curta === programa) : lista),
     [lista, programa]
   );
+  const listaComBusca = useMemo(
+    () => (busca ? listaPrograma.filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase())) : listaPrograma),
+    [listaPrograma, busca]
+  );
   const listaFocada = useMemo(() => {
-    if (foco === "dentro") return listaPrograma.filter((p) => p.status === "Normal");
-    if (foco === "acompanhar") return listaPrograma.filter((p) => p.status === "Revisar Caixa Ano");
-    if (foco === "acao") return listaPrograma.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
-    return listaPrograma;
-  }, [listaPrograma, foco]);
-
-  const delta = useMemo(() => generateDeltaYTD(listaFocada), [listaFocada]);
-  const narrativa = useMemo(() => generateHeroNarrative(listaFocada, delta), [listaFocada, delta]);
+    if (foco === "dentro") return listaComBusca.filter((p) => p.status === "Normal");
+    if (foco === "acompanhar") return listaComBusca.filter((p) => p.status === "Revisar Caixa Ano");
+    if (foco === "acao") return listaComBusca.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
+    if (foco === "faltantes") return listaComBusca.filter((p) => p.status === "Risco de Não Realização");
+    if (foco === "excedentes") return listaComBusca.filter((p) => p.status === "Estouro" || p.status === "Revisar Caixa Ano");
+    return listaComBusca;
+  }, [listaComBusca, foco]);
 
   // Métricas macro para a Regra dos 5 Segundos
   const pctVsPlano = usePctExecucaoPlano(listaFocada);
-  const exigemAcao = useMemo(
-    () => listaFocada.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
-      .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
-      .sort((a, b) => b.riscoScore - a.riscoScore),
-    [listaFocada, busca]
-  );
-  const revisaoCaixa = useMemo(
-    () => listaFocada.filter((p) => p.status === "Revisar Caixa Ano").filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase())),
-    [listaFocada, busca]
-  );
-
   const risco = useMemo(() => generateRiskSummary(listaFocada), [listaFocada]);
 
   const saude = useMemo(() => {
@@ -121,8 +101,8 @@ export function RadarExecutivo({
     };
   }, [listaFocada]);
 
-  // Gráfico de barras — Planejado × Executado acumulado, mensal, com cor condicional
-  // no Executado (verde ≤5%, amarelo 5-15%, vermelho >15% de desvio).
+  // Gráfico de barras — Planejado × Realizado mensal, com cor condicional
+  // no Realizado (verde ≤5%, amarelo 5-15%, vermelho >15% de desvio).
   // Executado agora vem de DADO REAL (aba "Realizado detalhado", por data de pagamento
   // de cada nota fiscal) quando disponível — nunca mais interpolado/estimado. Se a aba
   // não existir na planilha carregada, a série de Executado simplesmente não aparece
@@ -154,19 +134,16 @@ export function RadarExecutivo({
       planejadoMensal[lastIdx] += canonicalPlanejado - sumPlan;
     }
 
-    let acumuladoPlan = 0;
-    let acumuladoReal = 0;
     return MESES.map((m, i) => {
-      acumuladoPlan += planejadoMensal[i];
-      acumuladoReal += realizadoMensalArr[i];
       const temExecEsteMes = i + 1 <= MES_ATUAL;
-      const realizado = temFluxoReal && temExecEsteMes ? acumuladoReal : null;
-      const pct = realizado !== null && acumuladoPlan > 0 ? (realizado - acumuladoPlan) / acumuladoPlan : null;
+      const planejado = Math.round(planejadoMensal[i]);
+      const realizado = temFluxoReal && temExecEsteMes ? Math.round(realizadoMensalArr[i]) : null;
+      const pct = realizado !== null && planejado > 0 ? (realizado - planejado) / planejado : null;
       const banda = pct !== null ? bandaDelta(Math.abs(pct)) : null;
       return {
         mes: m,
-        Planejado: Math.round(acumuladoPlan),
-        Realizado: realizado !== null ? Math.round(realizado) : null,
+        Planejado: planejado,
+        Realizado: realizado,
         pct, banda,
       };
     });
@@ -194,36 +171,56 @@ export function RadarExecutivo({
     [listaFocada]
   );
 
-  const narrativaRisco = useMemo(() => {
-    const represadoTotal = listaFocada
-      .filter(p => p.status === "Risco de Não Realização")
-      .reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
-    const estouraoTotal = listaFocada
-      .filter(p => p.status === "Estouro")
-      .reduce((a, p) => a + Math.max(p.desvioPlurianual ?? 0, 0), 0);
-    // Compara caixa puro (realizadoAcumulado) contra o planejado — sem Em Pagamento.
-    const pctExec = totalPlanejadoAcumulado > 0
-      ? totalRealizadoBreakdown / totalPlanejadoAcumulado
-      : null;
-    const execBase = pctExec === null
-      ? "Carteira"
-      : Math.abs(pctExec - 1) <= 0.05
-      ? "Carteira tem realizado dentro do plano"
-      : pctExec > 1 ? "Carteira tem realizado acima do plano" : "Carteira tem realizado abaixo do plano";
-    if (represadoTotal > estouraoTotal && represadoTotal > 0) {
-      // Usa aEmitirAno — mesma variável do rodapé do card "Gestão do Empenho" (SSOT).
-      const valorRepresadoGlobal = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : represadoTotal;
-      return `${execBase}, porém o maior impacto está nos ${formatCurrencyMillions(valorRepresadoGlobal)} represados aguardando emissão.`;
-    }
-    if (estouraoTotal > 0) {
-      return `${execBase}, com leve descasamento abaixo do planejado em BG e orçamento (${formatCurrencyMillions(estouraoTotal)} em possível estouro).`;
-    }
-    return narrativa;
-  }, [listaFocada, delta, narrativa, totalRealizadoBreakdown, totalPlanejadoAcumulado, aEmitirAno]);
+  const totalNaoEmitidoBreakdown = useMemo(() => {
+    const restante = totalOrcamentoBreakdown - totalRealizadoBreakdown - totalEmPagamentoBreakdown - totalEmitidoBreakdown;
+    return Math.max(restante, 0);
+  }, [totalOrcamentoBreakdown, totalRealizadoBreakdown, totalEmPagamentoBreakdown, totalEmitidoBreakdown]);
 
-  const mostrarAcao = foco !== "acompanhar";
-  const mostrarRevisao = foco === "todos" || foco === "acompanhar";
-  const focoLabel = { todos: null, dentro: "Dentro do Plano", acompanhar: "Acompanhar", acao: "Requer Ação" }[foco];
+  const breakdownSegments = useMemo(() => {
+    const bruto = [
+      { key: "realizado", label: "Realizado", valor: Math.max(totalRealizadoBreakdown, 0), color: "bg-emerald-300", text: "text-emerald-900" },
+      { key: "emPagamento", label: "Em pgto", valor: Math.max(totalEmPagamentoBreakdown, 0), color: "bg-amber-300", text: "text-amber-900" },
+      { key: "emitido", label: "Emitido", valor: Math.max(totalEmitidoBreakdown, 0), color: "bg-violet-300", text: "text-violet-900" },
+      { key: "naoEmitido", label: "Não emitido", valor: totalNaoEmitidoBreakdown, color: "bg-slate-300", text: "text-slate-900" },
+    ] as const;
+
+    const somaSegmentos = bruto.reduce((acc, seg) => acc + seg.valor, 0);
+    const denominador = Math.max(totalOrcamentoBreakdown, somaSegmentos, 1);
+
+    return bruto.map((seg) => ({
+      ...seg,
+      pct: (seg.valor / denominador) * 100,
+    }));
+  }, [
+    totalOrcamentoBreakdown,
+    totalRealizadoBreakdown,
+    totalEmPagamentoBreakdown,
+    totalEmitidoBreakdown,
+    totalNaoEmitidoBreakdown,
+  ]);
+
+  const insightLinha = useMemo(() => {
+    const ritmo = totalPlanejadoAcumulado > 0 ? totalRealizadoBreakdown / totalPlanejadoAcumulado : null;
+    const ritmoTexto =
+      ritmo === null
+        ? "Ritmo de caixa N/D"
+        : Math.abs(ritmo - 1) <= 0.05
+        ? "Ritmo de caixa ok"
+        : ritmo > 1
+        ? "Ritmo de caixa acima do plano"
+        : "Ritmo de caixa abaixo do plano";
+    const pendente = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
+    return `${ritmoTexto} · Atenção: ${formatCurrencyMillions(pendente)} pendente de emissão`;
+  }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
+
+  const focoLabel = {
+    todos: null,
+    dentro: "Dentro do Plano",
+    acompanhar: "Acompanhar",
+    acao: "Requer Ação",
+    faltantes: "Emissões faltantes",
+    excedentes: "Emissões excedentes",
+  }[foco];
 
   return (
     <div>
@@ -334,33 +331,67 @@ export function RadarExecutivo({
             </div>
           )}
           {pctVsPlano !== null && (
-            <div className="flex flex-col gap-1 mb-3">
-              <span className="text-[11px] text-white/55 leading-snug">
-                {totalOrcamentoBreakdown > 0 ? fmtPct(totalRealizadoBreakdown / totalOrcamentoBreakdown) : "N/D"} – {formatCurrencyMillions(totalRealizadoBreakdown)} Realizado
-              </span>
-              <span className="text-[11px] text-white/55 leading-snug">
-                {totalOrcamentoBreakdown > 0 ? fmtPct(totalEmPagamentoBreakdown / totalOrcamentoBreakdown) : "N/D"} – {formatCurrencyMillions(totalEmPagamentoBreakdown)} Em pagamento
-              </span>
-              <span className="text-[11px] text-white/55 leading-snug">
-                {totalOrcamentoBreakdown > 0 ? fmtPct(totalEmitidoBreakdown / totalOrcamentoBreakdown) : "N/D"} – {formatCurrencyMillions(totalEmitidoBreakdown)} Emitidos
-              </span>
+            <div className="mb-3">
+              <div className="flex w-full h-8 rounded-md overflow-hidden bg-white/15">
+                {breakdownSegments.map((seg) => (
+                  <div
+                    key={seg.key}
+                    className={`${seg.color} ${seg.text} flex items-center justify-center px-1 text-[10px] font-bold whitespace-nowrap overflow-hidden`}
+                    style={{ width: `${seg.pct}%` }}
+                    title={`${seg.label}: ${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}`}
+                  >
+                    {seg.pct >= 14 ? `${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}` : ""}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                {breakdownSegments.map((seg) => (
+                  <span key={`${seg.key}-legend`} className="text-[10px] text-white/70 leading-snug">
+                    {seg.label}: {fmtPct(seg.pct / 100)} · {formatCurrencyMillions(seg.valor)}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
-          <p className="text-sm text-white/90 leading-snug mb-4 max-w-lg">{narrativaRisco}</p>
+          <div className="flex items-center gap-2 mb-4 text-sm text-white/90 leading-snug max-w-full">
+            {risco.emissoesExcedentes.n > 0 ? (
+              <AlertTriangle size={15} className="shrink-0 text-amber-300" aria-hidden="true" />
+            ) : (
+              <CheckCircle2 size={15} className="shrink-0 text-emerald-300" aria-hidden="true" />
+            )}
+            <p className="whitespace-nowrap overflow-hidden text-ellipsis">{insightLinha}</p>
+          </div>
 
           <div className="bg-white/10 rounded-xl p-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/75 mb-1 px-1">
+              Fluxo de caixa: planejado × realizado
+            </p>
             {temFluxoReal ? (
               <ResponsiveContainer width="100%" height={150}>
                 <BarChart data={fluxoData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} barGap={2}>
                   <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
-                  <Tooltip content={<FluxoTooltip colors={colors} />} />
                   <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
-                  <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]}>
+                    <LabelList
+                      dataKey="Planejado"
+                      position="top"
+                      fontSize={10}
+                      fill="#FFFFFF"
+                      formatter={(value) => (typeof value === "number" ? formatCurrencyMillions(value) : "")}
+                    />
+                  </Bar>
                   <Bar dataKey="Realizado" name="Realizado" radius={[3, 3, 0, 0]}>
                     {fluxoData.map((d, i) => (
                       <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
                     ))}
+                    <LabelList
+                      dataKey="Realizado"
+                      position="top"
+                      fontSize={10}
+                      fill="#FFFFFF"
+                      formatter={(value) => (typeof value === "number" ? formatCurrencyMillions(value) : "")}
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -402,74 +433,33 @@ export function RadarExecutivo({
         </div>
       </div>
 
-      {/* Linha 2: Projetos para Decisão + Revisar Caixa Ano */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {mostrarAcao && (
-          <div className={`${mostrarRevisao ? "lg:col-span-2" : "lg:col-span-3"} rounded-card border border-border bg-card p-5 shadow-card`}>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Empenho</p>
-              {exigemAcao.length > 5 && (
-                <button onClick={() => setModalAberto("acao")} className="text-[11px] font-semibold text-accent hover:underline">
-                  Ver Todos ({exigemAcao.length})
-                </button>
-              )}
-            </div>
-            <div className="text-3xl font-extrabold text-text mt-2">{risco.nCriticos}</div>
-            <p className="text-xs text-text-muted mt-1">
-              {formatCurrencyMillions(risco.estouro.valor + risco.riscoNaoRealizacao.valor)} em exposição
-            </p>
-            {exigemAcao.length === 0 ? (
-              <p className="text-xs text-text-faint mt-3">Nenhum projeto exige decisão nos filtros atuais.</p>
-            ) : (
-              <div className="mt-3 space-y-1.5 border-t border-border-subtle pt-2">
-                {exigemAcao.slice(0, 5).map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelect(p)}
-                    className="w-full flex items-center justify-between gap-2 text-left text-xs rounded-lg px-2.5 py-2 hover:bg-card-alt transition-colors border border-transparent hover:border-border"
-                  >
-                    <span className="text-text truncate flex-1">{p.nome}</span>
-                    <span className="text-text-muted shrink-0">{formatCurrencyMillions(p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}</span>
-                    <span className="text-accent font-semibold shrink-0">{acaoLabel(p)}</span>
-                    <RiskBadge status={p.status} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+      {/* Linha 2: Gestão de Risco (cards consolidados e clicáveis) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <button
+          onClick={() => setFoco(foco === "faltantes" ? "todos" : "faltantes")}
+          aria-pressed={foco === "faltantes"}
+          className={`rounded-card border border-border bg-card p-5 shadow-card text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+            foco === "faltantes" ? "ring-2 ring-accent" : ""
+          }`}
+        >
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões faltantes</p>
+          <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesFaltantes.n}</div>
+          <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesFaltantes.valor)} em pendência</p>
+          <p className="text-[11px] text-text-faint mt-3 pt-2 border-t border-border-subtle">clique filtra a lista abaixo</p>
+        </button>
 
-        {mostrarRevisao && (
-          <div className="rounded-card border border-border bg-card p-5 shadow-card">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Emissões</p>
-              {revisaoCaixa.length > 3 && (
-                <button onClick={() => setModalAberto("revisao")} className="text-[11px] font-semibold text-accent hover:underline">
-                  Ver Todos
-                </button>
-              )}
-            </div>
-            <p className="text-sm text-gray-400 -mt-0.5 mb-1">Oportunidades de antecipação ou riscos de estouro</p>
-            <div className="text-3xl font-extrabold text-text mt-2">{revisaoCaixa.length}</div>
-            <p className="text-xs text-text-muted mt-1">
-              {formatCurrencyMillions(revisaoCaixa.reduce((a, p) => a + Math.abs(p.aEmitir ?? 0), 0))} em replanejamento
-            </p>
-            {revisaoCaixa.length > 0 && (
-              <div className="mt-3 space-y-1 border-t border-border-subtle pt-2">
-                {revisaoCaixa.slice(0, 3).map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelect(p)}
-                    className="w-full flex items-center justify-between gap-2 text-left text-[11px] rounded px-1.5 py-1 hover:bg-card-alt transition-colors"
-                  >
-                    <span className="text-text truncate">{p.nome}</span>
-                    <span className="text-text-muted shrink-0">{formatCurrencyMillions(p.aEmitir)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <button
+          onClick={() => setFoco(foco === "excedentes" ? "todos" : "excedentes")}
+          aria-pressed={foco === "excedentes"}
+          className={`rounded-card border border-border bg-card p-5 shadow-card text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+            foco === "excedentes" ? "ring-2 ring-accent" : ""
+          }`}
+        >
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões excedentes</p>
+          <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesExcedentes.n}</div>
+          <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesExcedentes.valor)} em exposição</p>
+          <p className="text-[11px] text-text-faint mt-3 pt-2 border-t border-border-subtle">clique filtra a lista abaixo</p>
+        </button>
       </div>
 
       {/* Grid de KPIs Estratégicos com novo design — Interpretação em primeiro plano */}
@@ -534,47 +524,6 @@ export function RadarExecutivo({
           );
         })}
       </div>
-
-      <ProjectListModal
-        open={modalAberto === "acao"}
-        onClose={() => setModalAberto(null)}
-        title="Revisar Empenho — todos"
-        projetos={exigemAcao}
-        valorFn={(p) => (p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}
-        justificativaFn={(p) => acaoLabel(p)}
-        onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
-      />
-      <ProjectListModal
-        open={modalAberto === "revisao"}
-        onClose={() => setModalAberto(null)}
-        title="Revisar Emissões — todos"
-        projetos={revisaoCaixa}
-        valorFn={(p) => (p.aEmitir === null ? null : Math.abs(p.aEmitir))}
-        justificativaFn={() => "Potencial antecipação/postergação entre exercícios"}
-        onSelectProject={(p) => { setModalAberto(null); onSelect(p); }}
-      />
-    </div>
-  );
-}
-
-function FluxoTooltip({ active, payload, label, colors }: any) {
-  if (!active || !payload?.length) return null;
-  const planejado = payload.find((p: any) => p.dataKey === "Planejado")?.value;
-  const realizado = payload.find((p: any) => p.dataKey === "Realizado")?.value;
-  const entry = payload[0]?.payload;
-  return (
-    <div
-      className="rounded-md px-3 py-2 text-xs shadow-card"
-      style={{ background: colors.tooltipBg, border: `1px solid ${colors.tooltipBorder}`, color: colors.tooltipText }}
-    >
-      <p className="font-bold mb-1">{label}</p>
-      <p>Planejado: {formatCurrencyMillions(planejado)}</p>
-      <p>Realizado: {realizado != null ? formatCurrencyMillions(realizado) : "N/D"}</p>
-      {entry?.banda && (
-        <p className="font-bold mt-1" style={{ color: entry.banda.cor }}>
-          {entry.banda.label} ({fmtPct(Math.abs(entry.pct))})
-        </p>
-      )}
     </div>
   );
 }
