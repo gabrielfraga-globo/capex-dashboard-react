@@ -1,16 +1,12 @@
 import type { RelatorioParsing } from "../types";
+import { formatCurrencyMillions } from "../lib/format";
 
 interface ExecutiveInlineSummary {
   caixaStatus: string;
-  caixaDescricao: string;
+  caixaStatusCode: "verde" | "amarelo" | "vermelho" | "nd";
+  caixaValor: number | null;
   empenhoStatus: string;
-  empenhoDescricao: string;
-}
-
-function statusTone(statusLabel: string): string {
-  if (/abaixo|requer|atenção|risco|atrasado/i.test(statusLabel)) return "text-amber-600";
-  if (/dentro|meta|ideal|ok/i.test(statusLabel)) return "text-emerald-600";
-  return "text-gray-500 dark:text-gray-500";
+  pendenteEmissao: number | null;
 }
 
 export function ContextBar({ parsed, periodoLabel, executiveSummary }: {
@@ -18,6 +14,26 @@ export function ContextBar({ parsed, periodoLabel, executiveSummary }: {
   periodoLabel: string;
   executiveSummary?: ExecutiveInlineSummary | null;
 }) {
+  const resumoCurto = (() => {
+    if (!executiveSummary) return "";
+    const { caixaStatusCode, caixaValor, pendenteEmissao } = executiveSummary;
+    const ritmoTexto =
+      caixaStatusCode === "nd" || caixaValor === null
+        ? "Ritmo de caixa N/D"
+        : caixaStatusCode === "verde"
+        ? "Ritmo de caixa ok"
+        : caixaValor >= 1
+        ? "Ritmo de caixa acima do plano"
+        : "Ritmo de caixa abaixo do plano";
+
+    const pendenteTexto =
+      pendenteEmissao !== null && pendenteEmissao > 0
+        ? `${formatCurrencyMillions(pendenteEmissao)} pendentes de emissão`
+        : "pendências de emissão N/D";
+
+    return `${ritmoTexto} · Pontos de atenção: ${pendenteTexto}`;
+  })();
+
   return (
     <div className="mb-3 text-[11px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -30,7 +46,7 @@ export function ContextBar({ parsed, periodoLabel, executiveSummary }: {
       </div>
       {executiveSummary && (
         <p className="mt-1 text-gray-500 dark:text-gray-500 leading-4">
-          Caixa em <span className={`font-semibold ${statusTone(executiveSummary.caixaStatus)}`}>{executiveSummary.caixaStatus}</span>: {executiveSummary.caixaDescricao} · Empenho em <span className={`font-semibold ${statusTone(executiveSummary.empenhoStatus)}`}>{executiveSummary.empenhoStatus}</span>: {executiveSummary.empenhoDescricao}
+          {resumoCurto}
         </p>
       )}
     </div>

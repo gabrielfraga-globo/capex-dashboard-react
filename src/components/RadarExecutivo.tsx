@@ -269,7 +269,7 @@ export function RadarExecutivo({
         ? "Ritmo de caixa acima do plano"
         : "Ritmo de caixa abaixo do plano";
     const pendente = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
-    return `${ritmoTexto} · Atenção: ${formatCurrencyMillions(pendente)} pendente de emissão`;
+    return `${ritmoTexto} · Pontos de atenção: ${formatCurrencyMillions(pendente)} pendentes de emissão`;
   }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
 
   const pendenteEmissao = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
@@ -565,13 +565,13 @@ export function RadarExecutivo({
           </article>
         </section>
 
-        <aside className="col-span-4 min-h-0 rounded-card border border-border bg-card p-2.5 shadow-card flex flex-col gap-2.5 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible" style={{ scrollbarGutter: "stable" }}>
+        <aside className="col-span-4 min-h-0 rounded-card border border-border bg-card p-2 shadow-card flex flex-col gap-2 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible" style={{ scrollbarGutter: "stable" }}>
           <div>
             <p className="text-sm font-semibold text-text">Análise de Risco</p>
             <p className="text-[11px] text-text-muted">Saúde, sinais de caixa/empenho e ofensores de emissão</p>
           </div>
 
-          <section className="space-y-1.5">
+          <section className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Saúde da Carteira</p>
             {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
               const b = saude[s];
@@ -585,7 +585,7 @@ export function RadarExecutivo({
                     else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
                   }}
                   aria-pressed={ativo}
-                  className={`w-full rounded-lg px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+                  className={`w-full rounded-lg px-2.5 py-1.5 flex items-center justify-between text-[11px] ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                 >
                   <span className={`font-semibold ${s === "Requer Ação" ? "text-sm" : ""}`}>{s}</span>
                   <span className="flex items-center gap-2">
@@ -598,29 +598,29 @@ export function RadarExecutivo({
             })}
           </section>
 
-          <section className="space-y-1.5">
+          <section className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Fatores de Risco (Caixa / Empenho)</p>
             {[{ id: "CAIXA", kpi: caixaKpi }, { id: "EMPENHO", kpi: empenhoKpi }].map(({ id, kpi }) => (
-              <div key={id} className="rounded-lg bg-card-alt px-3 py-2">
+              <div key={id} className="rounded-lg bg-card-alt px-2.5 py-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold tracking-wide text-text-muted">{id}</span>
                   <span className="text-xs font-semibold text-text">{kpi?.statusLabel ?? "Dados insuficientes"}</span>
                 </div>
-                <p className="mt-1 text-xs text-text-muted leading-snug">{kpi?.descricaoExecutiva ?? "Sem dados suficientes para avaliação."}</p>
+                <p className="mt-0.5 text-[11px] text-text-muted leading-snug">{kpi?.descricaoExecutiva ?? "Sem dados suficientes para avaliação."}</p>
               </div>
             ))}
           </section>
 
-          <section className="space-y-1.5 min-h-0">
+          <section className="space-y-1 min-h-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Top Ofensores</p>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-1.5">
               <button
                 onClick={() => {
                   if (foco === "faltantes") { setFoco("todos"); setModalFoco(null); }
                   else { setFoco("faltantes"); setModalFoco("faltantes"); setModalOpen(true); }
                 }}
                 aria-pressed={foco === "faltantes"}
-                className={`rounded-lg bg-card-alt px-3 py-2 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`rounded-lg bg-card-alt px-2.5 py-1.5 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   foco === "faltantes" ? "ring-2 ring-accent" : ""
                 }`}
               >
@@ -631,7 +631,7 @@ export function RadarExecutivo({
                     <SkeletonBlock className="h-3 w-28 mt-2" />
                   </>
                 ) : (
-                  <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <div className="mt-1 flex items-center justify-between gap-2.5">
                     <span className="text-2xl font-extrabold text-text">{risco.emissoesFaltantes.n}</span>
                     <span className="text-xs font-semibold text-text-muted">{formatCurrencyMillions(risco.emissoesFaltantes.valor)}</span>
                   </div>
@@ -644,7 +644,7 @@ export function RadarExecutivo({
                   else { setFoco("excedentes"); setModalFoco("excedentes"); setModalOpen(true); }
                 }}
                 aria-pressed={foco === "excedentes"}
-                className={`rounded-lg bg-card-alt px-3 py-2 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`rounded-lg bg-card-alt px-2.5 py-1.5 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   foco === "excedentes" ? "ring-2 ring-accent" : ""
                 }`}
               >
@@ -655,7 +655,7 @@ export function RadarExecutivo({
                     <SkeletonBlock className="h-3 w-28 mt-2" />
                   </>
                 ) : (
-                  <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <div className="mt-1 flex items-center justify-between gap-2.5">
                     <span className="text-2xl font-extrabold text-text">{risco.emissoesExcedentes.n}</span>
                     <span className="text-xs font-semibold text-text-muted">{formatCurrencyMillions(Math.abs(risco.emissoesExcedentes.valor))}</span>
                   </div>

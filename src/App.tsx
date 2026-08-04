@@ -4,7 +4,7 @@ import { useFilterStore } from "./store/filterStore";
 import { useShallow } from "zustand/react/shallow";
 import { useThemeStore } from "./store/themeStore";
 import { usePortfolioData } from "./hooks/usePortfolioData";
-import { usePortfolioMetrics, useKpisEstrategicos } from "./hooks/usePortfolioMetrics";
+import { usePortfolioMetrics, useKpisEstrategicos, useAEmitirAno } from "./hooks/usePortfolioMetrics";
 import { useFilteredProjects } from "./hooks/useFilteredProjects";
 import { useThemeSync } from "./hooks/useThemeSync";
 import { ContextBar } from "./components/ContextBar";
@@ -63,16 +63,18 @@ export default function App() {
   );
   // KPIs reagem aos filtros: calculados a partir da lista filtrada, não da base bruta.
   const kpisEstrategicos = useKpisEstrategicos(metricasFiltradas);
+  const aEmitirAno = useAEmitirAno(metricasFiltradas);
   const executiveSummary = useMemo(() => {
     const caixa = kpisEstrategicos.find((kpi) => kpi.id === "velocidadeCaixa");
     const empenho = kpisEstrategicos.find((kpi) => kpi.id === "empenho");
     return {
       caixaStatus: caixa?.statusLabel ?? "Dados insuficientes",
-      caixaDescricao: caixa?.descricaoExecutiva ?? "Sem dados suficientes para avaliação.",
+      caixaStatusCode: caixa?.status ?? "nd",
+      caixaValor: caixa?.valor ?? null,
       empenhoStatus: empenho?.statusLabel ?? "Dados insuficientes",
-      empenhoDescricao: empenho?.descricaoExecutiva ?? "Sem dados suficientes para avaliação.",
+      pendenteEmissao: aEmitirAno,
     };
-  }, [kpisEstrategicos]);
+  }, [aEmitirAno, kpisEstrategicos]);
 
   // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
