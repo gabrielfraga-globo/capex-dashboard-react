@@ -9,6 +9,7 @@ const MES_ATUAL = _mesReal === 1 ? 12 : _mesReal - 1;
 const ANO_ATUAL = _mesReal === 1 ? _anoReal - 1 : _anoReal;
 const JANELA_RISCO_MESES = 6; // "menos de 6 meses do fim do exercício"
 const COBERTURA_MINIMA = 0.95; // "cobertura financeira < 95%"
+export const LIMIAR_MATERIALIDADE = 100_000;
 
 function safeDiv(num: number | null, den: number | null): number | null {
   if (num === null || den === null || den === 0) return null;
@@ -183,7 +184,7 @@ function classificarRisco(
     return { status: "Dados insuficientes", acao: "Verificar cadastro do projeto." };
   }
 
-  if (m.desvioPlurianual !== null && m.desvioPlurianual > 0) {
+  if (m.desvioPlurianual !== null && m.desvioPlurianual > LIMIAR_MATERIALIDADE) {
     return {
       status: "Estouro",
       acao: p.orcamentoPlurianual === 0 ? "Regularizar gasto sem orçamento aprovado." : "Revisar orçamento plurianual.",
@@ -194,11 +195,11 @@ function classificarRisco(
     return { status: "Dados insuficientes", acao: "Cobertura financeira não calculável." };
   }
 
-  if (m.aEmitir !== null && m.aEmitir < 0) {
+  if (m.aEmitir !== null && m.aEmitir < -LIMIAR_MATERIALIDADE) {
     return { status: "Revisar Caixa Ano", acao: "Avaliar antecipação ou postergação de orçamento entre exercícios." };
   }
 
-  if (m.coberturaFinanceira < COBERTURA_MINIMA && m.mesesRestantes < JANELA_RISCO_MESES) {
+  if (m.coberturaFinanceira < COBERTURA_MINIMA && m.mesesRestantes < JANELA_RISCO_MESES && m.aEmitir !== null && Math.abs(m.aEmitir) > LIMIAR_MATERIALIDADE) {
     return { status: "Risco de Não Realização", acao: "Acelerar emissão e execução — pouco tempo restante." };
   }
 

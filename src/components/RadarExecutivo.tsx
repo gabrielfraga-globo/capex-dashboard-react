@@ -4,7 +4,7 @@ import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "..
 import { useFilterStore } from "../store/filterStore";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors } from "../lib/chartColors";
-import { generateDeltaYTD, generateHeroNarrative } from "../lib/insights";
+import { generateDeltaYTD, generateHeroNarrative, generateRiskSummary } from "../lib/insights";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { RiskBadge } from "./ui/primitives";
 import { ProjectListModal } from "./ProjectListModal";
@@ -106,6 +106,8 @@ export function RadarExecutivo({
     () => listaFocada.filter((p) => p.status === "Revisar Caixa Ano").filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase())),
     [listaFocada, busca]
   );
+
+  const risco = useMemo(() => generateRiskSummary(listaFocada), [listaFocada]);
 
   const saude = useMemo(() => {
     const normal = listaFocada.filter((p) => p.status === "Normal");
@@ -467,18 +469,22 @@ export function RadarExecutivo({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {mostrarAcao && (
           <div className={`${mostrarRevisao ? "lg:col-span-2" : "lg:col-span-3"} rounded-card border border-border bg-card p-5 shadow-card`}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Projetos para Decisão</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Empenho</p>
               {exigemAcao.length > 5 && (
                 <button onClick={() => setModalAberto("acao")} className="text-[11px] font-semibold text-accent hover:underline">
                   Ver Todos ({exigemAcao.length})
                 </button>
               )}
             </div>
+            <div className="text-3xl font-extrabold text-text mt-2">{risco.nCriticos}</div>
+            <p className="text-xs text-text-muted mt-1">
+              {formatCurrencyMillions(risco.estouro.valor + risco.riscoNaoRealizacao.valor)} em exposição
+            </p>
             {exigemAcao.length === 0 ? (
-              <p className="text-xs text-text-faint">Nenhum projeto exige decisão nos filtros atuais.</p>
+              <p className="text-xs text-text-faint mt-3">Nenhum projeto exige decisão nos filtros atuais.</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="mt-3 space-y-1.5 border-t border-border-subtle pt-2">
                 {exigemAcao.slice(0, 5).map((p) => (
                   <button
                     key={p.id}
@@ -499,13 +505,14 @@ export function RadarExecutivo({
         {mostrarRevisao && (
           <div className="rounded-card border border-border bg-card p-5 shadow-card">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Caixa Ano</p>
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Revisar Emissões</p>
               {revisaoCaixa.length > 3 && (
                 <button onClick={() => setModalAberto("revisao")} className="text-[11px] font-semibold text-accent hover:underline">
                   Ver Todos
                 </button>
               )}
             </div>
+            <p className="text-sm text-gray-400 -mt-0.5 mb-1">Oportunidades de antecipação ou riscos de estouro</p>
             <div className="text-3xl font-extrabold text-text mt-2">{revisaoCaixa.length}</div>
             <p className="text-xs text-text-muted mt-1">
               {formatCurrencyMillions(revisaoCaixa.reduce((a, p) => a + Math.abs(p.aEmitir ?? 0), 0))} em replanejamento
@@ -531,7 +538,7 @@ export function RadarExecutivo({
       <ProjectListModal
         open={modalAberto === "acao"}
         onClose={() => setModalAberto(null)}
-        title="Projetos para Decisão — todos"
+        title="Revisar Empenho — todos"
         projetos={exigemAcao}
         valorFn={(p) => (p.status === "Estouro" ? p.desvioPlurianual : p.aEmitir)}
         justificativaFn={(p) => acaoLabel(p)}
@@ -540,7 +547,7 @@ export function RadarExecutivo({
       <ProjectListModal
         open={modalAberto === "revisao"}
         onClose={() => setModalAberto(null)}
-        title="Revisar Caixa Ano — todos"
+        title="Revisar Emissões — todos"
         projetos={revisaoCaixa}
         valorFn={(p) => (p.aEmitir === null ? null : Math.abs(p.aEmitir))}
         justificativaFn={() => "Potencial antecipação/postergação entre exercícios"}
