@@ -11,6 +11,7 @@ export type SheetDiagKey =
 
 export interface ParseWorkbookDiagnostics {
   xlsxReadMs: number;
+  xlsxReadSlowMs: number;
   sheetToJsonMs: Partial<Record<SheetDiagKey, number>>;
   sheetRows: Partial<Record<SheetDiagKey, number>>;
   aggregationBaseMs: number;
@@ -33,6 +34,7 @@ const XLSX_READ_OPTIONS: XLSX.ParsingOptions = {
 export function createParseWorkbookDiagnostics(): ParseWorkbookDiagnostics {
   return {
     xlsxReadMs: 0,
+    xlsxReadSlowMs: 0,
     sheetToJsonMs: {},
     sheetRows: {},
     aggregationBaseMs: 0,
@@ -46,7 +48,8 @@ function getSheetRows(
   diagnostics?: ParseWorkbookDiagnostics
 ): unknown[][] {
   const t0 = performance.now();
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  // raw:true evita formatação de string por célula — impacto material em sheets grandes
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
   const elapsed = performance.now() - t0;
   if (diagnostics) {
     diagnostics.sheetToJsonMs[key] = elapsed;
@@ -582,29 +585,35 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
  *                fluxo mensal real e compromissos mais precisos.
  * As abas rápidas são parseadas uma única vez e compartilhadas pelas duas fases.
  */
+// Abas incluídas em cada fase do XLSX.read — separar o parse evita processar 130k linhas na Phase 1.
+const SHEETS_FAST = ["Orçamento", "Realizado", "Hierarquia", "Status Report"] as const;
+const SHEETS_SLOW = ["Realizado detalhado", "Compromisso detalhado"] as const;
+
 export function parseWorkbookBufferPhased(
   buf: ArrayBuffer,
   nomeArquivo: string,
   diagnostics?: ParseWorkbookDiagnostics
 ): { base: RelatorioParsing; computeFull: () => RelatorioParsing } {
+  // Phase 1: lê apenas as abas rápidas — "Compromisso detalhado" (130k linhas) não é tocada.
   const tRead0 = performance.now();
-  const wb = XLSX.read(buf, XLSX_READ_OPTIONS);
+  const wbFast = XLSX.read(buf, { ...XLSX_READ_OPTIONS, sheets: SHEETS_FAST as unknown as string[] });
   if (diagnostics) diagnostics.xlsxReadMs = performance.now() - tRead0;
 
+  // wb.SheetNames lista todas as abas do arquivo mesmo com o filtro; Sheets só contém as parseadas.
   const requiredSheets = ["Orçamento", "Realizado", "Hierarquia"];
   for (const s of requiredSheets) {
-    if (!wb.SheetNames.includes(s)) {
-      throw new Error(`Aba obrigatória não encontrada: "${s}". Abas disponíveis: ${wb.SheetNames.join(", ")}`);
+    if (!wbFast.SheetNames.includes(s)) {
+      throw new Error(`Aba obrigatória não encontrada: "${s}". Abas disponíveis: ${wbFast.SheetNames.join(", ")}`);
     }
   }
 
   // Abas rápidas — parseadas uma só vez, compartilhadas entre as fases
   const ignoradas: LinhaIgnorada[] = [];
-  const orcamento = parseOrcamento(wb.Sheets["Orçamento"], ignoradas, diagnostics);
-  const realizado = parseRealizado(wb.Sheets["Realizado"], ignoradas, diagnostics);
-  const gestores = parseHierarquia(wb.Sheets["Hierarquia"], diagnostics);
-  const statusReportValores = wb.SheetNames.includes("Status Report")
-    ? parseStatusReport(wb.Sheets["Status Report"], diagnostics)
+  const orcamento = parseOrcamento(wbFast.Sheets["Orçamento"], ignoradas, diagnostics);
+  const realizado = parseRealizado(wbFast.Sheets["Realizado"], ignoradas, diagnostics);
+  const gestores = parseHierarquia(wbFast.Sheets["Hierarquia"], diagnostics);
+  const statusReportValores = wbFast.Sheets["Status Report"]
+    ? parseStatusReport(wbFast.Sheets["Status Report"], diagnostics)
     : {};
 
   // Fase 1 — sem abas lentas
@@ -627,16 +636,20 @@ export function parseWorkbookBufferPhased(
     temFluxoMensalReal: false,
   };
 
-  // Fase 2 — abas lentas (lazy, executada pelo worker após yield)
+  // Fase 2 — relê o buffer somente pelas abas lentas (lazy, executada pelo worker após yield)
   const computeFull = (): RelatorioParsing => {
+    const tReadSlow0 = performance.now();
+    const wbSlow = XLSX.read(buf, { ...XLSX_READ_OPTIONS, sheets: SHEETS_SLOW as unknown as string[] });
+    if (diagnostics) diagnostics.xlsxReadSlowMs = performance.now() - tReadSlow0;
+
     const fullIgnoradas: LinhaIgnorada[] = [...ignoradas];
 
-    const realizadoDetalhado = wb.SheetNames.includes("Realizado detalhado")
-      ? parseRealizadoDetalhado(wb.Sheets["Realizado detalhado"], fullIgnoradas, diagnostics)
+    const realizadoDetalhado = wbSlow.Sheets["Realizado detalhado"]
+      ? parseRealizadoDetalhado(wbSlow.Sheets["Realizado detalhado"], fullIgnoradas, diagnostics)
       : [];
 
-    const compromissoDetalhado = wb.SheetNames.includes("Compromisso detalhado")
-      ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"], fullIgnoradas, diagnostics)
+    const compromissoDetalhado = wbSlow.Sheets["Compromisso detalhado"]
+      ? parseCompromissoDetalhado(wbSlow.Sheets["Compromisso detalhado"], fullIgnoradas, diagnostics)
       : new Map<string, number>();
 
     const tAggFull0 = performance.now();

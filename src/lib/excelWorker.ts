@@ -34,7 +34,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
     const t2 = performance.now();
     console.log(`[Worker#${runId}] Phase 2 (full) concluída: ${(t2 - t0).toFixed(1)}ms`);
     console.log(
-      `[Worker#${runId}][Diag] sheet_to_json Realizado detalhado=${(diagnostics.sheetToJsonMs['Realizado detalhado'] ?? 0).toFixed(1)}ms (${diagnostics.sheetRows['Realizado detalhado'] ?? 0} linhas) | sheet_to_json Compromisso detalhado=${(diagnostics.sheetToJsonMs['Compromisso detalhado'] ?? 0).toFixed(1)}ms (${diagnostics.sheetRows['Compromisso detalhado'] ?? 0} linhas) | agregação full=${diagnostics.aggregationFullMs.toFixed(1)}ms | computeFull total=${(t2 - tPhase2Start).toFixed(1)}ms`
+      `[Worker#${runId}][Diag] xlsxRead_slow=${diagnostics.xlsxReadSlowMs.toFixed(1)}ms | sheet_to_json Realizado detalhado=${(diagnostics.sheetToJsonMs['Realizado detalhado'] ?? 0).toFixed(1)}ms (${diagnostics.sheetRows['Realizado detalhado'] ?? 0} linhas) | sheet_to_json Compromisso detalhado=${(diagnostics.sheetToJsonMs['Compromisso detalhado'] ?? 0).toFixed(1)}ms (${diagnostics.sheetRows['Compromisso detalhado'] ?? 0} linhas) | agregação full=${diagnostics.aggregationFullMs.toFixed(1)}ms | computeFull total=${(t2 - tPhase2Start).toFixed(1)}ms`
     );
 
     const tPostFull0 = performance.now();
@@ -43,7 +43,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
     console.log(`[Worker#${runId}][Diag] postMessage phase=full: ${postFullMs.toFixed(1)}ms`);
 
     console.log(
-      `[Worker#${runId}][Diag][Resumo] xlsxRead=${diagnostics.xlsxReadMs.toFixed(1)}ms | sheet_to_json_total=${Object.values(diagnostics.sheetToJsonMs).reduce((acc, cur) => acc + (cur ?? 0), 0).toFixed(1)}ms | agregacao_total=${(diagnostics.aggregationBaseMs + diagnostics.aggregationFullMs).toFixed(1)}ms | postMessage_total=${(postBaseMs + postFullMs).toFixed(1)}ms | pipeline_total=${(t2 - t0).toFixed(1)}ms`
+      `[Worker#${runId}][Diag][Resumo] xlsxRead_fast=${diagnostics.xlsxReadMs.toFixed(1)}ms | xlsxRead_slow=${diagnostics.xlsxReadSlowMs.toFixed(1)}ms | sheet_to_json_total=${Object.values(diagnostics.sheetToJsonMs).reduce((acc, cur) => acc + (cur ?? 0), 0).toFixed(1)}ms | agregacao_total=${(diagnostics.aggregationBaseMs + diagnostics.aggregationFullMs).toFixed(1)}ms | postMessage_total=${(postBaseMs + postFullMs).toFixed(1)}ms | pipeline_total=${(t2 - t0).toFixed(1)}ms`
     );
   } catch (err) {
     self.postMessage({ ok: false, error: err instanceof Error ? err.message : String(err) });
