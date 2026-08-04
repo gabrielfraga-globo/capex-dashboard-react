@@ -273,7 +273,6 @@ export function RadarExecutivo({
     return `${iconCaixa} ${ritmoTexto} · ⚠ ${formatCurrencyMillions(pendente)} pendentes de emissão`;
   }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
 
-  const pendenteEmissao = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
   const caixaKpi = useMemo(
     () => kpisEstrategicos.find((kpi) => kpi.id === "velocidadeCaixa") ?? null,
     [kpisEstrategicos]
@@ -446,14 +445,9 @@ export function RadarExecutivo({
                     >
                       {fmtPct(pctVsPlano)}
                     </p>
-                    <p className="text-[11px] text-white/65 mt-1">Execução</p>
-                    <p className="text-[10px] text-white/55">vs. Plano YTD</p>
-                  </div>
-                  <div>
-                    <p className="text-[2rem] leading-none font-extrabold tabular-nums text-amber-200">
-                      {formatCurrencyMillions(pendenteEmissao)}
+                    <p className="text-[10px] text-white/70 mt-1 leading-tight">
+                      Provisionado = Realizado + Em pgto + Emitido
                     </p>
-                    <p className="text-[11px] text-white/65 mt-1">Pendentes de emissão</p>
                   </div>
                 </div>
 
