@@ -205,9 +205,40 @@ function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada
 // dedupado da aba Realizado e corrigir a defasagem temporal dos compromissos.
 // ----------------------------------------------------------------------------
 
-function parseCompromissoDetalhado(sheet: XLSX.WorkSheet): Map<string, number> {
+function parseCompromissoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): Map<string, number> {
   const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
   const out = new Map<string, number>();
+
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+
+  const parseDateDDMMYYYY = (value: unknown): Date | null => {
+    if (typeof value !== "string") return null;
+
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const parts = trimmed.split("/");
+    if (parts.length !== 3) return null;
+
+    const [dd, mm, yyyy] = parts;
+    const day = Number(dd);
+    const month = Number(mm);
+    const year = Number(yyyy);
+    if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) return null;
+
+    const parsed = new Date(year, month - 1, day);
+    if (
+      Number.isNaN(parsed.getTime())
+      || parsed.getFullYear() !== year
+      || parsed.getMonth() !== month - 1
+      || parsed.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return parsed;
+  };
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -216,10 +247,24 @@ function parseCompromissoDetalhado(sheet: XLSX.WorkSheet): Map<string, number> {
     const projectName = row[3] as string | null;
     if (!projectName || String(projectName).trim() === "") continue; // linha fantasma
 
+    const dateReqAprov = parseDateDDMMYYYY(row[23]);
+    const dateReq = parseDateDDMMYYYY(row[22]);
+    const resolvedDate = dateReqAprov ?? dateReq;
+
+    if (resolvedDate && resolvedDate < cutoff) continue;
+
+    const nome = String(projectName).trim();
+    if (!resolvedDate) {
+      ignoradas.push({
+        aba: "Compromisso detalhado",
+        motivo: "Sem DT_REQ_APROV nem DT_REQ — incluído sem verificação de idade",
+        contexto: nome,
+      });
+    }
+
     const val = toNumberOrNull(row[15]);
     if (val === null) continue;
 
-    const nome = String(projectName).trim();
     out.set(nome, (out.get(nome) ?? 0) + val);
   }
 
@@ -425,7 +470,7 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
     : [];
 
   const compromissoDetalhado = wb.SheetNames.includes("Compromisso detalhado")
-    ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"])
+    ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"], ignoradas)
     : new Map<string, number>();
 
   const { projetos, soOrcamento, soRealizado } = buildProjetos(orcamento, realizado, gestores, ignoradas, realizadoDetalhado, compromissoDetalhado);
