@@ -331,7 +331,7 @@ export function RadarExecutivo({
   };
 
   return (
-    <div className="h-screen max-h-[calc(100vh-12rem)] overflow-hidden flex flex-col max-lg:h-auto max-lg:max-h-none max-lg:overflow-visible">
+    <div className="h-screen max-h-[calc(100vh-12rem)] flex flex-col max-lg:h-auto max-lg:max-h-none">
       <div className="mb-2 shrink-0">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="rounded-card border border-border bg-card px-3 py-2.5 flex-1">
@@ -430,7 +430,7 @@ export function RadarExecutivo({
       </div>
 
       <div className="grid grid-cols-12 gap-4 flex-1 min-h-0 max-lg:grid-cols-1 max-lg:h-auto">
-        <section className="col-span-8 min-h-0 flex flex-col gap-4 max-lg:col-span-1">
+        <section className="col-span-8 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible max-lg:pr-0" style={{ scrollbarGutter: "stable" }}>
           <article className="rounded-card border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 p-4 text-white shadow-card shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-white/75 mb-2">Execução do Plano</p>
 
@@ -588,13 +588,13 @@ export function RadarExecutivo({
           </article>
         </section>
 
-        <aside className="col-span-4 min-h-0 rounded-card border border-border bg-card p-3 shadow-card flex flex-col gap-3 max-lg:col-span-1">
+        <aside className="col-span-4 min-h-0 rounded-card border border-border bg-card p-2.5 shadow-card flex flex-col gap-2.5 overflow-y-auto pr-1 max-lg:col-span-1 max-lg:overflow-visible" style={{ scrollbarGutter: "stable" }}>
           <div>
             <p className="text-sm font-semibold text-text">Análise de Risco</p>
             <p className="text-[11px] text-text-muted">Saúde, sinais de caixa/empenho e ofensores de emissão</p>
           </div>
 
-          <section className="space-y-2">
+          <section className="space-y-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Saúde da Carteira</p>
             {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
               const b = saude[s];
@@ -608,7 +608,7 @@ export function RadarExecutivo({
                     else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
                   }}
                   aria-pressed={ativo}
-                  className={`w-full rounded-lg px-3 py-2.5 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+                  className={`w-full rounded-lg px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                 >
                   <span className={`font-semibold ${s === "Requer Ação" ? "text-sm" : ""}`}>{s}</span>
                   <span className="flex items-center gap-2">
@@ -621,10 +621,10 @@ export function RadarExecutivo({
             })}
           </section>
 
-          <section className="space-y-2">
+          <section className="space-y-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Fatores de Risco (Caixa / Empenho)</p>
             {[{ id: "CAIXA", kpi: caixaKpi }, { id: "EMPENHO", kpi: empenhoKpi }].map(({ id, kpi }) => (
-              <div key={id} className="rounded-lg bg-card-alt px-3 py-2.5">
+              <div key={id} className="rounded-lg bg-card-alt px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold tracking-wide text-text-muted">{id}</span>
                   <span className="text-xs font-semibold text-text">{kpi?.statusLabel ?? "Dados insuficientes"}</span>
@@ -634,7 +634,7 @@ export function RadarExecutivo({
             ))}
           </section>
 
-          <section className="space-y-2 min-h-0">
+          <section className="space-y-1.5 min-h-0">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Top Ofensores</p>
             <div className="grid grid-cols-1 gap-2">
               <button
@@ -643,7 +643,7 @@ export function RadarExecutivo({
                   else { setFoco("faltantes"); setModalFoco("faltantes"); setModalOpen(true); }
                 }}
                 aria-pressed={foco === "faltantes"}
-                className={`rounded-lg bg-card-alt px-3 py-2.5 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`rounded-lg bg-card-alt px-3 py-2 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   foco === "faltantes" ? "ring-2 ring-accent" : ""
                 }`}
               >
@@ -667,7 +667,7 @@ export function RadarExecutivo({
                   else { setFoco("excedentes"); setModalFoco("excedentes"); setModalOpen(true); }
                 }}
                 aria-pressed={foco === "excedentes"}
-                className={`rounded-lg bg-card-alt px-3 py-2.5 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`rounded-lg bg-card-alt px-3 py-2 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   foco === "excedentes" ? "ring-2 ring-accent" : ""
                 }`}
               >
