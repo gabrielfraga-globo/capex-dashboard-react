@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Legend, LabelList, Tooltip } from "recharts";
+import { BarChart, Bar, Cell, XAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
 import { useFilterStore } from "../store/filterStore";
 import { generateRiskSummary } from "../lib/insights";
@@ -352,9 +352,9 @@ export function RadarExecutivo({
         </div>
       )}
 
-      {/* Linha 1: Execução do Plano + Saúde da Carteira */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <div className="lg:col-span-2 rounded-card bg-hero p-6 shadow-card text-white flex flex-col">
+      {/* ✅ Linha 1: Execução do Plano — bloco único acima da linha de risco */}
+      <div className="mb-4">
+        <div className="rounded-card bg-hero p-6 shadow-card text-white flex flex-col">
           <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-1">Execução do Plano</p>
 
           {/* Regra dos 5 Segundos: % vs plano é o indicador macro dominante */}
@@ -422,26 +422,12 @@ export function RadarExecutivo({
                   <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
                   <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
                   <Tooltip content={<CustomTooltipFluxo />} cursor={{ fill: "rgba(255,255,255,0.08)" }} />
-                  <Bar dataKey="Planejado" name="Planejado" fill="#C9BFF0" radius={[3, 3, 0, 0]}>
-                    <LabelList
-                      dataKey="Planejado"
-                      position="top"
-                      fontSize={10}
-                      fill="#FFFFFF"
-                      formatter={(value) => (typeof value === "number" && value > 0 ? formatCurrencyMillions(value) : "")}
-                    />
-                  </Bar>
-                  <Bar dataKey="Realizado" name="Realizado" radius={[3, 3, 0, 0]}>
+                  {/* ✅ Barras acumuladas mês a mês; sem LabelList; tooltip expõe acumulado + incremento */}
+                  <Bar dataKey="planejadoAcumulado" name="Planejado (acum.)" fill="#C9BFF0" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="realizadoAcumulado" name="Realizado (acum.)" radius={[3, 3, 0, 0]}>
                     {fluxoData.map((d, i) => (
                       <Cell key={i} fill={d.banda ? d.banda.cor : "#8B7FE8"} />
                     ))}
-                    <LabelList
-                      dataKey="Realizado"
-                      position="top"
-                      fontSize={10}
-                      fill="#FFFFFF"
-                      formatter={(value) => (typeof value === "number" && value > 0 ? formatCurrencyMillions(value) : "")}
-                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -455,61 +441,64 @@ export function RadarExecutivo({
             )}
           </div>
         </div>
-
-        <div className="rounded-card border border-border bg-card p-5 shadow-card">
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Saúde da Carteira</p>
-          <div className="space-y-2">
-            {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
-              const b = saude[s];
-              const focoAlvo: Foco = s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
-              const ativo = foco === focoAlvo;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setFoco(ativo ? "todos" : focoAlvo)}
-                  aria-pressed={ativo}
-                  className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
-                >
-                  <span className="font-semibold">{s}</span>
-                  <span className="flex items-center gap-2">
-                    <span>{b.n} proj.</span>
-                    <span className="font-bold">{formatCurrencyMillions(b.valor)}</span>
-                    <ChevronRight size={12} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
-      {/* Linha 2: Gestão de Risco (cards consolidados e clicáveis) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <button
-          onClick={() => setFoco(foco === "faltantes" ? "todos" : "faltantes")}
-          aria-pressed={foco === "faltantes"}
-          className={`rounded-card border border-border bg-card p-5 shadow-card text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-            foco === "faltantes" ? "ring-2 ring-accent" : ""
-          }`}
-        >
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões faltantes</p>
-          <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesFaltantes.n}</div>
-          <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesFaltantes.valor)} em pendência</p>
-          <p className="text-[11px] text-text-faint mt-3 pt-2 border-t border-border-subtle">clique filtra a lista abaixo</p>
-        </button>
+      {/* ✅ Linha 2: Gestão de Risco — 3 cards iguais sob cabeçalho único */}
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Gestão de Risco (Caixa / Empenho)</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <button
+            onClick={() => setFoco(foco === "faltantes" ? "todos" : "faltantes")}
+            aria-pressed={foco === "faltantes"}
+            className={`rounded-card border border-border bg-card p-5 shadow-card text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              foco === "faltantes" ? "ring-2 ring-accent" : ""
+            }`}
+          >
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões faltantes</p>
+            <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesFaltantes.n}</div>
+            <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesFaltantes.valor)} em pendência</p>
+            <p className="text-[11px] text-text-faint mt-3 pt-2 border-t border-border-subtle">clique filtra a lista abaixo</p>
+          </button>
 
-        <button
-          onClick={() => setFoco(foco === "excedentes" ? "todos" : "excedentes")}
-          aria-pressed={foco === "excedentes"}
-          className={`rounded-card border border-border bg-card p-5 shadow-card text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-            foco === "excedentes" ? "ring-2 ring-accent" : ""
-          }`}
-        >
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões excedentes</p>
-          <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesExcedentes.n}</div>
-          <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesExcedentes.valor)} em exposição</p>
-          <p className="text-[11px] text-text-faint mt-3 pt-2 border-t border-border-subtle">clique filtra a lista abaixo</p>
-        </button>
+          <button
+            onClick={() => setFoco(foco === "excedentes" ? "todos" : "excedentes")}
+            aria-pressed={foco === "excedentes"}
+            className={`rounded-card border border-border bg-card p-5 shadow-card text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              foco === "excedentes" ? "ring-2 ring-accent" : ""
+            }`}
+          >
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Emissões excedentes</p>
+            <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesExcedentes.n}</div>
+            <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesExcedentes.valor)} em exposição</p>
+            <p className="text-[11px] text-text-faint mt-3 pt-2 border-t border-border-subtle">clique filtra a lista abaixo</p>
+          </button>
+
+          <div className="rounded-card border border-border bg-card p-5 shadow-card">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Saúde da Carteira</p>
+            <div className="space-y-2">
+              {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
+                const b = saude[s];
+                const focoAlvo: Foco = s === "Requer Ação" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
+                const ativo = foco === focoAlvo;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setFoco(ativo ? "todos" : focoAlvo)}
+                    aria-pressed={ativo}
+                    className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+                  >
+                    <span className="font-semibold">{s}</span>
+                    <span className="flex items-center gap-2">
+                      <span>{b.n} proj.</span>
+                      <span className="font-bold">{formatCurrencyMillions(b.valor)}</span>
+                      <ChevronRight size={12} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Grid de KPIs Estratégicos com novo design — Interpretação em primeiro plano */}
