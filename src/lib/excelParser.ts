@@ -1,6 +1,60 @@
 import * as XLSX from "xlsx";
 import type { Gestor, LinhaIgnorada, OrcamentoAnual, ProjetoBase, RealizadoAnual, RelatorioParsing } from "../types";
 
+export type SheetDiagKey =
+  | "Orçamento"
+  | "Realizado"
+  | "Hierarquia"
+  | "Status Report"
+  | "Realizado detalhado"
+  | "Compromisso detalhado";
+
+export interface ParseWorkbookDiagnostics {
+  xlsxReadMs: number;
+  sheetToJsonMs: Partial<Record<SheetDiagKey, number>>;
+  sheetRows: Partial<Record<SheetDiagKey, number>>;
+  aggregationBaseMs: number;
+  aggregationFullMs: number;
+}
+
+const XLSX_READ_OPTIONS: XLSX.ParsingOptions = {
+  type: "array",
+  // Dense mode and minimal cell metadata materially reduce parse cost for large sheets.
+  dense: true,
+  raw: true,
+  cellDates: false,
+  cellFormula: false,
+  cellHTML: false,
+  cellNF: false,
+  cellStyles: false,
+  cellText: false,
+};
+
+export function createParseWorkbookDiagnostics(): ParseWorkbookDiagnostics {
+  return {
+    xlsxReadMs: 0,
+    sheetToJsonMs: {},
+    sheetRows: {},
+    aggregationBaseMs: 0,
+    aggregationFullMs: 0,
+  };
+}
+
+function getSheetRows(
+  sheet: XLSX.WorkSheet,
+  key: SheetDiagKey,
+  diagnostics?: ParseWorkbookDiagnostics
+): unknown[][] {
+  const t0 = performance.now();
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  const elapsed = performance.now() - t0;
+  if (diagnostics) {
+    diagnostics.sheetToJsonMs[key] = elapsed;
+    diagnostics.sheetRows[key] = rows.length;
+  }
+  return rows;
+}
+
 // ----------------------------------------------------------------------------
 // Utilitários de normalização
 // ----------------------------------------------------------------------------
@@ -35,13 +89,58 @@ function toNumberOrNull(v: unknown): number | null {
   return null;
 }
 
+function toDateOrNull(v: unknown): Date | null {
+  if (v instanceof Date) {
+    return Number.isNaN(v.getTime()) ? null : v;
+  }
+
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const parsed = XLSX.SSF.parse_date_code(v);
+    if (!parsed) return null;
+    const date = new Date(parsed.y, (parsed.m ?? 1) - 1, parsed.d ?? 1);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    if (!trimmed) return null;
+
+    const slash = trimmed.split("/");
+    if (slash.length === 3) {
+      const day = Number(slash[0]);
+      const month = Number(slash[1]);
+      const year = Number(slash[2]);
+      if (Number.isInteger(day) && Number.isInteger(month) && Number.isInteger(year)) {
+        const date = new Date(year, month - 1, day);
+        if (
+          !Number.isNaN(date.getTime())
+          && date.getFullYear() === year
+          && date.getMonth() === month - 1
+          && date.getDate() === day
+        ) {
+          return date;
+        }
+      }
+    }
+
+    const iso = new Date(trimmed);
+    if (!Number.isNaN(iso.getTime())) return iso;
+  }
+
+  return null;
+}
+
 
 // ----------------------------------------------------------------------------
 // Leitura da aba "Orçamento"
 // ----------------------------------------------------------------------------
 
-function parseOrcamento(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): OrcamentoAnual[] {
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+function parseOrcamento(
+  sheet: XLSX.WorkSheet,
+  ignoradas: LinhaIgnorada[],
+  diagnostics?: ParseWorkbookDiagnostics
+): OrcamentoAnual[] {
+  const rows = getSheetRows(sheet, "Orçamento", diagnostics);
   const out: OrcamentoAnual[] = [];
   let currentN4: string | null = null;
 
@@ -87,8 +186,12 @@ function parseOrcamento(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): Orca
 // linha (não herdado) + Rubrica === "Total" + REQ_COMPRA vazio.
 // ----------------------------------------------------------------------------
 
-function parseRealizado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): RealizadoAnual[] {
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+function parseRealizado(
+  sheet: XLSX.WorkSheet,
+  ignoradas: LinhaIgnorada[],
+  diagnostics?: ParseWorkbookDiagnostics
+): RealizadoAnual[] {
+  const rows = getSheetRows(sheet, "Realizado", diagnostics);
   const out: RealizadoAnual[] = [];
 
   let curN4: string | null = null;
@@ -160,8 +263,12 @@ export interface RealizadoDetalhadoLinha {
   pendente: number;
 }
 
-function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): RealizadoDetalhadoLinha[] {
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+function parseRealizadoDetalhado(
+  sheet: XLSX.WorkSheet,
+  ignoradas: LinhaIgnorada[],
+  diagnostics?: ParseWorkbookDiagnostics
+): RealizadoDetalhadoLinha[] {
+  const rows = getSheetRows(sheet, "Realizado detalhado", diagnostics);
   const out: RealizadoDetalhadoLinha[] = [];
 
   // colunas: N4(0), NomeLB(1), Rubrica(2), REQ_COMPRA(3), NOTA_FISCAL(4),
@@ -183,7 +290,8 @@ function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada
     if (!n4 || n4 === "Total" || reqCompra === null || reqCompra === undefined) continue;
     if (!nomeLB) continue;
 
-    if (!(dataCell instanceof Date)) {
+    const data = toDateOrNull(dataCell);
+    if (!data) {
       if (pago || pendente) {
         ignoradas.push({ aba: "Realizado detalhado", motivo: "Linha com valor mas sem NF_DT_PAGAMENTO válida — ignorada (evita fluxo sem data real)", contexto: nomeLB });
       }
@@ -191,7 +299,7 @@ function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada
     }
     if (!pago && !pendente) continue; // linha sem valor financeiro — nada a somar
 
-    out.push({ n4, nomeLB, data: dataCell, pago: pago ?? 0, pendente: pendente ?? 0 });
+    out.push({ n4, nomeLB, data, pago: pago ?? 0, pendente: pendente ?? 0 });
   }
   return out;
 }
@@ -205,40 +313,18 @@ function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada
 // dedupado da aba Realizado e corrigir a defasagem temporal dos compromissos.
 // ----------------------------------------------------------------------------
 
-function parseCompromissoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada[]): Map<string, number> {
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+function parseCompromissoDetalhado(
+  sheet: XLSX.WorkSheet,
+  ignoradas: LinhaIgnorada[],
+  diagnostics?: ParseWorkbookDiagnostics
+): Map<string, number> {
+  const rows = getSheetRows(sheet, "Compromisso detalhado", diagnostics);
   const out = new Map<string, number>();
 
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - 1);
 
-  const parseDateDDMMYYYY = (value: unknown): Date | null => {
-    if (typeof value !== "string") return null;
-
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-
-    const parts = trimmed.split("/");
-    if (parts.length !== 3) return null;
-
-    const [dd, mm, yyyy] = parts;
-    const day = Number(dd);
-    const month = Number(mm);
-    const year = Number(yyyy);
-    if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) return null;
-
-    const parsed = new Date(year, month - 1, day);
-    if (
-      Number.isNaN(parsed.getTime())
-      || parsed.getFullYear() !== year
-      || parsed.getMonth() !== month - 1
-      || parsed.getDate() !== day
-    ) {
-      return null;
-    }
-
-    return parsed;
-  };
+  const parseDateDDMMYYYY = (value: unknown): Date | null => toDateOrNull(value);
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -275,8 +361,8 @@ function parseCompromissoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnora
 // Leitura da aba "Hierarquia"
 // ----------------------------------------------------------------------------
 
-function parseHierarquia(sheet: XLSX.WorkSheet): Gestor[] {
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+function parseHierarquia(sheet: XLSX.WorkSheet, diagnostics?: ParseWorkbookDiagnostics): Gestor[] {
+  const rows = getSheetRows(sheet, "Hierarquia", diagnostics);
   const out: Gestor[] = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -290,8 +376,8 @@ function parseHierarquia(sheet: XLSX.WorkSheet): Gestor[] {
 // Leitura da aba "Status Report" (só os pares rótulo/valor numérico, para validação)
 // ----------------------------------------------------------------------------
 
-function parseStatusReport(sheet: XLSX.WorkSheet): Record<string, number> {
-  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+function parseStatusReport(sheet: XLSX.WorkSheet, diagnostics?: ParseWorkbookDiagnostics): Record<string, number> {
+  const rows = getSheetRows(sheet, "Status Report", diagnostics);
   const out: Record<string, number> = {};
   for (const row of rows) {
     if (!row) continue;
@@ -450,7 +536,7 @@ function buildProjetos(
 // ----------------------------------------------------------------------------
 
 export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string): Promise<RelatorioParsing> {
-  const wb = XLSX.read(buf, { type: "array", cellDates: true });
+  const wb = XLSX.read(buf, XLSX_READ_OPTIONS);
 
   const ignoradas: LinhaIgnorada[] = [];
 
@@ -498,9 +584,12 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
  */
 export function parseWorkbookBufferPhased(
   buf: ArrayBuffer,
-  nomeArquivo: string
+  nomeArquivo: string,
+  diagnostics?: ParseWorkbookDiagnostics
 ): { base: RelatorioParsing; computeFull: () => RelatorioParsing } {
-  const wb = XLSX.read(buf, { type: "array", cellDates: true });
+  const tRead0 = performance.now();
+  const wb = XLSX.read(buf, XLSX_READ_OPTIONS);
+  if (diagnostics) diagnostics.xlsxReadMs = performance.now() - tRead0;
 
   const requiredSheets = ["Orçamento", "Realizado", "Hierarquia"];
   for (const s of requiredSheets) {
@@ -511,17 +600,19 @@ export function parseWorkbookBufferPhased(
 
   // Abas rápidas — parseadas uma só vez, compartilhadas entre as fases
   const ignoradas: LinhaIgnorada[] = [];
-  const orcamento = parseOrcamento(wb.Sheets["Orçamento"], ignoradas);
-  const realizado = parseRealizado(wb.Sheets["Realizado"], ignoradas);
-  const gestores = parseHierarquia(wb.Sheets["Hierarquia"]);
+  const orcamento = parseOrcamento(wb.Sheets["Orçamento"], ignoradas, diagnostics);
+  const realizado = parseRealizado(wb.Sheets["Realizado"], ignoradas, diagnostics);
+  const gestores = parseHierarquia(wb.Sheets["Hierarquia"], diagnostics);
   const statusReportValores = wb.SheetNames.includes("Status Report")
-    ? parseStatusReport(wb.Sheets["Status Report"])
+    ? parseStatusReport(wb.Sheets["Status Report"], diagnostics)
     : {};
 
   // Fase 1 — sem abas lentas
+  const tAggBase0 = performance.now();
   const { projetos: projetosBase, soOrcamento, soRealizado } = buildProjetos(
     orcamento, realizado, gestores, ignoradas, [], new Map()
   );
+  if (diagnostics) diagnostics.aggregationBaseMs = performance.now() - tAggBase0;
   const now = new Date();
   const base: RelatorioParsing = {
     projetos: projetosBase,
@@ -541,16 +632,18 @@ export function parseWorkbookBufferPhased(
     const fullIgnoradas: LinhaIgnorada[] = [...ignoradas];
 
     const realizadoDetalhado = wb.SheetNames.includes("Realizado detalhado")
-      ? parseRealizadoDetalhado(wb.Sheets["Realizado detalhado"], fullIgnoradas)
+      ? parseRealizadoDetalhado(wb.Sheets["Realizado detalhado"], fullIgnoradas, diagnostics)
       : [];
 
     const compromissoDetalhado = wb.SheetNames.includes("Compromisso detalhado")
-      ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"], fullIgnoradas)
+      ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"], fullIgnoradas, diagnostics)
       : new Map<string, number>();
 
+    const tAggFull0 = performance.now();
     const { projetos, soOrcamento: so2, soRealizado: sr2 } = buildProjetos(
       orcamento, realizado, gestores, fullIgnoradas, realizadoDetalhado, compromissoDetalhado
     );
+    if (diagnostics) diagnostics.aggregationFullMs = performance.now() - tAggFull0;
 
     return {
       projetos,
