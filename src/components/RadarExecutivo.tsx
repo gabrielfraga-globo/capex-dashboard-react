@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ComposedChart, Area, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { ComposedChart, Area, Line, XAxis, YAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { SkeletonBlock } from "./ui/SkeletonCard";
 import type { KPIEstrategicoCarteira, ProjetoMetricas, StatusSemaforo } from "../types";
 import { useFilterStore } from "../store/filterStore";
@@ -204,10 +204,10 @@ export function RadarExecutivo({
 
       const pct = realizado !== null && planejado > 0 ? (realizado - planejado) / planejado : null;
       const banda = pct !== null ? bandaDelta(Math.abs(pct)) : null;
-      const baseGapPositivo = realizado !== null ? Math.min(planejado, realizado) : null;
-      const gapPositivo = realizado !== null && planejado > realizado ? planejado - realizado : null;
-      const baseGapNegativo = realizado !== null ? Math.min(planejado, realizado) : null;
-      const gapNegativo = realizado !== null && realizado > planejado ? realizado - planejado : null;
+      const baseGapPositivo = realizado !== null ? Math.min(sumPlanejado, sumRealizado) : null;
+      const gapPositivo = realizado !== null && sumPlanejado > sumRealizado ? sumPlanejado - sumRealizado : null;
+      const baseGapNegativo = realizado !== null ? Math.min(sumPlanejado, sumRealizado) : null;
+      const gapNegativo = realizado !== null && sumRealizado > sumPlanejado ? sumRealizado - sumPlanejado : null;
       return {
         mes: m,
         Planejado: planejado,
@@ -413,18 +413,18 @@ export function RadarExecutivo({
 
       {/* ✅ Linha 1: Execução do Plano — bloco único acima da linha de risco */}
       <div className="mb-4">
-        <div className="rounded-card bg-hero p-3 shadow-card text-white flex flex-col">
-          <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">Execução do Plano</p>
+        <div className="rounded-card bg-hero p-2.5 md:p-3 shadow-card text-white flex flex-col">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-1.5">Execução do Plano</p>
 
           {/* Regra dos 5 Segundos: % vs plano é o indicador macro dominante */}
           {pctVsPlano !== null && (
-            <div className="flex flex-col gap-1.5 mb-2">
+            <div className="flex flex-col gap-1 mb-1.5">
               {/* Número + Barra de composição lado a lado */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col md:flex-row md:items-center gap-2.5 md:gap-3">
                 <div className="flex flex-col shrink-0">
                   <span
                     aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
-                    className={`text-4xl font-extrabold leading-none tabular-nums ${
+                    className={`text-[2.15rem] md:text-4xl font-extrabold leading-none tabular-nums ${
                       Math.abs(pctVsPlano - 1) <= 0.05
                         ? "text-emerald-300"
                         : Math.abs(pctVsPlano - 1) <= 0.15
@@ -436,7 +436,7 @@ export function RadarExecutivo({
                   </span>
                   <span className="text-[10px] text-white/55 leading-tight mt-0.5">vs. plano YTD</span>
                 </div>
-                <div className="flex flex-col gap-1 flex-1 max-w-[460px]">
+                <div className="flex flex-col gap-1 flex-1 min-w-0 md:max-w-[520px]">
                   <div className="flex w-full h-4 rounded-md overflow-hidden bg-white/15 gap-0.5">
                     {breakdownSegments.map((seg) => (
                       <div
@@ -462,7 +462,7 @@ export function RadarExecutivo({
             </div>
           )}
 
-          <div className="flex items-center gap-2 mb-3 text-sm text-white/90 leading-snug max-w-full">
+          <div className="flex items-center gap-2 mb-2 text-[13px] text-white/90 leading-snug max-w-full">
             {risco.emissoesExcedentes.n > 0 ? (
               <AlertTriangle size={15} className="shrink-0 text-amber-300" aria-hidden="true" />
             ) : (
@@ -471,29 +471,21 @@ export function RadarExecutivo({
             <p className="whitespace-nowrap overflow-hidden text-ellipsis">{insightLinha}</p>
           </div>
 
-          <div className="bg-white/10 rounded-xl p-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-white/75 mb-1 px-1">
+          <div className="bg-white/10 rounded-xl p-1.5 md:p-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/75 mb-1 px-1">
               Fluxo de caixa: planejado × realizado
             </p>
             {temFluxoReal ? (
-              <ResponsiveContainer width="100%" height={124}>
+              <ResponsiveContainer width="100%" height={112}>
                 <ComposedChart data={fluxoData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="gradPlanejadoAcum" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#93C5FD" stopOpacity={0.12} />
-                      <stop offset="95%" stopColor="#93C5FD" stopOpacity={0.02} />
-                    </linearGradient>
-                    <linearGradient id="gradRealizadoAcum" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F8FAFC" stopOpacity={0.20} />
-                      <stop offset="95%" stopColor="#F8FAFC" stopOpacity={0.03} />
-                    </linearGradient>
                     <linearGradient id="gradGapPositivo" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#FCA5A5" stopOpacity={0.32} />
-                      <stop offset="100%" stopColor="#FCA5A5" stopOpacity={0.06} />
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity={0.55} />
+                      <stop offset="100%" stopColor="#EF4444" stopOpacity={0.20} />
                     </linearGradient>
                     <linearGradient id="gradGapNegativo" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#86EFAC" stopOpacity={0.28} />
-                      <stop offset="100%" stopColor="#86EFAC" stopOpacity={0.06} />
+                      <stop offset="0%" stopColor="#22C55E" stopOpacity={0.52} />
+                      <stop offset="100%" stopColor="#22C55E" stopOpacity={0.18} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="mes" stroke="#FFFFFF" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
@@ -509,21 +501,21 @@ export function RadarExecutivo({
                   <Legend wrapperStyle={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700 }} />
                   <Tooltip content={<CustomTooltipFluxo />} cursor={{ stroke: "rgba(255,255,255,0.2)", strokeWidth: 1 }} />
                   <Area dataKey="baseGapPositivo" stackId="gapPositivo" stroke="none" fill="transparent" isAnimationActive={false} legendType="none" />
-                  <Area dataKey="gapPositivo" stackId="gapPositivo" stroke="none" fill="url(#gradGapPositivo)" isAnimationActive={false} legendType="none" />
+                  <Area dataKey="gapPositivo" stackId="gapPositivo" stroke="#EF4444" strokeWidth={1.1} fill="url(#gradGapPositivo)" isAnimationActive={false} legendType="none" />
                   <Area dataKey="baseGapNegativo" stackId="gapNegativo" stroke="none" fill="transparent" isAnimationActive={false} legendType="none" />
-                  <Area dataKey="gapNegativo" stackId="gapNegativo" stroke="none" fill="url(#gradGapNegativo)" isAnimationActive={false} legendType="none" />
-                  <Area dataKey="planejadoAcumulado" name="Planejado (acum.)" stroke="#93C5FD" strokeWidth={1.8} fill="url(#gradPlanejadoAcum)" dot={false} activeDot={{ r: 3, fill: "#93C5FD" }} />
-                  <Area dataKey="realizadoAcumulado" name="Realizado (acum.)" stroke="#F8FAFC" strokeWidth={2.2} fill="url(#gradRealizadoAcum)" dot={false} activeDot={{ r: 3, fill: "#F8FAFC" }} connectNulls={false} />
+                  <Area dataKey="gapNegativo" stackId="gapNegativo" stroke="#22C55E" strokeWidth={1.1} fill="url(#gradGapNegativo)" isAnimationActive={false} legendType="none" />
+                  <Line dataKey="planejadoAcumulado" name="Planejado (acum.)" stroke="#BFDBFE" strokeDasharray="6 4" strokeWidth={2.2} dot={false} activeDot={{ r: 3, fill: "#BFDBFE" }} />
+                  <Line dataKey="realizadoAcumulado" name="Realizado (acum.)" stroke="#22D3EE" strokeWidth={3.2} dot={false} activeDot={{ r: 3, fill: "#22D3EE" }} connectNulls={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             ) : isLoadingCompromisso ? (
               <div
                 role="status"
                 aria-label="Carregando gráfico de fluxo…"
-                className="h-[124px] w-full rounded-lg bg-white/10 animate-pulse"
+                className="h-[112px] w-full rounded-lg bg-white/10 animate-pulse"
               />
             ) : (
-              <div className="h-[124px] flex items-center justify-center text-center px-6">
+              <div className="h-[112px] flex items-center justify-center text-center px-6">
                 <p className="text-xs text-white/80 leading-snug">
                   Sem dado mensal real de Executado nesta planilha (aba "Realizado detalhado" ausente).
                   Nenhuma estimativa é exibida — Executado YTD acima é o único valor confiável disponível.
@@ -552,7 +544,7 @@ export function RadarExecutivo({
               else { setFoco("faltantes"); setModalFoco("faltantes"); setModalOpen(true); }
             }}
             aria-pressed={foco === "faltantes"}
-            className={`rounded-card border border-border bg-card p-5 text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+            className={`rounded-card bg-card-alt p-4 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               foco === "faltantes" ? "ring-2 ring-accent" : ""
             }`}
           >
@@ -577,7 +569,7 @@ export function RadarExecutivo({
               else { setFoco("excedentes"); setModalFoco("excedentes"); setModalOpen(true); }
             }}
             aria-pressed={foco === "excedentes"}
-            className={`rounded-card border border-border bg-card p-5 text-left transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+            className={`rounded-card bg-card-alt p-4 text-left transition-colors hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               foco === "excedentes" ? "ring-2 ring-accent" : ""
             }`}
           >
@@ -590,13 +582,13 @@ export function RadarExecutivo({
             ) : (
               <>
                 <div className="text-3xl font-extrabold text-text mt-2">{risco.emissoesExcedentes.n}</div>
-                <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(risco.emissoesExcedentes.valor)} em exposição</p>
+                <p className="text-xs text-text-muted mt-1">{formatCurrencyMillions(Math.abs(risco.emissoesExcedentes.valor))} de exposição excedente</p>
               </>
             )}
             <p className="text-[11px] text-accent/80 mt-3 pt-2 border-t border-border-subtle">Ver lista completa →</p>
           </button>
 
-            <div className="rounded-card border border-border bg-card p-5">
+            <div className="rounded-card bg-card-alt p-4">
             <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">Saúde da Carteira</p>
             <div className="space-y-2">
               {(["Dentro do Plano", "Acompanhar", "Requer Ação"] as const).map((s) => {
@@ -611,7 +603,7 @@ export function RadarExecutivo({
                       else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
                     }}
                     aria-pressed={ativo}
-                    className={`w-full rounded-lg border px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+                    className={`w-full rounded-lg px-3 py-2 flex items-center justify-between text-xs ${SAUDE_STYLE[s]} ${ativo ? "ring-2 ring-accent" : ""} hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
                   >
                     <span className="font-semibold">{s}</span>
                     <span className="flex items-center gap-2">
