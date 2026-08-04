@@ -489,6 +489,86 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
   };
 }
 
+/**
+ * Leitura em duas fases para renderização progressiva.
+ * Fase 1 (base): abas obrigatórias rápidas → o dashboard pode renderizar imediatamente.
+ * Fase 2 (full): abas lentas ("Realizado detalhado" + "Compromisso detalhado") → resolve
+ *                fluxo mensal real e compromissos mais precisos.
+ * As abas rápidas são parseadas uma única vez e compartilhadas pelas duas fases.
+ */
+export function parseWorkbookBufferPhased(
+  buf: ArrayBuffer,
+  nomeArquivo: string
+): { base: RelatorioParsing; computeFull: () => RelatorioParsing } {
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
+
+  const requiredSheets = ["Orçamento", "Realizado", "Hierarquia"];
+  for (const s of requiredSheets) {
+    if (!wb.SheetNames.includes(s)) {
+      throw new Error(`Aba obrigatória não encontrada: "${s}". Abas disponíveis: ${wb.SheetNames.join(", ")}`);
+    }
+  }
+
+  // Abas rápidas — parseadas uma só vez, compartilhadas entre as fases
+  const ignoradas: LinhaIgnorada[] = [];
+  const orcamento = parseOrcamento(wb.Sheets["Orçamento"], ignoradas);
+  const realizado = parseRealizado(wb.Sheets["Realizado"], ignoradas);
+  const gestores = parseHierarquia(wb.Sheets["Hierarquia"]);
+  const statusReportValores = wb.SheetNames.includes("Status Report")
+    ? parseStatusReport(wb.Sheets["Status Report"])
+    : {};
+
+  // Fase 1 — sem abas lentas
+  const { projetos: projetosBase, soOrcamento, soRealizado } = buildProjetos(
+    orcamento, realizado, gestores, ignoradas, [], new Map()
+  );
+  const now = new Date();
+  const base: RelatorioParsing = {
+    projetos: projetosBase,
+    gestores,
+    linhasIgnoradas: [...ignoradas],
+    projetosSoOrcamento: soOrcamento,
+    projetosSoRealizado: soRealizado,
+    dataBase: now.toLocaleDateString("pt-BR"),
+    nomeArquivo,
+    atualizadoEm: now.toLocaleString("pt-BR"),
+    statusReportValores,
+    temFluxoMensalReal: false,
+  };
+
+  // Fase 2 — abas lentas (lazy, executada pelo worker após yield)
+  const computeFull = (): RelatorioParsing => {
+    const fullIgnoradas: LinhaIgnorada[] = [...ignoradas];
+
+    const realizadoDetalhado = wb.SheetNames.includes("Realizado detalhado")
+      ? parseRealizadoDetalhado(wb.Sheets["Realizado detalhado"], fullIgnoradas)
+      : [];
+
+    const compromissoDetalhado = wb.SheetNames.includes("Compromisso detalhado")
+      ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"], fullIgnoradas)
+      : new Map<string, number>();
+
+    const { projetos, soOrcamento: so2, soRealizado: sr2 } = buildProjetos(
+      orcamento, realizado, gestores, fullIgnoradas, realizadoDetalhado, compromissoDetalhado
+    );
+
+    return {
+      projetos,
+      gestores,
+      linhasIgnoradas: fullIgnoradas,
+      projetosSoOrcamento: so2,
+      projetosSoRealizado: sr2,
+      dataBase: now.toLocaleDateString("pt-BR"),
+      nomeArquivo,
+      atualizadoEm: now.toLocaleString("pt-BR"),
+      statusReportValores,
+      temFluxoMensalReal: realizadoDetalhado.length > 0,
+    };
+  };
+
+  return { base, computeFull };
+}
+
 export async function parseExcelFile(file: File): Promise<RelatorioParsing> {
   const buf = await file.arrayBuffer();
   return parseWorkbookBuffer(buf, file.name);

@@ -54,7 +54,7 @@ export default function App() {
 
   useThemeSync(theme);
 
-  const { parsed, loadError } = usePortfolioData();
+  const { parsed, isLoadingCompromisso, loadError } = usePortfolioData();
   const { todasMetricas } = usePortfolioMetrics(parsed, filtros.periodo);
   const { metricasFiltradas, comparaveis, periodoLabel } = useFilteredProjects(
     todasMetricas,
@@ -86,7 +86,7 @@ export default function App() {
     );
   }
 
-  
+
   if (!parsed) {
     return (
       <div className="min-h-screen bg-bg px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
@@ -145,7 +145,7 @@ export default function App() {
       <ContextBar parsed={parsed} periodoLabel={periodoLabel} />
 
       {viewMode === "radar" ? (
-        <RadarExecutivoPage lista={metricasFiltradas} kpisEstrategicos={kpisEstrategicos} onSelect={handleSelectFromRadar} />
+        <RadarExecutivoPage lista={metricasFiltradas} kpisEstrategicos={kpisEstrategicos} onSelect={handleSelectFromRadar} isLoadingCompromisso={isLoadingCompromisso} />
       ) : (
         <Suspense fallback={
           <div role="status" aria-label="Carregando Auditoria da Carteira…" className="space-y-3 py-4">
