@@ -111,9 +111,6 @@ export default function App() {
                 [ {PERIODO_M1_LABEL} ]
               </span>
             </div>
-            <p className="text-[11px] text-text-muted">
-              {viewMode === "radar" ? "Radar Executivo" : "Auditoria da Carteira"}
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -136,7 +133,7 @@ export default function App() {
                 viewMode === "auditoria" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
               }`}
             >
-              <ClipboardList size={13} aria-hidden="true" /> Auditoria da Carteira
+              <ClipboardList size={13} aria-hidden="true" /> Auditoria Detalhada
             </button>
           </div>
         </div>
@@ -165,7 +162,7 @@ export default function App() {
       )}
 
       <footer className="text-center text-[11px] text-text-faint py-4">
-        Performance Plataformas · Radar Executivo Mensal · Uso Interno
+        Performance Plataformas · Fechamento Mensal · Uso Interno
       </footer>
 
       <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={handleClosePanel} />
