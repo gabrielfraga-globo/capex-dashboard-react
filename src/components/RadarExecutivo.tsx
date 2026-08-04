@@ -30,13 +30,6 @@ const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: str
   naoEmitido:  { bg: "bg-slate-500",   text: "text-slate-900",   colorHex: "#64748b" },
 };
 
-function kpiStatusTone(statusLabel?: string | null): string {
-  if (!statusLabel) return "text-text";
-  if (/abaixo|requer|atenção|risco/i.test(statusLabel)) return "text-amber-600";
-  if (/dentro|meta|ideal|ok/i.test(statusLabel)) return "text-emerald-600";
-  return "text-text";
-}
-
 /** Banda de aderência ao plano por mês — usada para colorir a barra de Executado. */
 function bandaDelta(pctAbs: number): { cor: string; label: string } {
   if (pctAbs <= 0.05) return { cor: "#2A9D6F", label: "Dentro do Plano" };
@@ -279,6 +272,7 @@ export function RadarExecutivo({
     return `${ritmoTexto} · Atenção: ${formatCurrencyMillions(pendente)} pendente de emissão`;
   }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
 
+  const pendenteEmissao = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
   const caixaKpi = useMemo(
     () => kpisEstrategicos.find((kpi) => kpi.id === "velocidadeCaixa") ?? null,
     [kpisEstrategicos]
@@ -287,7 +281,6 @@ export function RadarExecutivo({
     () => kpisEstrategicos.find((kpi) => kpi.id === "empenho") ?? null,
     [kpisEstrategicos]
   );
-  const pendenteEmissao = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
 
   const focoLabel = {
     todos: null,
@@ -333,36 +326,20 @@ export function RadarExecutivo({
   return (
     <div className="h-screen max-h-[calc(100vh-12rem)] flex flex-col max-lg:h-auto max-lg:max-h-none">
       <div className="mb-2 shrink-0">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="rounded-card border border-border bg-card px-3 py-2.5 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Resumo Executivo</p>
-            <p className="mt-1 text-sm text-text leading-relaxed">
-              Caixa em <span className={`font-semibold ${kpiStatusTone(caixaKpi?.statusLabel)}`}>{caixaKpi?.statusLabel ?? "Dados insuficientes"}</span>
-              {": "}
-              {caixaKpi?.descricaoExecutiva ?? "Sem dados suficientes para avaliação."}
-            </p>
-            <p className="mt-1 text-sm text-text leading-relaxed">
-              Empenho em <span className={`font-semibold ${kpiStatusTone(empenhoKpi?.statusLabel)}`}>{empenhoKpi?.statusLabel ?? "Dados insuficientes"}</span>
-              {": "}
-              {empenhoKpi?.descricaoExecutiva ?? "Sem dados suficientes para avaliação."}
-            </p>
-            <p className="mt-1.5 text-[11px] text-text-muted">Passe o mouse no gráfico para acompanhar o detalhe mês a mês.</p>
+        {(programa || focoLabel) && (
+          <div className="mb-2 flex flex-wrap justify-end gap-2">
+            {programa && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+                Programa: {programa}
+              </span>
+            )}
+            {focoLabel && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
+                Filtrado: {focoLabel}
+              </span>
+            )}
           </div>
-          {(programa || focoLabel) && (
-            <div className="flex flex-wrap justify-end gap-2">
-              {programa && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
-                  Programa: {programa}
-                </span>
-              )}
-              {focoLabel && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 border border-accent/40 text-accent px-2.5 py-0.5 text-[11px] font-bold">
-                  Filtrado: {focoLabel}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Filtros — escondidos por padrão */}
         <button

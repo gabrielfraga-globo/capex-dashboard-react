@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useCallback } from "react";
+import { useState, lazy, Suspense, useCallback, useMemo } from "react";
 import type { ProjetoMetricas, FiltrosState } from "./types";
 import { useFilterStore } from "./store/filterStore";
 import { useShallow } from "zustand/react/shallow";
@@ -63,6 +63,16 @@ export default function App() {
   );
   // KPIs reagem aos filtros: calculados a partir da lista filtrada, não da base bruta.
   const kpisEstrategicos = useKpisEstrategicos(metricasFiltradas);
+  const executiveSummary = useMemo(() => {
+    const caixa = kpisEstrategicos.find((kpi) => kpi.id === "velocidadeCaixa");
+    const empenho = kpisEstrategicos.find((kpi) => kpi.id === "empenho");
+    return {
+      caixaStatus: caixa?.statusLabel ?? "Dados insuficientes",
+      caixaDescricao: caixa?.descricaoExecutiva ?? "Sem dados suficientes para avaliação.",
+      empenhoStatus: empenho?.statusLabel ?? "Dados insuficientes",
+      empenhoDescricao: empenho?.descricaoExecutiva ?? "Sem dados suficientes para avaliação.",
+    };
+  }, [kpisEstrategicos]);
 
   // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
@@ -139,7 +149,11 @@ export default function App() {
         </div>
       </header>
 
-      <ContextBar parsed={parsed} periodoLabel={periodoLabel} />
+      <ContextBar
+        parsed={parsed}
+        periodoLabel={periodoLabel}
+        executiveSummary={viewMode === "radar" ? executiveSummary : null}
+      />
 
       {viewMode === "radar" ? (
         <RadarExecutivoPage lista={metricasFiltradas} kpisEstrategicos={kpisEstrategicos} onSelect={handleSelectFromRadar} isLoadingCompromisso={isLoadingCompromisso} />
