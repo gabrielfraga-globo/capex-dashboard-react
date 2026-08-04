@@ -199,6 +199,34 @@ function parseRealizadoDetalhado(sheet: XLSX.WorkSheet, ignoradas: LinhaIgnorada
 
 
 // ----------------------------------------------------------------------------
+// Leitura da aba "Compromisso detalhado"
+// Agrega o valor de Compromisso (col 15) por PROJECT_NAME (col 3) — sem filtro
+// de status. Retorna mapa de nome exato → soma, usado para substituir o valor
+// dedupado da aba Realizado e corrigir a defasagem temporal dos compromissos.
+// ----------------------------------------------------------------------------
+
+function parseCompromissoDetalhado(sheet: XLSX.WorkSheet): Map<string, number> {
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+  const out = new Map<string, number>();
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every((c) => c === null)) continue;
+
+    const projectName = row[3] as string | null;
+    if (!projectName || String(projectName).trim() === "") continue; // linha fantasma
+
+    const val = toNumberOrNull(row[15]);
+    if (val === null) continue;
+
+    const nome = String(projectName).trim();
+    out.set(nome, (out.get(nome) ?? 0) + val);
+  }
+
+  return out;
+}
+
+// ----------------------------------------------------------------------------
 // Leitura da aba "Hierarquia"
 // ----------------------------------------------------------------------------
 
@@ -249,7 +277,8 @@ function buildProjetos(
   realizado: RealizadoAnual[],
   gestores: Gestor[],
   ignoradas: LinhaIgnorada[],
-  realizadoDetalhado: RealizadoDetalhadoLinha[] = []
+  realizadoDetalhado: RealizadoDetalhadoLinha[] = [],
+  compromissoDetalhado: Map<string, number> = new Map()
 ): { projetos: ProjetoBase[]; soOrcamento: string[]; soRealizado: string[] } {
   const gestorPorN4 = new Map(gestores.map((g) => [normalizeKey(g.n4), g]));
 
@@ -307,16 +336,26 @@ function buildProjetos(
     const nome = o?.nomeLB ?? r?.nomeLB ?? "";
     const gestor = gestorPorN4.get(normalizeKey(n4)) ?? null;
 
-    // Compromisso: valida que os valores vistos entre anos são consistentes (mesmo valor esperado);
-    // usa o máximo como dedup seguro e registra divergência se houver.
+    // Compromisso: fonte primária = aba "Compromisso detalhado" (lookup exato por nome).
+    // Fallback = Math.max dos valores da aba Realizado (lógica anterior, com dedup por ano).
+    // aEmitir é recalculado automaticamente downstream em metrics.ts a partir de `compromisso`.
     let compromisso: number | null = null;
-    if (r && r.compromissos.length > 0) {
+    if (compromissoDetalhado.has(nome)) {
+      compromisso = compromissoDetalhado.get(nome)!;
+    } else if (r && r.compromissos.length > 0) {
       const uniq = Array.from(new Set(r.compromissos.map((v) => Math.round(v * 100))));
       compromisso = r.compromissos.reduce((a, b) => Math.max(a, b), 0);
       if (uniq.length > 1) {
         ignoradas.push({
           aba: "Realizado",
           motivo: "Compromisso divergente entre seções de ano para o mesmo projeto — usado o maior valor",
+          contexto: nome,
+        });
+      }
+      if (r) {
+        ignoradas.push({
+          aba: "Compromisso detalhado",
+          motivo: "Projeto não encontrado na aba nova — mantido valor da aba Realizado",
           contexto: nome,
         });
       }
@@ -385,7 +424,11 @@ export async function parseWorkbookBuffer(buf: ArrayBuffer, nomeArquivo: string)
     ? parseRealizadoDetalhado(wb.Sheets["Realizado detalhado"], ignoradas)
     : [];
 
-  const { projetos, soOrcamento, soRealizado } = buildProjetos(orcamento, realizado, gestores, ignoradas, realizadoDetalhado);
+  const compromissoDetalhado = wb.SheetNames.includes("Compromisso detalhado")
+    ? parseCompromissoDetalhado(wb.Sheets["Compromisso detalhado"])
+    : new Map<string, number>();
+
+  const { projetos, soOrcamento, soRealizado } = buildProjetos(orcamento, realizado, gestores, ignoradas, realizadoDetalhado, compromissoDetalhado);
 
   return {
     projetos,
