@@ -330,13 +330,13 @@ export function RadarExecutivo({
   }[modalFoco ?? "todos"];
 
   const modalValorFn = (p: ProjetoMetricas): number | null => {
-    if (modalFoco === "faltantes") return p.compromisso ?? 0;
+    if (modalFoco === "faltantes") return p.aEmitir ?? 0;
     if (modalFoco === "excedentes") return (p.executado ?? 0) - (p.realizadoAcumulado ?? 0);
     return p.orcamentoPeriodo ?? 0;
   };
 
   const modalJustificativaFn = (p: ProjetoMetricas): string => {
-    if (modalFoco === "faltantes") return `A emitir: ${formatCurrencyMillions(p.compromisso ?? 0)}`;
+    if (modalFoco === "faltantes") return `A emitir: ${formatCurrencyMillions(p.aEmitir ?? 0)}`;
     if (modalFoco === "excedentes") return `Empenho: ${formatCurrencyMillions((p.executado ?? 0) - (p.realizadoAcumulado ?? 0))}`;
     return `Orçamento: ${formatCurrencyMillions(p.orcamentoPeriodo ?? 0)}`;
   };
