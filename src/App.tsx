@@ -14,6 +14,7 @@ import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
 import { AlertTriangle, Radar, ClipboardList } from "lucide-react";
 import { SkeletonRadar } from "./components/ui/SkeletonCard";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy: o bundle da Auditoria só é baixado quando o usuário navega para essa aba
 const AuditoriaCarteiraPage = lazy(() =>
@@ -169,6 +170,7 @@ export default function App() {
       </footer>
 
       <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={handleClosePanel} />
+      <Analytics />
     </div>
   );
 }
