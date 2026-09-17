@@ -64,9 +64,19 @@ vs. Status Report) **não aparecem na visão executiva**. Ficam atrás do botão
 export async function loadPortfolioData(): Promise<RelatorioParsing>
 ```
 
-**Hoje**: faz `fetch('/data/carteira.xlsx')` (arquivo em `public/data/`, substituído
-mensalmente por um fluxo automatizado — sem rebuild da aplicação, já que `/public` é
-servido como está).
+### Segurança (Fase 18) — exposição do parser `xlsx` no cliente
+
+- Uso direto de `xlsx` no cliente permanece em `src/lib/excelProcessingCore.ts`, acionado via Worker em `src/lib/excelWorker.ts` e fallback no hook `src/hooks/usePortfolioData.ts`.
+- Esse fallback está protegido por flag de desenvolvimento:
+  - `import.meta.env.DEV`
+  - `import.meta.env.VITE_USE_RAW_EXCEL === "true"`
+- Em produção, o fluxo padrão usa apenas `data/carteira-processed.json` (pré-processado em build time).
+- Mesmo no fallback de desenvolvimento, a entrada é fixa (`fetch` de `data/carteira.xlsx` do próprio repositório); não há upload de arquivo, parâmetro de URL ou outro canal para visitante enviar planilha arbitrária.
+- Resultado prático: não foi identificado caminho público no app para um visitante comum acionar o parser `xlsx` com arquivo controlado por terceiros.
+
+**Hoje**: faz `fetch('/data/carteira-processed.json')` (gerado no `prebuild` a partir de
+`public/data/carteira.xlsx`). O fallback para parse RAW no navegador existe apenas em
+desenvolvimento, protegido por flag.
 
 **Futuro (BigQuery)**: troca-se só o corpo desta função por uma query + mapeamento de
 linhas para `ProjetoBase[]`. Nenhum componente visual depende de como os dados chegam.
@@ -203,7 +213,7 @@ Agora: usa diretamente `orcamentoPlurianual` (aba Orçamento, Total Geral) — n
 mistura as duas granularidades.
 
 ### 3. "Falta Comprometer" removido
-M�trica considerada vaga demais para orientar ação (não distinguia dinheiro parado por
+M�trica considerada vaga demais para orientar ação (não distinguia dinheiro parado por
 falta de contrato de dinheiro que já foi gasto por outra via). Removida de: tipos,
 tabela detalhada, exportação CSV, painel lateral, rankings (o ranking correspondente
 foi removido) e do cálculo de Risco Financeiro (que agora usa A Emitir diretamente para
