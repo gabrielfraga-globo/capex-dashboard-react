@@ -11,9 +11,6 @@ import { ProjectListModal } from "./ProjectListModal";
 import { Search, SlidersHorizontal, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-// Trava M-1: barras do gráfico só são coloridas até o mês fechado anterior.
-const _mesRealRadar = new Date().getMonth() + 1;
-const MES_ATUAL = _mesRealRadar === 1 ? 12 : _mesRealRadar - 1;
 
 /** Paleta semântica para segmentos de composição do Gráfico A.
  *  Emitido = comprometido mas não pago → neutro/informacional, nunca vermelho. */
@@ -45,13 +42,38 @@ type FluxoEntry = {
   Realizado: number | null;
   planejadoAcumulado: number;
   realizadoAcumulado: number | null;
+  realizadoAcumuladoSolido: number | null;
+  realizadoAcumuladoTracejado: number | null;
   baseGapPositivo: number | null;
   gapPositivo: number | null;
   baseGapNegativo: number | null;
   gapNegativo: number | null;
   pct: number | null;
   banda: { cor: string; label: string } | null;
+  isPartialMonth: boolean;
+  dataBase?: string | null;
 };
+
+function parseDateBR(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const match = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(value);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== Number(year) ||
+    parsed.getMonth() !== Number(month) - 1 ||
+    parsed.getDate() !== Number(day)
+  ) {
+    return null;
+  }
+  return parsed;
+}
+
+function getMonthNamePt(monthIndex: number): string {
+  return ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"][monthIndex] ?? "Mês";
+}
 
 function CustomTooltipFluxo({ active, payload, label }: { active?: boolean; payload?: Array<{ payload: FluxoEntry }>; label?: string }) {
   if (!active || !payload || payload.length === 0) return null;
@@ -77,6 +99,11 @@ function CustomTooltipFluxo({ active, payload, label }: { active?: boolean; payl
           Desvio mensal: {d.pct >= 0 ? '+' : ''}{fmtPct(d.pct)}
         </p>
       )}
+      {d.isPartialMonth && d.dataBase && (
+        <p className="mt-2 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          Mês em andamento — dados até {d.dataBase}
+        </p>
+      )}
     </div>
   );
 }
@@ -92,11 +119,13 @@ export function RadarExecutivo({
   kpisEstrategicos,
   onSelect: _onSelect,
   isLoadingCompromisso = false,
+  dataBase,
 }: {
   lista: ProjetoMetricas[];
   kpisEstrategicos: KPIEstrategicoCarteira[];
   onSelect: (p: ProjetoMetricas) => void;
   isLoadingCompromisso?: boolean;
+  dataBase?: string | null;
 }) {
   const periodo = useFilterStore(s => s.periodo);
   const setPeriodo = useFilterStore(s => s.setPeriodo);
@@ -150,10 +179,41 @@ export function RadarExecutivo({
   // não existir na planilha carregada, a série de Executado simplesmente não aparece
   // (preferimos mostrar menos do que mostrar algo sem respaldo nos dados).
   const temFluxoReal = useMemo(() => listaFocada.some((p) => p.executadoMensal2026 !== null), [listaFocada]);
+
+  // Último mês com dado real de caixa (0-based), data-driven — usado SÓ pelo gráfico,
+  // nunca pelo card "Execução do Plano" (que permanece restrito ao mês fechado M-1).
+  const ultimoMesComDadoIdx = useMemo(() => {
+    return listaFocada.reduce((maxIndex, projeto) => {
+      const arr = projeto.executadoMensal2026 ?? [];
+      for (let i = arr.length - 1; i >= 0; i -= 1) {
+        if (arr[i] !== 0) return Math.max(maxIndex, i);
+      }
+      return maxIndex;
+    }, -1);
+  }, [listaFocada]);
+
+  const partialMonthInfo = useMemo(() => {
+    if (!dataBase) return null;
+    const baseDate = parseDateBR(dataBase);
+    if (!baseDate) return null;
+    const mesIdx = baseDate.getMonth();
+    const ultimoDia = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
+    const isClosedMonth = baseDate.getDate() >= ultimoDia;
+    if (isClosedMonth) return null;
+
+    if (ultimoMesComDadoIdx !== mesIdx) return null;
+
+    return {
+      monthIndex: mesIdx,
+      label: MESES[mesIdx],
+      fullLabel: getMonthNamePt(mesIdx),
+      dataBase: dataBase,
+    };
+  }, [dataBase, ultimoMesComDadoIdx]);
+
   const fluxoData = useMemo(() => {
-    // Canonical totals mirror exactly what the breakdown text displays — single source of truth.
+    // Canonical total mirrors exactly what the breakdown text displays — single source of truth.
     const canonicalRealizado = listaFocada.reduce((a, p) => a + (p.realizadoAcumulado ?? 0), 0);
-    const canonicalPlanejado = listaFocada.reduce((a, p) => a + (p.planejadoAcumulado ?? 0), 0);
 
     const planejadoMensal = Array(12).fill(0);
     // realizadoMensal = caixa puro por data de pagamento (aba "Realizado detalhado"), sem Em Pagamento.
@@ -163,24 +223,24 @@ export function RadarExecutivo({
       if (p.executadoMensal2026) p.executadoMensal2026.forEach((v, i) => { realizadoMensalArr[i] += v; });
     }
 
-    // Reconcile: inject any delta into the last closed month so that the cumulative
-    // at MES_ATUAL matches the canonical totals. This prevents divergence between the
-    // "Realizado detalhado" sheet and the project-level totals used by the breakdown.
-    const lastIdx = MES_ATUAL - 1;
-    if (lastIdx >= 0) {
-      if (temFluxoReal) {
-        const sumReal = realizadoMensalArr.slice(0, MES_ATUAL).reduce((a, b) => a + b, 0);
-        realizadoMensalArr[lastIdx] += canonicalRealizado - sumReal;
-      }
-      const sumPlan = planejadoMensal.slice(0, MES_ATUAL).reduce((a, b) => a + b, 0);
-      planejadoMensal[lastIdx] += canonicalPlanejado - sumPlan;
+    // Reconcile: inject any delta into the último mês com dado real so that the cumulative
+    // ali bate com os totais canônicos. Isso evita divergência entre a aba "Realizado
+    // detalhado" e os totais por projeto usados no breakdown. Diferente do card de
+    // Execução do Plano, aqui o corte segue os dados reais (inclui o mês parcial).
+    // O Planejado NUNCA é reconciliado aqui: é sempre o acumulado bruto de meses2026,
+    // para os 12 meses, sem nenhuma trava de mês fechado/parcial (essa trava vale só
+    // para o card "Execução do Plano", via p.planejadoAcumulado).
+    const lastIdx = ultimoMesComDadoIdx;
+    if (lastIdx >= 0 && temFluxoReal) {
+      const sumReal = realizadoMensalArr.slice(0, lastIdx + 1).reduce((a, b) => a + b, 0);
+      realizadoMensalArr[lastIdx] += canonicalRealizado - sumReal;
     }
 
     let sumPlanejado = 0;
     let sumRealizado = 0;
 
     return MESES.map((m, i) => {
-      const temExecEsteMes = i + 1 <= MES_ATUAL;
+      const temExecEsteMes = i <= ultimoMesComDadoIdx;
       const planejado = Math.round(planejadoMensal[i]);
       const realizado = temFluxoReal && temExecEsteMes ? Math.round(realizadoMensalArr[i]) : null;
 
@@ -193,20 +253,35 @@ export function RadarExecutivo({
       const gapPositivo = realizado !== null && sumPlanejado > sumRealizado ? sumPlanejado - sumRealizado : null;
       const baseGapNegativo = realizado !== null ? Math.min(sumPlanejado, sumRealizado) : null;
       const gapNegativo = realizado !== null && sumRealizado > sumPlanejado ? sumRealizado - sumPlanejado : null;
+      const realizadoAcumulado = realizado !== null ? sumRealizado : null;
+      const isPartialMonth = partialMonthInfo?.monthIndex === i;
+      // Segmento ago→set (último mês fechado → mês parcial) é tracejado; o resto, sólido.
+      // O último mês fechado (ago) entra em AMBAS as séries — é o vértice compartilhado
+      // que faz a linha sólida terminar exatamente onde o trecho tracejado começa.
+      const partialIdx = partialMonthInfo?.monthIndex ?? null;
+      const ultimoFechadoIdx = partialIdx !== null ? partialIdx - 1 : null;
+      const isSolidPoint = realizadoAcumulado !== null && (partialIdx === null || i <= (ultimoFechadoIdx ?? -1));
+      const isDashedPoint = realizadoAcumulado !== null && partialIdx !== null && (i === partialIdx || i === ultimoFechadoIdx);
+      const realizadoAcumuladoSolido = isSolidPoint ? realizadoAcumulado : null;
+      const realizadoAcumuladoTracejado = isDashedPoint ? realizadoAcumulado : null;
       return {
         mes: m,
         Planejado: planejado,
         Realizado: realizado,
         planejadoAcumulado: sumPlanejado,
-        realizadoAcumulado: realizado !== null ? sumRealizado : null,
+        realizadoAcumulado,
+        realizadoAcumuladoSolido,
+        realizadoAcumuladoTracejado,
         baseGapPositivo,
         gapPositivo,
         baseGapNegativo,
         gapNegativo,
         pct, banda,
+        isPartialMonth,
+        dataBase: partialMonthInfo?.dataBase ?? dataBase,
       };
     });
-  }, [listaFocada, temFluxoReal]);
+  }, [dataBase, listaFocada, partialMonthInfo, temFluxoReal, ultimoMesComDadoIdx]);
 
   const aEmitirAno = useAEmitirAno(listaFocada);
   const totalRealizadoBreakdown = useMemo(
@@ -497,6 +572,7 @@ export function RadarExecutivo({
             </div>
 
             {temFluxoReal ? (
+              <>
               <ResponsiveContainer width="100%" height="90%">
                 <ComposedChart data={fluxoData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
@@ -584,8 +660,7 @@ export function RadarExecutivo({
                     type="monotone"
                     dataKey="realizadoAcumulado"
                     name="Realizado (acum.)"
-                    stroke="#059669"
-                    strokeWidth={2.4}
+                    stroke="none"
                     fill="url(#areaRealizado)"
                     dot={false}
                     activeDot={{ r: 3, fill: "#059669" }}
@@ -593,7 +668,7 @@ export function RadarExecutivo({
                   />
                   <Line
                     type="monotone"
-                    dataKey="realizadoAcumulado"
+                    dataKey="realizadoAcumuladoSolido"
                     stroke="#059669"
                     strokeWidth={2.4}
                     dot={false}
@@ -601,8 +676,27 @@ export function RadarExecutivo({
                     connectNulls={false}
                     legendType="none"
                   />
+                  {partialMonthInfo && (
+                    <Line
+                      type="monotone"
+                      dataKey="realizadoAcumuladoTracejado"
+                      stroke="#059669"
+                      strokeWidth={2.4}
+                      strokeDasharray="6 5"
+                      dot={false}
+                      activeDot={{ r: 3, fill: "#059669" }}
+                      connectNulls={false}
+                      legendType="none"
+                    />
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
+              {partialMonthInfo && (
+                <p className="mt-1 text-[11px] text-text-muted">
+                  {partialMonthInfo.fullLabel} parcial — dados até {partialMonthInfo.dataBase}
+                </p>
+              )}
+              </>
             ) : isLoadingCompromisso ? (
               <div role="status" aria-label="Carregando gráfico de fluxo…" className="h-[86%] w-full rounded-lg bg-card-alt animate-pulse" />
             ) : (

@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense, useCallback } from "react";
-import type { ProjetoMetricas, FiltrosState } from "./types";
+import type { ProjetoMetricas, FiltrosState, RelatorioParsing } from "./types";
 import { useFilterStore } from "./store/filterStore";
 import { useShallow } from "zustand/react/shallow";
 import { useThemeStore } from "./store/themeStore";
@@ -23,12 +23,52 @@ const AuditoriaCarteiraPage = lazy(() =>
 
 type ViewMode = "radar" | "auditoria";
 
-// Badge M-1: período de referência executivo (mês anterior fechado), calculado uma vez.
-const _hoje = new Date();
-const _mesRefIdx = _hoje.getMonth() === 0 ? 11 : _hoje.getMonth() - 1; // 0-indexed
-const _anoRef = _hoje.getMonth() === 0 ? _hoje.getFullYear() - 1 : _hoje.getFullYear();
 const _MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-const PERIODO_M1_LABEL = `${_MESES_PT[_mesRefIdx]} / ${_anoRef}`;
+
+function parseDateBR(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const match = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(value);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== Number(year) ||
+    parsed.getMonth() !== Number(month) - 1 ||
+    parsed.getDate() !== Number(day)
+  ) {
+    return null;
+  }
+  return parsed;
+}
+
+function resolveBaseMonthLabel(parsed: RelatorioParsing | null): string {
+  const baseDate = parsed ? parseDateBR(parsed.dataBase) : null;
+  if (!baseDate) {
+    const hoje = new Date();
+    const idx = hoje.getMonth() === 0 ? 11 : hoje.getMonth() - 1;
+    const ano = hoje.getMonth() === 0 ? hoje.getFullYear() - 1 : hoje.getFullYear();
+    return `[ ${_MESES_PT[idx]} / ${ano} ]`;
+  }
+
+  const mesIdx = baseDate.getMonth();
+  const ano = baseDate.getFullYear();
+  const ultimoDia = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
+  const ultimoValorComZero = parsed ? parsed.projetos.reduce((maxIndex, projeto) => {
+    const arr = projeto.executadoMensal2026 ?? [];
+    let lastIndex = maxIndex;
+    for (let i = arr.length - 1; i >= 0; i -= 1) {
+      if (arr[i] !== 0) {
+        lastIndex = Math.max(lastIndex, i);
+        break;
+      }
+    }
+    return lastIndex;
+  }, -1) : -1;
+  const isParcial = baseDate.getDate() !== ultimoDia && ultimoValorComZero === mesIdx;
+
+  return `[ ${_MESES_PT[mesIdx]} / ${ano}${isParcial ? " · parcial" : ""} ]`;
+}
 
 export default function App() {
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
@@ -107,9 +147,9 @@ export default function App() {
               <h1 className="text-lg font-bold leading-tight">Carteira CAPEX</h1>
               <span
                 className="rounded border border-accent/50 bg-accent/10 text-accent text-[11px] font-bold px-2 py-0.5 tracking-wide"
-                title="Período de referência: mês anterior fechado (M-1)"
+                title="Período de referência: mês da base do relatório"
               >
-                [ {PERIODO_M1_LABEL} ]
+                {resolveBaseMonthLabel(parsed)}
               </span>
             </div>
           </div>
@@ -146,7 +186,13 @@ export default function App() {
       />
 
       {viewMode === "radar" ? (
-        <RadarExecutivoPage lista={metricasFiltradas} kpisEstrategicos={kpisEstrategicos} onSelect={handleSelectFromRadar} isLoadingCompromisso={isLoadingCompromisso} />
+        <RadarExecutivoPage
+          lista={metricasFiltradas}
+          kpisEstrategicos={kpisEstrategicos}
+          onSelect={handleSelectFromRadar}
+          isLoadingCompromisso={isLoadingCompromisso}
+          dataBase={parsed.dataBase}
+        />
       ) : (
         <Suspense fallback={
           <div role="status" aria-label="Carregando Auditoria da Carteira…" className="space-y-3 py-4">

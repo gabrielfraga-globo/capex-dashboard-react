@@ -6,8 +6,9 @@ interface Props {
   kpisEstrategicos: KPIEstrategicoCarteira[];
   onSelect: (p: ProjetoMetricas) => void;
   isLoadingCompromisso?: boolean;
+  dataBase?: string | null;
 }
 
-export function RadarExecutivoPage({ lista, kpisEstrategicos, onSelect, isLoadingCompromisso }: Props) {
-  return <RadarExecutivo lista={lista} kpisEstrategicos={kpisEstrategicos} onSelect={onSelect} isLoadingCompromisso={isLoadingCompromisso} />;
+export function RadarExecutivoPage({ lista, kpisEstrategicos, onSelect, isLoadingCompromisso, dataBase }: Props) {
+  return <RadarExecutivo lista={lista} kpisEstrategicos={kpisEstrategicos} onSelect={onSelect} isLoadingCompromisso={isLoadingCompromisso} dataBase={dataBase} />;
 }
