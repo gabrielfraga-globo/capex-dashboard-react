@@ -1,0 +1,37 @@
+EVALUATE
+VAR Resultado =
+    SUMMARIZECOLUMNS(
+        dN4[N4],
+        dProjetos[1º Aprovador],
+        dProjetos[NomeLB],
+        dCalendarioCaixa[Ano],
+        FILTER(ALL(dN4[N3]), dN4[N3] = "Plataformas De Produção"),
+        FILTER(ALL(dCalendarioCaixa[Ano]), dCalendarioCaixa[Ano] IN {2026, 2027}),
+        FILTER(
+            ALL(dNatureza[Natureza]),
+            NOT dNatureza[Natureza] IN {BLANK(), "OPERACIONAL", "OPEX", "OPEX RECORRENTE"}
+        ),
+        FILTER(ALL(dRCs[REQ_COMPRA]), dRCs[REQ_COMPRA] <> "RCGRJ10523844"),
+        "Orcamento_Cenarios", [Orcamento_Cenarios],
+        "Realizado_Pago", [Realizado Pago],
+        "Realizado_Pendente", [Realizado Pendente],
+        "DeltaCaixa_CAPEX", [DeltaCaixa_CAPEX],
+        "Compromisso_Conecta", [Compromisso_Conecta],
+        "A_emitir_Conecta_CAPEX", [A emitir_Conecta_CAPEX]
+    )
+RETURN
+    FILTER(
+        Resultado,
+        NOT(
+            ISBLANK([Orcamento_Cenarios]) &&
+            ISBLANK([Realizado_Pago]) &&
+            ISBLANK([Realizado_Pendente]) &&
+            ISBLANK([Compromisso_Conecta]) &&
+            ISBLANK([A_emitir_Conecta_CAPEX])
+        )
+    )
+ORDER BY
+    dN4[N4],
+    dProjetos[1º Aprovador],
+    dProjetos[NomeLB],
+    dCalendarioCaixa[Ano]

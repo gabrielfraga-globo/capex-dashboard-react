@@ -289,7 +289,7 @@ export function RadarExecutivo({
     [listaFocada]
   );
   const totalEmPagamentoBreakdown = useMemo(
-    () => listaFocada.reduce((a, p) => a + Math.max((p.executado ?? 0) - (p.realizadoAcumulado ?? 0), 0), 0),
+    () => listaFocada.reduce((a, p) => a + ((p.executado ?? 0) - (p.realizadoAcumulado ?? 0)), 0),
     [listaFocada]
   );
   const totalEmitidoBreakdown = useMemo(
@@ -318,8 +318,7 @@ export function RadarExecutivo({
       { key: "naoEmitido", label: "Não emitido", valor: totalNaoEmitidoBreakdown, ...BREAKDOWN_COLORS.naoEmitido },
     ] as const;
 
-    const somaSegmentos = bruto.reduce((acc, seg) => acc + seg.valor, 0);
-    const denominador = Math.max(totalOrcamentoBreakdown, somaSegmentos, 1);
+    const denominador = Math.max(totalOrcamentoBreakdown, 1);
 
     return bruto.map((seg) => ({
       ...seg,

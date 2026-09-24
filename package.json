@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "tsx scripts/preprocessExcel.mjs",
+    "prebuild": "tsx scripts/preprocessCsv.mjs",
     "build": "tsc -b && vite build",
+    "process-data": "tsx scripts/preprocessCsv.mjs",
+    "validate-data": "node scripts/validateMetrics.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -27,7 +29,6 @@
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^3.4.19",
-    "xlsx": "^0.18.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

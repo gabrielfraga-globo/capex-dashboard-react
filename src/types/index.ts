@@ -81,6 +81,8 @@ export interface ProjetoBase {
   emPagamento2027: number | null;
 
   compromisso: number | null; // deduplicado, valor único plurianual
+  aEmitirFonte: number | null; // [A_emitir_Conecta_CAPEX] do modelo semântico — não aditivo
+  deltaCaixaFonte: number | null; // [DeltaCaixa_CAPEX] do modelo semântico — não aditivo
 
   origemOrcamento: boolean; // existe na aba Orçamento?
   origemRealizado: boolean; // existe na aba Realizado?

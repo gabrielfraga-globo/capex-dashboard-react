@@ -1,0 +1,18 @@
+﻿EVALUATE
+SUMMARIZECOLUMNS(
+    dN4[N4],
+    dProjetos[NomeLB],
+    dRubricas[Rubrica],
+    dRCs[REQ_COMPRA],
+    fRealizado[NOTA_FISCAL],
+    fRealizado[NF_DT_PAGAMENTO],
+    fRealizado[EXP_COMMENT],
+    dProjetos[1º Aprovador],
+
+    "DeltaCaixa_CAPEX",[DeltaCaixa_CAPEX],
+    "Orcamento_Cenarios",[Orcamento_Cenarios],
+    "Realizado_Pago",[Realizado Pago],
+    "Realizado_Pendente",[Realizado Pendente],
+    "Compromisso_Conecta",[Compromisso_Conecta],
+    "A_emitir_Conecta_CAPEX",[A emitir_Conecta_CAPEX]
+)

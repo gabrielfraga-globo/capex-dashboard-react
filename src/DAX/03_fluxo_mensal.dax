@@ -1,0 +1,23 @@
+EVALUATE
+VAR Resultado =
+    SUMMARIZECOLUMNS(
+        dN4[N4],
+        dProjetos[NomeLB],
+        dCalendarioCaixa[Ano],
+        dCalendarioCaixa[Mês],
+        FILTER(ALL(dN4[N3]), dN4[N3] = "Plataformas De Produção"),
+        FILTER(ALL(dCalendarioCaixa[Ano]), dCalendarioCaixa[Ano] = 2026),
+        FILTER(
+            ALL(dNatureza[Natureza]),
+            NOT dNatureza[Natureza] IN {BLANK(), "OPERACIONAL", "OPEX", "OPEX RECORRENTE"}
+        ),
+        FILTER(ALL(dRCs[REQ_COMPRA]), dRCs[REQ_COMPRA] <> "RCGRJ10523844"),
+        "Realizado_Pago", [Realizado Pago]
+    )
+RETURN
+    FILTER(Resultado, NOT ISBLANK([Realizado_Pago]))
+ORDER BY
+    dN4[N4],
+    dProjetos[NomeLB],
+    dCalendarioCaixa[Ano],
+    dCalendarioCaixa[Mês]

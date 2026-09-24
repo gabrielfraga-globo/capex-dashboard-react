@@ -141,6 +141,8 @@ function normalizeProjetoBase(p: ProjetoBase): ProjetoBase {
     realizado2027: p.realizado2027 ?? null,
     emPagamento2027: p.emPagamento2027 ?? null,
     compromisso: p.compromisso ?? null,
+    aEmitirFonte: p.aEmitirFonte ?? null,
+    deltaCaixaFonte: p.deltaCaixaFonte ?? null,
   };
 }
 
