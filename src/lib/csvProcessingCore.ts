@@ -69,7 +69,7 @@ function parseDelimitedCsv(text: string, delimiter = ";"): string[][] {
   return rows;
 }
 
-function csvObjects(text: string): Array<Record<string, string>> {
+export function csvObjects(text: string): Array<Record<string, string>> {
   const rows = parseDelimitedCsv(text);
   if (!rows.length) return [];
   const headers = rows[0].map((header) => header.trim());

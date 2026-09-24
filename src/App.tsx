@@ -12,7 +12,10 @@ import { ProjectSidePanel } from "./components/ProjectSidePanel";
 import { BrandMark } from "./components/ui/BrandMark";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
-import { AlertTriangle, Radar, ClipboardList } from "lucide-react";
+import { RadarPage as RadarRiscoCaixaPage } from "./features/radar/RadarPage";
+import { CashRiskBanner } from "./features/radar/CashRiskBanner";
+import { useCurrentPath, navigate } from "./lib/simpleRouter";
+import { AlertTriangle, Radar, ClipboardList, Gauge } from "lucide-react";
 import { SkeletonRadar } from "./components/ui/SkeletonCard";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -71,6 +74,7 @@ function resolveBaseMonthLabel(parsed: RelatorioParsing | null): string {
 }
 
 export default function App() {
+  const pathname = useCurrentPath();
   const [selected, setSelected] = useState<ProjetoMetricas | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
 
@@ -108,6 +112,10 @@ export default function App() {
   // Overlay do painel lateral não altera a view ativa, preservando contexto de navegação.
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
   const handleClosePanel = useCallback(() => setSelected(null), []);
+
+  if (pathname === "/radar") {
+    return <RadarRiscoCaixaPage />;
+  }
 
   if (loadError) {
     return (
@@ -177,6 +185,12 @@ export default function App() {
               <ClipboardList size={13} aria-hidden="true" /> Auditoria Detalhada
             </button>
           </div>
+          <button
+            onClick={() => navigate("/radar")}
+            className="flex items-center gap-1.5 rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs font-semibold text-text-muted hover:text-text hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+          >
+            <Gauge size={13} aria-hidden="true" /> Radar de Risco de Caixa
+          </button>
         </div>
       </header>
 
@@ -184,6 +198,8 @@ export default function App() {
         parsed={parsed}
         periodoLabel={periodoLabel}
       />
+
+      <CashRiskBanner />
 
       {viewMode === "radar" ? (
         <RadarExecutivoPage

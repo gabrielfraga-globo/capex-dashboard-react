@@ -10,7 +10,8 @@
     "process-data": "tsx scripts/preprocessCsv.mjs",
     "validate-data": "node scripts/validateMetrics.mjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
@@ -23,6 +24,7 @@
     "autoprefixer": "^10.5.4",
     "clsx": "^2.1.1",
     "lucide-react": "^1.27.0",
+    "pg": "^8.23.0",
     "postcss": "^8.5.23",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -33,12 +35,16 @@
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vercel/node": "^15.0.0",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
+    "pg-mem": "^3.0.14",
     "tsx": "^4.23.5",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^3.2.4"
   }
 }
