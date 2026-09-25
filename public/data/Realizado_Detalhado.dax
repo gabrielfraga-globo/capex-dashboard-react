@@ -1,4 +1,5 @@
 ﻿EVALUATE
+
 SUMMARIZECOLUMNS(
     dN4[N4],
     dProjetos[NomeLB],
@@ -9,10 +10,52 @@ SUMMARIZECOLUMNS(
     fRealizado[EXP_COMMENT],
     dProjetos[1º Aprovador],
 
-    "DeltaCaixa_CAPEX",[DeltaCaixa_CAPEX],
-    "Orcamento_Cenarios",[Orcamento_Cenarios],
-    "Realizado_Pago",[Realizado Pago],
-    "Realizado_Pendente",[Realizado Pendente],
-    "Compromisso_Conecta",[Compromisso_Conecta],
-    "A_emitir_Conecta_CAPEX",[A emitir_Conecta_CAPEX]
+    // Escopo organizacional
+    FILTER(
+        ALL(dN4[N3]),
+        dN4[N3] = "Plataformas De Produção"
+    ),
+
+    // Escopo temporal
+    FILTER(
+        ALL(dCalendarioCaixa[Ano]),
+        dCalendarioCaixa[Ano] IN { 2026, 2027 }
+    ),
+
+    // Regra oficial CAPEX
+    FILTER(
+        ALL(dNatureza[Natureza]),
+        dNatureza[Natureza] = "CAPEX"
+    ),
+
+    // Exclusão mantida por consistência
+    FILTER(
+        ALL(dRCs[REQ_COMPRA]),
+        dRCs[REQ_COMPRA] <> "RCGRJ10523844"
+    ),
+
+    "DeltaCaixa_CAPEX",
+        [DeltaCaixa_CAPEX],
+
+    "Orcamento_Cenarios",
+        [Orcamento_Cenarios],
+
+    "Realizado_Pago",
+        [Realizado Pago],
+
+    "Realizado_Pendente",
+        [Realizado Pendente],
+
+    "Compromisso_Conecta",
+        [Compromisso_Conecta],
+
+    "A_emitir_Conecta_CAPEX",
+        [A emitir_Conecta_CAPEX]
 )
+
+ORDER BY
+    dN4[N4],
+    dProjetos[NomeLB],
+    dRubricas[Rubrica],
+    dRCs[REQ_COMPRA],
+    fRealizado[NF_DT_PAGAMENTO]

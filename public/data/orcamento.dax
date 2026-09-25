@@ -1,21 +1,46 @@
 ﻿EVALUATE
+
 VAR Resultado =
     SUMMARIZECOLUMNS(
         dN4[N4],
         dProjetos[NomeLB],
         dCalendarioCaixa[Ano],
         dCalendarioCaixa[Nome do Mês],
-        FILTER(ALL(dN4[N3]), dN4[N3] = "Plataformas De Produção"),
-        FILTER(ALL(dCalendarioCaixa[Ano]), dCalendarioCaixa[Ano] IN {2026, 2027}),
+
+        // Escopo organizacional
+        FILTER(
+            ALL(dN4[N3]),
+            dN4[N3] = "Plataformas De Produção"
+        ),
+
+        // Exercícios usados pelo portal
+        FILTER(
+            ALL(dCalendarioCaixa[Ano]),
+            dCalendarioCaixa[Ano] IN { 2026, 2027 }
+        ),
+
+        // Regra oficial da carteira: somente CAPEX
         FILTER(
             ALL(dNatureza[Natureza]),
-            NOT dNatureza[Natureza] IN {BLANK(), "OPERACIONAL", "OPEX", "OPEX RECORRENTE"}
+            dNatureza[Natureza] = "CAPEX"
         ),
-        FILTER(ALL(dRCs[REQ_COMPRA]), dRCs[REQ_COMPRA] <> "RCGRJ10523844"),
-        "BG_Q3", [BG_Q3]
+
+        // Exclusão mantida por compatibilidade com o relatório
+        FILTER(
+            ALL(dRCs[REQ_COMPRA]),
+            dRCs[REQ_COMPRA] <> "RCGRJ10523844"
+        ),
+
+        "BG_Q3",
+            [BG_Q3]
     )
+
 RETURN
-    FILTER(Resultado, NOT ISBLANK([BG_Q3]))
+    FILTER(
+        Resultado,
+        NOT ISBLANK([BG_Q3])
+    )
+
 ORDER BY
     dN4[N4],
     dProjetos[NomeLB],

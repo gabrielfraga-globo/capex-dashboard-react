@@ -1,0 +1,74 @@
+// =====================================================================
+//  compromissos_detalhados.dax
+//  Extracao detalhada de compromissos para o Radar de Risco de Caixa.
+//
+//  Saida esperada (carga de 25/09/2026):
+//      884 linhas | 754 RCs distintas | total R$ 55.185.044,92
+//
+//  ATENCAO AO CENARIO: o filtro abaixo esta preso em "BGQ3". Quando o
+//  ciclo virar para BGQ4, esta linha precisa ser atualizada a mao, ou a
+//  carga passa a trazer um cenario antigo sem nenhum aviso.
+// =====================================================================
+
+EVALUATE
+
+FILTER (
+    SUMMARIZECOLUMNS (
+
+        dProjetos[IdPPM],
+        dProjetos[NomeLB],
+        dProjetos[1º Aprovador],
+
+        dN4[N3],
+        dN4[N4],
+
+        dRubricas[Rubrica],
+
+        fCompromisso[REQ_COMPRA],
+        fCompromisso[ORDEM_DE_COMPRA],
+
+        fCompromisso[FORNECEDOR],
+        fCompromisso[COMPRADOR],
+
+        fCompromisso[STATUS_COMPROMISSO],
+        fCompromisso[Status_Compromisso_resumido],
+        fCompromisso[NovoStatus],
+        fCompromisso[STATUS_RC],
+
+        fCompromisso[DT_CRIACAO_COMP],
+        fCompromisso[REQ_DESCRICAO],
+        fCompromisso[DT_REQ_APROV],
+        fCompromisso[DATA_NECESSIDADE],
+        fCompromisso[DATA_PROMETIDA],
+
+        // Cenario orcamentario vigente -- revisar a cada ciclo
+        TREATAS ( { "BGQ3" }, dCenarios[Cenários] ),
+
+        // Escopo organizacional
+        TREATAS ( { "Plataformas De Produção" }, dN4[N3 - Copiar] ),
+
+        // Regra oficial da carteira: somente CAPEX
+        TREATAS ( { "CAPEX" }, dNatureza[Natureza] ),
+
+        // Compromissos cancelados e incompletos ficam fora
+        FILTER (
+            KEEPFILTERS ( VALUES ( fCompromisso[NovoStatus] ) ),
+            NOT ( fCompromisso[NovoStatus] IN { "CANCELED", "INCOMPLETE" } )
+        ),
+
+        // Exclusao pontual mantida por compatibilidade com o relatorio
+        FILTER (
+            KEEPFILTERS ( VALUES ( dRCs[REQ_COMPRA] ) ),
+            dRCs[REQ_COMPRA] <> "RCGRJ10523844"
+        ),
+
+        "ValorCompromisso", [Compromisso_Conecta]
+    ),
+
+    NOT ISBLANK ( [ValorCompromisso] )
+        && ROUND ( [ValorCompromisso], 2 ) <> 0
+)
+
+ORDER BY
+    dProjetos[NomeLB],
+    fCompromisso[REQ_COMPRA]

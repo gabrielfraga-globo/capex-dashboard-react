@@ -1,24 +1,93 @@
 ﻿EVALUATE
+
 VAR Resultado =
     SUMMARIZECOLUMNS(
         dN4[N4],
         dProjetos[1º Aprovador],
         dProjetos[NomeLB],
         dCalendarioCaixa[Ano],
-        FILTER(ALL(dN4[N3]), dN4[N3] = "Plataformas De Produção"),
-        FILTER(ALL(dCalendarioCaixa[Ano]), dCalendarioCaixa[Ano] IN {2026, 2027}),
-        FILTER(
-            ALL(dNatureza[Natureza]),
-            NOT dNatureza[Natureza] IN {BLANK(), "OPERACIONAL", "OPEX", "OPEX RECORRENTE"}
+
+        // Cenário selecionado no BI
+        TREATAS(
+            { "BGQ3" },
+            dCenarios[Cenários]
         ),
-        FILTER(ALL(dRCs[REQ_COMPRA]), dRCs[REQ_COMPRA] <> "RCGRJ10523844"),
-        "Orcamento_Cenarios", [Orcamento_Cenarios],
-        "Realizado_Pago", [Realizado Pago],
-        "Realizado_Pendente", [Realizado Pendente],
-        "DeltaCaixa_CAPEX", [DeltaCaixa_CAPEX],
-        "Compromisso_Conecta", [Compromisso_Conecta],
-        "A_emitir_Conecta_CAPEX", [A emitir_Conecta_CAPEX]
+
+        // Ano
+        FILTER(
+            ALL(dCalendarioCaixa[Ano]),
+            dCalendarioCaixa[Ano] IN { 2026, 2027 }
+        ),
+
+        // O visual utiliza N3 - Copiar
+        TREATAS(
+            { "Plataformas De Produção" },
+            dN4[N3 - Copiar]
+        ),
+
+        // Carteira somente CAPEX
+        TREATAS(
+            { "CAPEX" },
+            dNatureza[Natureza]
+        ),
+
+        // Excluir compromissos cancelados ou incompletos
+        FILTER(
+            KEEPFILTERS(
+                VALUES(fCompromisso[NovoStatus])
+            ),
+            NOT(
+                fCompromisso[NovoStatus]
+                    IN {
+                        "CANCELED",
+                        "INCOMPLETE"
+                    }
+            )
+        ),
+
+        // Rubrica preenchida
+        FILTER(
+            KEEPFILTERS(
+                VALUES(dRubricas[Rubrica])
+            ),
+            NOT ISBLANK(dRubricas[Rubrica])
+        ),
+
+        // N3 preenchido
+        FILTER(
+            KEEPFILTERS(
+                VALUES(dN4[N3])
+            ),
+            NOT ISBLANK(dN4[N3])
+        ),
+
+        // RC excluída no relatório
+        FILTER(
+            KEEPFILTERS(
+                VALUES(dRCs[REQ_COMPRA])
+            ),
+            dRCs[REQ_COMPRA] <> "RCGRJ10523844"
+        ),
+
+        "Orcamento_Cenarios",
+            [Orcamento_Cenarios],
+
+        "Realizado_Pago",
+            [Realizado Pago],
+
+        "Realizado_Pendente",
+            [Realizado Pendente],
+
+        "DeltaCaixa_CAPEX",
+            [DeltaCaixa_CAPEX],
+
+        "Compromisso_Conecta",
+            [Compromisso_Conecta],
+
+        "A_emitir_Conecta_CAPEX",
+            [A emitir_Conecta_CAPEX]
     )
+
 RETURN
     FILTER(
         Resultado,
@@ -26,10 +95,12 @@ RETURN
             ISBLANK([Orcamento_Cenarios]) &&
             ISBLANK([Realizado_Pago]) &&
             ISBLANK([Realizado_Pendente]) &&
+            ISBLANK([DeltaCaixa_CAPEX]) &&
             ISBLANK([Compromisso_Conecta]) &&
             ISBLANK([A_emitir_Conecta_CAPEX])
         )
     )
+
 ORDER BY
     dN4[N4],
     dProjetos[1º Aprovador],
