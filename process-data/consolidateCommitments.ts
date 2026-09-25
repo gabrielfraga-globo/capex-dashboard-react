@@ -12,6 +12,7 @@ export interface RawCsvRow {
   COMPRADOR: string;
   STATUS_COMPROMISSO: string;
   STATUS_RC: string;
+  REQ_DESCRICAO?: string;
   DATA_NECESSIDADE: string;
   DATA_PROMETIDA: string;
   ValorCompromisso: string;
@@ -60,6 +61,7 @@ function normalizarLinha(linha: RawCsvRow): CommitmentSourceLine {
     comprador: linha.COMPRADOR,
     statusCompromisso: linha.STATUS_COMPROMISSO,
     statusRc: linha.STATUS_RC,
+    requestDescription: linha.REQ_DESCRICAO?.trim() || undefined,
     dataNecessidade: parseData(linha.DATA_NECESSIDADE),
     dataPrometida: parseData(linha.DATA_PROMETIDA),
     valorCompromisso: parseDecimalPtBr(linha.ValorCompromisso),
@@ -94,6 +96,7 @@ export function consolidarCompromissos(linhasCsv: RawCsvRow[], exercicio: number
         rubrica: linha.Rubrica,
         supplier: linha.FORNECEDOR,
         systemStatus: linha.STATUS_COMPROMISSO,
+        requestDescription: linha.REQ_DESCRICAO?.trim() || undefined,
         systemPromisedDate: null,
         systemNeedDate: null,
         sourceValue: 0,

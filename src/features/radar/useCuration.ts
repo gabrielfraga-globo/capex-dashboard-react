@@ -14,6 +14,22 @@ import { mergearRadar } from "./merge";
 
 const BUNDLE_URL = `${import.meta.env.BASE_URL}data/radar-bundle.json`;
 const CURATION_URL = "/api/curation";
+const USER_EMAIL = import.meta.env.VITE_USER_EMAIL ?? "gabriel.fraga@g.globo";
+
+const buildCurationHeaders = (withJsonBody = false): HeadersInit => {
+  const headers: HeadersInit = {
+    "x-user-email": USER_EMAIL,
+  };
+
+  if (withJsonBody) {
+    return {
+      ...headers,
+      "Content-Type": "application/json",
+    };
+  }
+
+  return headers;
+};
 
 export interface UseCurationResult {
   isLoading: boolean;
@@ -41,7 +57,10 @@ export function useCuration(): UseCurationResult {
 
   const carregarCuradoria = useCallback(async () => {
     try {
-      const res = await fetch(CURATION_URL, { cache: "no-store" });
+      const res = await fetch(CURATION_URL, {
+        cache: "no-store",
+        headers: buildCurationHeaders(),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as { data: CurationMap };
       if (montado.current) setCurationMap(json.data);
@@ -143,7 +162,7 @@ export function useCuration(): UseCurationResult {
       try {
         const res = await fetch(`${CURATION_URL}/key/${encodeURIComponent(commitmentKey)}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: buildCurationHeaders(true),
           body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -195,7 +214,7 @@ export function useCuration(): UseCurationResult {
       try {
         const res = await fetch(`${CURATION_URL}/rc/${encodeURIComponent(rc)}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: buildCurationHeaders(true),
           body: JSON.stringify(payload),
         });
         const body = await res.json().catch(() => null);

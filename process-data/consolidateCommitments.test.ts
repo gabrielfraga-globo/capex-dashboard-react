@@ -75,4 +75,13 @@ describe("consolidarCompromissos", () => {
     expect(bundle.commitments[0].systemPromisedDate).toBeNull();
     expect(bundle.discardedLines).toBe(0);
   });
+
+  it("propaga REQ_DESCRICAO sem alterar chave ou valor", () => {
+    const bundle = consolidarCompromissos([linha({ REQ_DESCRICAO: "Descrição completa da requisição" })], 2026);
+
+    expect(bundle.commitments[0].requestDescription).toBe("Descrição completa da requisição");
+    expect(bundle.commitments[0].details[0].requestDescription).toBe("Descrição completa da requisição");
+    expect(bundle.commitments[0].commitmentKey).toBe("RC:RCGRJ10000001|OC:OCGCP10000001|PPM:30783");
+    expect(bundle.totals.value).toBe(1000);
+  });
 });

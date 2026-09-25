@@ -7,7 +7,7 @@ import type {
   RadarSummary,
   RcView,
 } from "./types";
-import { PAYMENT_LEAD_DAYS, PENDING_OC } from "./types";
+import { derivarPoStatus, PAYMENT_LEAD_DAYS, PENDING_OC } from "./types";
 
 const CASH_BUCKETS: CashBucket[] = [
   "CONFIRMED_IN_YEAR",
@@ -33,6 +33,10 @@ function sum(values: number[]): number {
   return values.reduce((acc, value) => acc + value, 0);
 }
 
+function roundCurrency(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 function zeroBuckets(): Record<CashBucket, number> {
   return CASH_BUCKETS.reduce((acc, bucket) => {
     acc[bucket] = 0;
@@ -40,15 +44,22 @@ function zeroBuckets(): Record<CashBucket, number> {
   }, {} as Record<CashBucket, number>);
 }
 
-/** Ordem de precedência exata da seção 5: status explícito vence, depois a data de pagamento. */
+/** O status efetivo sempre prevalece; a data só detalha compromissos confirmados. */
 function classificar(cur: CommitmentCuration | null, pagamento: string | null, corte: string): CashBucket {
   if (!cur) return "NOT_CURATED";
-  if (cur.poStatus === "CANCELLED") return "CANCELLED";
-  if (cur.poStatus === "AT_RISK") return "AT_RISK";
-  if (cur.poStatus === "NO_VISIBILITY") return "NO_VISIBILITY";
-  if (!pagamento) return "CONFIRMED_NO_DATE";
-  if (pagamento <= corte) return "CONFIRMED_IN_YEAR";
-  return "CARRYOVER";
+  switch (cur.poStatus) {
+    case "CANCELLED":
+      return "CANCELLED";
+    case "CARRYOVER":
+      return "CARRYOVER";
+    case "AT_RISK":
+      return "AT_RISK";
+    case "NO_VISIBILITY":
+      return "NO_VISIBILITY";
+    case "CONFIRMED":
+      if (!pagamento) return "CONFIRMED_NO_DATE";
+      return pagamento <= corte ? "CONFIRMED_IN_YEAR" : "CARRYOVER";
+  }
 }
 
 /** Assinatura de conteúdo da curadoria, usada para detectar filhas divergentes numa RC. */
@@ -82,6 +93,10 @@ export function mergearRadar(
         cur = { ...curPendente, inheritedFromKey: chavePendente };
         requiresReview = true;
       }
+    }
+
+    if (cur && cur.poStatus !== "CANCELLED" && cur.estimatedDeliveryDate) {
+      cur = { ...cur, poStatus: derivarPoStatus(cur.estimatedDeliveryDate, exercicio) };
     }
 
     const pagamento = cur?.estimatedDeliveryDate ? addDays(cur.estimatedDeliveryDate, PAYMENT_LEAD_DAYS) : null;
@@ -130,20 +145,28 @@ export function mergearRadar(
   // ── Passo 3: resumo ────────────────────────────────────────
   const buckets = zeroBuckets();
   for (const v of views) buckets[v.bucket] += v.sourceValue;
+  for (const bucket of CASH_BUCKETS) buckets[bucket] = roundCurrency(buckets[bucket]);
 
-  const totalCommitment = sum(views.map((v) => v.sourceValue));
+  const totalCommitment = roundCurrency(sum(views.map((v) => v.sourceValue)));
   const curatedKeys = views.filter((v) => v.isCurated).length;
   const curatedValue = sum(views.filter((v) => v.isCurated).map((v) => v.sourceValue));
   const totalKeys = views.length;
 
-  const somaBaldes = sum(CASH_BUCKETS.map((bucket) => buckets[bucket]));
+  const somaBaldes = roundCurrency(sum(CASH_BUCKETS.map((bucket) => buckets[bucket])));
+  const reconciles = somaBaldes === totalCommitment;
+
+  if (!reconciles && import.meta.env.DEV) {
+    console.warn("[Radar] Reconciliação dos buckets falhou", {
+      expected: totalCommitment,
+      obtained: somaBaldes,
+      difference: roundCurrency(somaBaldes - totalCommitment),
+      buckets,
+    });
+  }
 
   const resumo: RadarSummary = {
     exerciseYear: exercicio,
     totalCommitment,
-    bgCurated: buckets.CONFIRMED_IN_YEAR,
-    carryover: buckets.CARRYOVER,
-    notCurated: buckets.NOT_CURATED,
     buckets,
     coverage: {
       curatedKeys,
@@ -151,7 +174,7 @@ export function mergearRadar(
       curatedValue,
       ratio: totalKeys > 0 ? curatedKeys / totalKeys : 0,
     },
-    reconciles: Math.abs(somaBaldes - totalCommitment) <= 0.01,
+    reconciles,
   };
 
   return { views, rcViews, resumo };

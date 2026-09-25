@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Calendar, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { InfoTooltip } from "../../components/ui/primitives";
 import { cn } from "../../lib/utils";
 import { fmtBRL } from "../../lib/format";
 import { aplicarMascaraData, isoParaMascara, mascaraParaIso } from "./dateMask";
@@ -12,19 +13,18 @@ import type {
   RcCurationUpsertResponse,
   RcView,
 } from "./types";
-
-const STATUS_OPTIONS: { value: PoStatus; label: string }[] = [
-  { value: "CONFIRMED", label: "C · Confirmado" },
-  { value: "AT_RISK", label: "A · Em risco" },
-  { value: "NO_VISIBILITY", label: "N · Sem visibilidade" },
-  { value: "CANCELLED", label: "X · Cancelado" },
-];
+import { derivarPoStatus } from "./types";
+import { fornecedorDoCompromisso, fornecedoresDaRc } from "./suppliers";
+import { poStatusLabel } from "./status";
+import { COMMITMENT_TABLE_WIDTH, CommitmentColGroup, OverflowText } from "./tableLayout";
+import { useOverflowTitle } from "./useOverflowTitle";
 
 const STATUS_BADGE: Record<PoStatus, string> = {
-  CONFIRMED: "bg-risk-baixo text-emerald-950",
-  AT_RISK: "bg-risk-alto text-white",
-  CANCELLED: "bg-slate-500 text-white",
-  NO_VISIBILITY: "bg-risk-medio text-black",
+  CONFIRMED: "bg-emerald-700 text-white",
+  AT_RISK: "bg-amber-700 text-white",
+  CARRYOVER: "bg-sky-700 text-white",
+  CANCELLED: "bg-red-700 text-white",
+  NO_VISIBILITY: "bg-slate-600 text-white",
 };
 
 const HETEROGENEITY_LABEL: Record<string, string> = {
@@ -38,20 +38,18 @@ const HETEROGENEITY_LABEL: Record<string, string> = {
 
 interface Draft {
   dataMasked: string;
-  status: PoStatus | "";
   nota: string;
 }
 
 function draftDeCuradoria(cur: CommitmentCuration | null): Draft {
   return {
     dataMasked: isoParaMascara(cur?.estimatedDeliveryDate ?? null),
-    status: cur?.poStatus ?? "",
     nota: cur?.notes ?? "",
   };
 }
 
 function draftsIguais(a: Draft, b: Draft): boolean {
-  return a.dataMasked === b.dataMasked && a.status === b.status && a.nota === b.nota;
+  return a.dataMasked === b.dataMasked && a.nota === b.nota;
 }
 
 function dataRetroativa(masked: string): boolean {
@@ -77,6 +75,7 @@ interface RcRowProps {
   onSalvarRc: (rc: string, payload: RcCurationUpsertRequest) => Promise<RcCurationUpsertResponse | null>;
   onSalvarChave: (chave: string, payload: CurationUpsertRequest) => Promise<boolean>;
   onEnterProximaRc: (rcAtual: string) => void;
+  exerciseYear: number;
 }
 
 export function RcRow({
@@ -88,9 +87,11 @@ export function RcRow({
   onSalvarRc,
   onSalvarChave,
   onEnterProximaRc,
+  exerciseYear,
 }: RcRowProps) {
   const linhaRef = useRef<HTMLTableRowElement>(null);
   const dataInputRef = useRef<HTMLInputElement>(null);
+  const calendarInputRef = useRef<HTMLInputElement>(null);
   const [expandido, setExpandido] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => draftDeCuradoria(rcView.effectiveCuration));
   const [preservadas, setPreservadas] = useState<number | null>(null);
@@ -117,10 +118,10 @@ export function RcRow({
   const temFilhosVisiveis = rcView.isHeterogeneous;
   const requerRevisao = rcView.commitments.some((c) => c.requiresReview);
   const chaveUnica = rcView.commitments.length === 1 ? rcView.commitments[0].commitmentKey : null;
+  const statusAtual = rcView.effectiveCuration?.poStatus ?? rcView.commitments[0]?.curation?.poStatus ?? null;
 
   async function salvarSeMudou() {
     if (draftsIguais(draft, salvoRef.current)) return;
-    if (draft.status === "") return; // status é obrigatório para gravar
 
     let iso: string | null = null;
     if (draft.dataMasked !== "") {
@@ -133,7 +134,7 @@ export function RcRow({
     if (chaveUnica) {
       const ok = await onSalvarChave(chaveUnica, {
         estimatedDeliveryDate: iso,
-        poStatus: draft.status,
+        poStatus: statusAtual === "CANCELLED" ? "CANCELLED" : derivarPoStatus(iso, exerciseYear),
         notes: draft.nota || null,
         sourceValue: rcView.commitments[0].sourceValue,
       });
@@ -148,7 +149,7 @@ export function RcRow({
 
     const resposta = await onSalvarRc(rcView.rc, {
       estimatedDeliveryDate: iso,
-      poStatus: draft.status,
+      poStatus: statusAtual === "CANCELLED" ? "CANCELLED" : derivarPoStatus(iso, exerciseYear),
       notes: draft.nota || null,
       sourceValue: rcView.totalValue,
       targets: rcView.commitments.map((c) => ({ commitmentKey: c.commitmentKey, sourceValue: c.sourceValue })),
@@ -167,26 +168,54 @@ export function RcRow({
     onEnterProximaRc(rcView.rc);
   }
 
-  function aoMudarStatus(novo: PoStatus) {
-    setDraft((prev) => ({ ...prev, status: novo }));
-    if (novo === "CONFIRMED" && draft.dataMasked === "") {
-      requestAnimationFrame(() => dataInputRef.current?.focus());
+  async function alternarCancelamento() {
+    const iso = draft.dataMasked === "" ? null : mascaraParaIso(draft.dataMasked);
+    if (draft.dataMasked !== "" && !iso) return;
+    const poStatus = statusAtual === "CANCELLED" ? derivarPoStatus(iso, exerciseYear) : "CANCELLED";
+    const payload = { estimatedDeliveryDate: iso, poStatus, notes: draft.nota || null };
+    if (chaveUnica) {
+      await onSalvarChave(chaveUnica, { ...payload, sourceValue: rcView.commitments[0].sourceValue });
+    } else {
+      await onSalvarRc(rcView.rc, {
+        ...payload,
+        sourceValue: rcView.totalValue,
+        targets: rcView.commitments.map((c) => ({ commitmentKey: c.commitmentKey, sourceValue: c.sourceValue })),
+      });
     }
+  }
+
+  function abrirCalendario() {
+    const input = calendarInputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === "function") input.showPicker();
+    else input.click();
   }
 
   const salvando = chaveUnica ? isSavingChave(chaveUnica) : isSavingRc;
   const erro = chaveUnica ? erroDaChave(chaveUnica) : errorRc;
   const dataNoPassado = draft.dataMasked !== "" && dataRetroativa(draft.dataMasked);
+  const fornecedores = fornecedoresDaRc(rcView);
+  const fornecedor = fornecedores.length === 1 ? fornecedores[0] : `${fornecedores.length} fornecedores`;
+  const quantidade = rcView.commitments.reduce((total, commitment) => total + commitment.lineCount, 0);
+  const ordensCompra = Array.from(new Set(rcView.commitments.map((commitment) => commitment.oc)));
+  const statusesCompromisso = Array.from(new Set(rcView.commitments.map((commitment) => commitment.systemStatus).filter(Boolean)));
+  const descricoes = Array.from(new Set(rcView.commitments.map((commitment) => commitment.requestDescription?.trim()).filter((value): value is string => Boolean(value))));
+  const ordemCompra = ordensCompra.length === 1 ? (ordensCompra[0] === "PENDING" ? "—" : ordensCompra[0]) : `${ordensCompra.length} OCs`;
+  const statusCompromisso = statusesCompromisso.length <= 1 ? (statusesCompromisso[0] ?? "—") : `${statusesCompromisso.length} status`;
+  const pagamento = rcView.commitments[0]?.expectedPaymentDate;
+  const pagamentoFormatado = pagamento ? isoParaMascara(pagamento) : "—";
+  const noteOverflow = useOverflowTitle<HTMLInputElement>(draft.nota);
+  const resumoRc = [rcView.rc, ...rcView.heterogeneityReasons.map((reason) => HETEROGENEITY_LABEL[reason] ?? reason)].join(" · ");
 
   return (
     <>
       <tr
         ref={linhaRef}
         data-rc-key={rcView.rc}
-        className={cn("border-b border-border/60 text-xs", requerRevisao && "bg-risk-revisao/10")}
+        className={cn("commitment-data-row border-b border-border/60 text-xs", requerRevisao && "commitment-review-row")}
       >
-        <td className="py-1.5 pr-2 whitespace-nowrap">
-          <div className="flex items-center gap-1">
+        <td className="py-1.5 pr-2">
+          <OverflowText text={resumoRc} className="flex items-center gap-1">
             {temFilhosVisiveis ? (
               <button
                 type="button"
@@ -202,17 +231,32 @@ export function RcRow({
               <span className="w-[13px] shrink-0" />
             )}
             <span className="font-mono">{rcView.rc}</span>
+            {descricoes.length > 0 && (
+              <span title={descricoes.join("\n")}>
+                <InfoTooltip text={descricoes.join("\n")} />
+              </span>
+            )}
             {requerRevisao && <span className="text-[10px] font-bold text-risk-revisao">revisar</span>}
-          </div>
-          {temFilhosVisiveis && rcView.heterogeneityReasons.length > 0 && (
-            <div className="pl-[17px] text-[10px] text-text-faint">
+            {temFilhosVisiveis && rcView.heterogeneityReasons.length > 0 && (
+              <span className="text-[10px] text-text-faint">
               {rcView.heterogeneityReasons.map((r) => HETEROGENEITY_LABEL[r] ?? r).join(", ")}
-            </div>
-          )}
+              </span>
+            )}
+          </OverflowText>
         </td>
-        <td className="py-1.5 pr-2 text-right whitespace-nowrap">{fmtBRL(rcView.totalValue)}</td>
         <td className="py-1.5 pr-2">
-          <div>
+          <OverflowText text={fornecedores.join("\n")}>{fornecedor}</OverflowText>
+        </td>
+        <td className="py-1.5 pr-2">
+          <OverflowText text={ordensCompra.join("\n")}>{ordemCompra}</OverflowText>
+        </td>
+        <td className="py-1.5 pr-2">
+          <OverflowText text={statusesCompromisso.join("\n") || "—"}>{statusCompromisso}</OverflowText>
+        </td>
+        <td className="py-1.5 pr-2 text-right"><OverflowText text={fmtBRL(rcView.totalValue)}>{fmtBRL(rcView.totalValue)}</OverflowText></td>
+        <td className="py-1.5 pr-2 text-right"><OverflowText text={String(quantidade)}>{quantidade}</OverflowText></td>
+        <td className="py-1.5 pr-2">
+          <div className="relative">
             <input
               ref={dataInputRef}
               data-role="date-input"
@@ -234,6 +278,19 @@ export function RcRow({
               )}
               title={dataNoPassado ? "Data anterior a hoje; confirme se a entrega já ocorreu." : undefined}
             />
+            <button type="button" className="ml-1 text-text-muted hover:text-text" aria-label="Abrir calendário" onClick={abrirCalendario}>
+              <Calendar size={14} />
+            </button>
+            <input
+              ref={calendarInputRef}
+              type="date"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="absolute h-0 w-0 opacity-0"
+              value={mascaraParaIso(draft.dataMasked) ?? ""}
+              onChange={(e) => setDraft((prev) => ({ ...prev, dataMasked: isoParaMascara(e.target.value) }))}
+              onBlur={() => void salvarSeMudou()}
+            />
             {dataNoPassado && (
               <div className="mt-1 text-[9px] text-amber-600" title="Data anterior a hoje; confirme se a entrega já ocorreu.">
                 data retroativa
@@ -241,40 +298,17 @@ export function RcRow({
             )}
           </div>
         </td>
-        <td className="py-1.5 pr-2 whitespace-nowrap text-text-muted">
-          {(() => {
-            const pagamento = rcView.commitments[0]?.expectedPaymentDate;
-            return pagamento ? isoParaMascara(pagamento) : "—";
-          })()}
+        <td className="py-1.5 pr-2 text-text-muted">
+          <OverflowText text={pagamentoFormatado}>{pagamentoFormatado}</OverflowText>
         </td>
         <td className="py-1.5 pr-2">
-          <select
-            value={draft.status}
-            onChange={(e) => aoMudarStatus(e.target.value as PoStatus)}
-            onBlur={() => void salvarSeMudou()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                aoTeclarEnter();
-              }
-            }}
-            className={cn(
-              "rounded border border-border bg-card px-1.5 py-1 text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
-              draft.status && STATUS_BADGE[draft.status]
-            )}
-          >
-            <option value="" disabled>
-              Selecionar…
-            </option>
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <OverflowText text={statusAtual ? poStatusLabel(statusAtual, exerciseYear) : "—"}>
+            {statusAtual ? <span className={cn("inline-flex rounded px-1.5 py-1 font-semibold", STATUS_BADGE[statusAtual])}>{poStatusLabel(statusAtual, exerciseYear)}</span> : "—"}
+          </OverflowText>
         </td>
         <td className="py-1.5 pr-2">
           <input
+            ref={noteOverflow.ref}
             type="text"
             maxLength={2000}
             placeholder="nota"
@@ -287,25 +321,38 @@ export function RcRow({
                 aoTeclarEnter();
               }
             }}
+            title={noteOverflow.title}
             className="w-full min-w-[90px] rounded border border-border bg-card px-1.5 py-1 text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           />
         </td>
-        <td className="py-1.5 pr-1 w-5">
-          {salvando && <Loader2 size={12} className="animate-spin text-text-faint" aria-label="Salvando…" />}
-          {!salvando && erro && (
-            <span className="text-risk-critico" title={erro}>
-              !
-            </span>
-          )}
-          {!salvando && !erro && preservadas !== null && (
-            <span className="text-[10px] text-text-faint whitespace-nowrap">{preservadas} preservada(s)</span>
-          )}
+        <td className="py-1.5 pr-1">
+          <OverflowText text={statusAtual === "CANCELLED" ? "reverter" : "não contabilizar"} className="flex items-center">
+            {statusAtual && (
+              <button
+                type="button"
+                disabled={salvando}
+                onClick={() => void alternarCancelamento()}
+                className="mr-2 whitespace-nowrap text-[10px] text-text-muted hover:text-text"
+              >
+                {statusAtual === "CANCELLED" ? "reverter" : "não contabilizar"}
+              </button>
+            )}
+            {salvando && <Loader2 size={12} className="shrink-0 animate-spin text-text-faint" aria-label="Salvando…" />}
+            {!salvando && erro && (
+              <span className="text-risk-critico" title={erro}>
+                !
+              </span>
+            )}
+            {!salvando && !erro && preservadas !== null && (
+              <span className="text-[10px] text-text-faint whitespace-nowrap">{preservadas} preservada(s)</span>
+            )}
+          </OverflowText>
         </td>
       </tr>
 
       {chaveUnica && rcView.commitments[0].isStale && (
-        <tr className="text-[10px] text-risk-medio">
-          <td colSpan={7} className="pb-1.5 pl-6">
+        <tr className="commitment-message-row text-[10px] text-risk-medio">
+          <td colSpan={11} className="pb-1.5 pl-6">
             valor mudou: {fmtBRL(rcView.commitments[0].curation?.sourceValueAtCuration)} → {fmtBRL(rcView.commitments[0].sourceValue)}
             {" · "}
             <button
@@ -314,7 +361,10 @@ export function RcRow({
               onClick={() =>
                 void onSalvarChave(rcView.commitments[0].commitmentKey, {
                   estimatedDeliveryDate: rcView.commitments[0].curation?.estimatedDeliveryDate ?? null,
-                  poStatus: rcView.commitments[0].curation?.poStatus ?? "AT_RISK",
+                  poStatus:
+                    rcView.commitments[0].curation?.poStatus === "CANCELLED"
+                      ? "CANCELLED"
+                      : derivarPoStatus(rcView.commitments[0].curation?.estimatedDeliveryDate ?? null, exerciseYear),
                   notes: rcView.commitments[0].curation?.notes ?? null,
                   sourceValue: rcView.commitments[0].sourceValue,
                 })
@@ -327,12 +377,13 @@ export function RcRow({
       )}
 
       {expandido && temFilhosVisiveis && (
-        <tr>
-          <td colSpan={7} className="pb-2 pl-6 pr-2">
-            <table className="w-full text-[11px] border-collapse">
+        <tr className="commitment-detail-row">
+          <td colSpan={11} className="pb-2">
+            <table className="commitment-child-table commitment-grid table-fixed border-collapse text-[11px]" style={{ width: COMMITMENT_TABLE_WIDTH }}>
+              <CommitmentColGroup />
               <tbody>
                 {rcView.commitments.map((c) => (
-                  <ChildRow key={c.commitmentKey} view={c} onSalvarChave={onSalvarChave} isSaving={isSavingChave(c.commitmentKey)} erro={erroDaChave(c.commitmentKey)} />
+                  <ChildRow key={c.commitmentKey} view={c} exerciseYear={exerciseYear} onSalvarChave={onSalvarChave} isSaving={isSavingChave(c.commitmentKey)} erro={erroDaChave(c.commitmentKey)} />
                 ))}
               </tbody>
             </table>
@@ -345,16 +396,19 @@ export function RcRow({
 
 function ChildRow({
   view,
+  exerciseYear,
   onSalvarChave,
   isSaving,
   erro,
 }: {
   view: CommitmentView;
+  exerciseYear: number;
   onSalvarChave: (chave: string, payload: CurationUpsertRequest) => Promise<boolean>;
   isSaving: boolean;
   erro: string | null;
 }) {
   const linhaRef = useRef<HTMLTableRowElement>(null);
+  const calendarInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<Draft>(() => draftDeCuradoria(view.curation));
   const salvoRef = useRef<Draft>(draft);
   const dataNoPassado = draft.dataMasked !== "" && dataRetroativa(draft.dataMasked);
@@ -371,7 +425,6 @@ function ChildRow({
 
   async function salvarSeMudou() {
     if (draftsIguais(draft, salvoRef.current)) return;
-    if (draft.status === "") return;
     let iso: string | null = null;
     if (draft.dataMasked !== "") {
       iso = mascaraParaIso(draft.dataMasked);
@@ -380,7 +433,7 @@ function ChildRow({
     const antes = { ...salvoRef.current };
     const ok = await onSalvarChave(view.commitmentKey, {
       estimatedDeliveryDate: iso,
-      poStatus: draft.status,
+      poStatus: view.curation?.poStatus === "CANCELLED" ? "CANCELLED" : derivarPoStatus(iso, exerciseYear),
       notes: draft.nota || null,
       sourceValue: view.sourceValue,
     });
@@ -392,15 +445,43 @@ function ChildRow({
     salvoRef.current = draft;
   }
 
+  async function alternarCancelamento() {
+    const iso = draft.dataMasked === "" ? null : mascaraParaIso(draft.dataMasked);
+    if (draft.dataMasked !== "" && !iso) return;
+    await onSalvarChave(view.commitmentKey, {
+      estimatedDeliveryDate: iso,
+      poStatus: view.curation?.poStatus === "CANCELLED" ? derivarPoStatus(iso, exerciseYear) : "CANCELLED",
+      notes: draft.nota || null,
+      sourceValue: view.sourceValue,
+    });
+  }
+
+  function abrirCalendario() {
+    const input = calendarInputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === "function") input.showPicker();
+    else input.click();
+  }
+
+  const fornecedor = fornecedorDoCompromisso(view);
+  const ordemCompra = view.oc === "PENDING" ? "—" : view.oc;
+  const statusCompromisso = view.systemStatus || "—";
+  const pagamento = view.expectedPaymentDate ? isoParaMascara(view.expectedPaymentDate) : "—";
+  const status = view.curation ? poStatusLabel(view.curation.poStatus, exerciseYear) : "—";
+  const origemCuradoria = view.curation?.curationLevel === "KEY" ? "própria" : "herdada da RC";
+
   return (
-    <tr ref={linhaRef} className={cn("border-b border-border/40", view.requiresReview && "bg-risk-revisao/10")}>
-      <td className="py-1 pr-2 text-text-muted whitespace-nowrap">
-        PPM {view.projectId} · OC {view.oc === "PENDING" ? "—" : view.oc}
+    <tr ref={linhaRef} className={cn("commitment-child-row border-b border-border/40", view.requiresReview && "commitment-review-row")}>
+      <td className="py-1 pr-2 text-text-muted">
+        <OverflowText text={`PPM ${view.projectId}`}>PPM {view.projectId}</OverflowText>
       </td>
-      <td className="py-1 pr-2 text-text-muted">{view.projectName}</td>
-      <td className="py-1 pr-2 text-right whitespace-nowrap">{fmtBRL(view.sourceValue)}</td>
+      <td className="py-1 pr-2 text-text-muted"><OverflowText text={fornecedor}>{fornecedor}</OverflowText></td>
+      <td className="py-1 pr-2 text-text-muted"><OverflowText text={ordemCompra}>{ordemCompra}</OverflowText></td>
+      <td className="py-1 pr-2 text-text-muted"><OverflowText text={statusCompromisso}>{statusCompromisso}</OverflowText></td>
+      <td className="py-1 pr-2 text-right"><OverflowText text={fmtBRL(view.sourceValue)}>{fmtBRL(view.sourceValue)}</OverflowText></td>
+      <td className="py-1 pr-2 text-right"><OverflowText text={String(view.lineCount)}>{view.lineCount}</OverflowText></td>
       <td className="py-1 pr-2">
-        <div>
+        <div className="relative">
           <input
             type="text"
             inputMode="numeric"
@@ -420,6 +501,19 @@ function ChildRow({
             )}
             title={dataNoPassado ? "Data anterior a hoje; confirme se a entrega já ocorreu." : undefined}
           />
+          <button type="button" className="ml-1 text-text-muted hover:text-text" aria-label="Abrir calendário" onClick={abrirCalendario}>
+            <Calendar size={13} />
+          </button>
+          <input
+            ref={calendarInputRef}
+            type="date"
+            tabIndex={-1}
+            aria-hidden="true"
+            className="absolute h-0 w-0 opacity-0"
+            value={mascaraParaIso(draft.dataMasked) ?? ""}
+            onChange={(e) => setDraft((prev) => ({ ...prev, dataMasked: isoParaMascara(e.target.value) }))}
+            onBlur={() => void salvarSeMudou()}
+          />
           {dataNoPassado && (
             <div className="mt-1 text-[9px] text-amber-600" title="Data anterior a hoje; confirme se a entrega já ocorreu.">
               data retroativa
@@ -427,68 +521,62 @@ function ChildRow({
           )}
         </div>
       </td>
-      <td className="py-1 pr-2">
-        <select
-          value={draft.status}
-          onChange={(e) => setDraft((prev) => ({ ...prev, status: e.target.value as PoStatus }))}
-          onBlur={() => void salvarSeMudou()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              (e.target as HTMLSelectElement).blur();
-            }
-          }}
-          className={cn(
-            "rounded border border-border bg-card px-1 py-0.5 text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent",
-            draft.status && STATUS_BADGE[draft.status]
-          )}
-        >
-          <option value="" disabled>
-            Selecionar…
-          </option>
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+      <td className="py-1 pr-2 text-text-muted">
+        <OverflowText text={pagamento}>{pagamento}</OverflowText>
       </td>
-      <td className="py-1 pr-2 whitespace-nowrap">
-        {view.curation?.curationLevel === "KEY" ? (
-          <span className="text-[10px] text-text-faint">própria</span>
-        ) : (
-          <span className="text-[10px] text-text-faint">herdada da RC</span>
-        )}
+      <td className="py-1 pr-2">
+        <OverflowText text={status}>
+          {view.curation ? (
+            <span className={cn("inline-flex rounded px-1 py-0.5 font-semibold", STATUS_BADGE[view.curation.poStatus])}>
+              {status}
+            </span>
+          ) : "—"}
+        </OverflowText>
+      </td>
+      <td className="py-1 pr-2">
+        <OverflowText text={view.isStale ? `${origemCuradoria}; valor mudou: ${fmtBRL(view.curation?.sourceValueAtCuration)} → ${fmtBRL(view.sourceValue)}` : origemCuradoria}>
+          <span className="text-[10px] text-text-faint">{origemCuradoria}</span>
         {view.isStale && (
-          <span className="block text-risk-medio">
+          <span className="ml-1 text-risk-medio">
             valor mudou: {fmtBRL(view.curation?.sourceValueAtCuration)} → {fmtBRL(view.sourceValue)}
           </span>
         )}
+        </OverflowText>
       </td>
-      <td className="py-1 pr-1 whitespace-nowrap">
-        {view.requiresReview && (
-          <button
-            type="button"
-            disabled={isSaving}
-            className="underline text-risk-revisao"
-            onClick={() =>
-              void onSalvarChave(view.commitmentKey, {
-                estimatedDeliveryDate: view.curation?.estimatedDeliveryDate ?? null,
-                poStatus: view.curation?.poStatus ?? "AT_RISK",
-                notes: view.curation?.notes ?? null,
-                sourceValue: view.sourceValue,
-              })
-            }
-          >
-            revisar
-          </button>
-        )}
-        {isSaving && <Loader2 size={11} className="inline animate-spin text-text-faint ml-1" />}
-        {erro && (
-          <span className="text-risk-critico ml-1" title={erro}>
-            !
-          </span>
-        )}
+      <td className="py-1 pr-1">
+        <OverflowText text={`${view.curation?.poStatus === "CANCELLED" ? "reverter" : "não contabilizar"}${view.requiresReview ? "; revisar" : ""}`} className="flex items-center">
+          {view.curation && (
+            <button type="button" disabled={isSaving} className="mr-2 text-[10px] text-text-muted hover:text-text" onClick={() => void alternarCancelamento()}>
+              {view.curation.poStatus === "CANCELLED" ? "reverter" : "não contabilizar"}
+            </button>
+          )}
+          {view.requiresReview && (
+            <button
+              type="button"
+              disabled={isSaving}
+              className="underline text-risk-revisao"
+              onClick={() =>
+                void onSalvarChave(view.commitmentKey, {
+                  estimatedDeliveryDate: view.curation?.estimatedDeliveryDate ?? null,
+                  poStatus:
+                    view.curation?.poStatus === "CANCELLED"
+                      ? "CANCELLED"
+                      : derivarPoStatus(view.curation?.estimatedDeliveryDate ?? null, exerciseYear),
+                  notes: view.curation?.notes ?? null,
+                  sourceValue: view.sourceValue,
+                })
+              }
+            >
+              revisar
+            </button>
+          )}
+          {isSaving && <Loader2 size={11} className="ml-1 shrink-0 animate-spin text-text-faint" />}
+          {erro && (
+            <span className="text-risk-critico ml-1" title={erro}>
+              !
+            </span>
+          )}
+        </OverflowText>
       </td>
     </tr>
   );

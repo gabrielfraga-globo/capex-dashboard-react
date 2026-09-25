@@ -10,7 +10,9 @@ export function getPool(): Pool {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error("DATABASE_URL não configurada");
+      const error = new Error("DATABASE_URL não configurada");
+      (error as Error & { statusCode?: number }).statusCode = 503;
+      throw error;
     }
     pool = new Pool({ connectionString });
   }

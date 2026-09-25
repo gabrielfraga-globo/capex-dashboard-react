@@ -2,7 +2,7 @@
 // Enums e constantes
 // ─────────────────────────────────────────────────────────────
 
-export const PO_STATUS = ['CONFIRMED', 'AT_RISK', 'CANCELLED', 'NO_VISIBILITY'] as const;
+export const PO_STATUS = ['CONFIRMED', 'AT_RISK', 'CARRYOVER', 'CANCELLED', 'NO_VISIBILITY'] as const;
 export type PoStatus = (typeof PO_STATUS)[number];
 
 export type CurationLevel = 'RC' | 'KEY';
@@ -19,6 +19,22 @@ export type CashBucket =
 export const PAYMENT_LEAD_DAYS = 30;
 export const PENDING_OC = 'PENDING';
 
+export const RADAR_CARD_BUCKETS = {
+  bgTimes: "CONFIRMED_IN_YEAR",
+  carryover: "CARRYOVER",
+  notCurated: "NOT_CURATED",
+} as const satisfies Record<string, CashBucket>;
+
+export function derivarPoStatus(estimatedDeliveryDate: string | null, exerciseYear: number): PoStatus {
+  if (!estimatedDeliveryDate) return "NO_VISIBILITY";
+
+  const confirmedLimit = `${exerciseYear}-11-14`;
+  const atRiskLimit = `${exerciseYear}-11-30`;
+  if (estimatedDeliveryDate <= confirmedLimit) return "CONFIRMED";
+  if (estimatedDeliveryDate <= atRiskLimit) return "AT_RISK";
+  return "CARRYOVER";
+}
+
 // ─────────────────────────────────────────────────────────────
 // Fonte oficial — gerada pelo process-data, nunca editada
 // ─────────────────────────────────────────────────────────────
@@ -34,6 +50,7 @@ export interface CommitmentSourceLine {
   comprador: string;
   statusCompromisso: string;
   statusRc: string;
+  requestDescription?: string;
   dataNecessidade: string | null;   // ISO yyyy-mm-dd
   dataPrometida: string | null;     // ISO yyyy-mm-dd
   valorCompromisso: number;
@@ -49,6 +66,7 @@ export interface CommitmentSource {
   rubrica: string;
   supplier: string;
   systemStatus: string;
+  requestDescription?: string;
   systemPromisedDate: string | null;
   systemNeedDate: string | null;
   sourceValue: number;              // soma de ValorCompromisso (aceita negativo)
@@ -132,9 +150,6 @@ export interface RcView extends RcGroup {
 export interface RadarSummary {
   exerciseYear: number;
   totalCommitment: number;
-  bgCurated: number;
-  carryover: number;
-  notCurated: number;
   buckets: Record<CashBucket, number>;
   coverage: { curatedKeys: number; totalKeys: number; curatedValue: number; ratio: number };
   /** soma dos baldes bate com o total do BI */

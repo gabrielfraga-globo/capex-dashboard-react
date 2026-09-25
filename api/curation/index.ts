@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { Pool } from "pg";
-import type { CommitmentCuration, CurationMap } from "../../src/features/radar/types";
-import { getPool } from "../_lib/db";
-import { requireAuth } from "../_lib/auth";
-import { responderErro } from "../_lib/http";
+import type { CommitmentCuration, CurationMap } from "../../src/features/radar/types.js";
+import { getPool } from "../_lib/db.js";
+import { requireAuth } from "../_lib/auth.js";
+import { responderErro } from "../_lib/http.js";
 
 /** Datas voltam cruas (string) do driver real; em pg-mem podem vir como Date. */
 function paraDataIso(value: unknown): string | null {
@@ -61,5 +61,9 @@ export async function handleGetCuration(pool: Pool, req: VercelRequest, res: Ver
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  return handleGetCuration(getPool(), req, res);
+  try {
+    return handleGetCuration(getPool(), req, res);
+  } catch (err) {
+    responderErro(res, err);
+  }
 }

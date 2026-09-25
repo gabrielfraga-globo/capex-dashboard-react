@@ -1,5 +1,5 @@
-import type { PoStatus } from "../../src/features/radar/types";
-import { PO_STATUS } from "../../src/features/radar/types";
+import type { PoStatus } from "../../src/features/radar/types.js";
+import { PO_STATUS } from "../../src/features/radar/types.js";
 
 export class ValidationError extends Error {
   statusCode = 400;

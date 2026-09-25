@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { Card, KpiCard, SectionHeader } from "../../components/ui/primitives";
 import { Select } from "../../components/ui/select";
 import { SkeletonList } from "../../components/ui/SkeletonCard";
 import { fmtBRL, fmtNumber } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
+import { usePortfolioData } from "../../hooks/usePortfolioData";
 import { CommitmentTable } from "./CommitmentTable";
 import { useCuration } from "./useCuration";
 import { precisaAtencao } from "./RcRow";
+import { poStatusLabel } from "./status";
+import { RADAR_CARD_BUCKETS } from "./types";
 
 function formatGeradoEm(iso: string): string {
   const d = new Date(iso);
@@ -20,33 +23,51 @@ function formatGeradoEm(iso: string): string {
 
 export function RadarPage() {
   const { isLoading, error, bundle, views, rcViews, resumo, isSaving, erroDe, salvarChave, salvarRc } = useCuration();
+  const { parsed } = usePortfolioData();
+  const [plataformaFiltro, setPlataformaFiltro] = useState<string | null>(null);
+  const [gestorFiltro, setGestorFiltro] = useState<string | null>(null);
+  const [aprovadorFiltro, setAprovadorFiltro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [projetoFiltro, setProjetoFiltro] = useState<string | null>(null);
-  const [fornecedorFiltro, setFornecedorFiltro] = useState<string | null>(null);
-  const [soNaoCurados, setSoNaoCurados] = useState(true);
 
-  const opcoesProjeto = useMemo(() => {
-    const nomes = Array.from(new Set(views.map((v) => v.projectName))).sort((a, b) => a.localeCompare(b, "pt-BR"));
-    return nomes.map((n) => ({ value: n, label: n }));
-  }, [views]);
+  const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
 
-  const opcoesFornecedor = useMemo(() => {
-    const nomes = Array.from(new Set(views.map((v) => v.supplier))).sort((a, b) => a.localeCompare(b, "pt-BR"));
-    return nomes.map((n) => ({ value: n, label: n }));
-  }, [views]);
+  const opcoesFiltro = useMemo(() => {
+    const projetos = views.map((v) => projetoPorNome.get(v.projectName)).filter(Boolean);
+    const opcoes = (valores: Array<string | null>) => Array.from(new Set(valores.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "pt-BR")).map((value) => ({ value, label: value }));
+    return {
+      plataformas: opcoes(projetos.map((p) => p?.n4Curta ?? null)),
+      gestores: opcoes(projetos.map((p) => p?.gestor ?? null)),
+      aprovadores: opcoes(projetos.map((p) => p?.aprovador ?? null)),
+    };
+  }, [projetoPorNome, views]);
 
   const rcsPendentes = useMemo(() => rcViews.filter(precisaAtencao).length, [rcViews]);
 
   const rcViewsFiltradas = useMemo(() => {
-    const buscaLower = busca.trim().toLowerCase();
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
     return rcViews.filter((rc) => {
-      if (soNaoCurados && !precisaAtencao(rc)) return false;
-      if (projetoFiltro && !rc.commitments.some((c) => c.projectName === projetoFiltro)) return false;
-      if (fornecedorFiltro && !rc.suppliers.includes(fornecedorFiltro)) return false;
-      if (buscaLower && !rc.rc.toLowerCase().includes(buscaLower)) return false;
+      const projetos = rc.commitments.map((c) => projetoPorNome.get(c.projectName)).filter(Boolean);
+      if (plataformaFiltro && !projetos.some((p) => p?.n4Curta === plataformaFiltro)) return false;
+      if (gestorFiltro && !projetos.some((p) => p?.gestor === gestorFiltro)) return false;
+      if (aprovadorFiltro && !projetos.some((p) => p?.aprovador === aprovadorFiltro)) return false;
+      if (termo) {
+        const textos = rc.commitments.flatMap((commitment) => [
+          rc.rc,
+          commitment.oc,
+          commitment.projectId,
+          commitment.projectName,
+          commitment.supplier || commitment.projectName,
+          commitment.curation?.poStatus ?? "",
+          commitment.curation ? poStatusLabel(commitment.curation.poStatus, bundle?.exerciseYear ?? new Date().getFullYear()) : "",
+          commitment.systemStatus,
+          commitment.requestDescription ?? "",
+          commitment.curation?.notes ?? "",
+        ]);
+        if (!textos.some((texto) => texto.toLocaleLowerCase("pt-BR").includes(termo))) return false;
+      }
       return true;
     });
-  }, [rcViews, soNaoCurados, projetoFiltro, fornecedorFiltro, busca]);
+  }, [rcViews, projetoPorNome, plataformaFiltro, gestorFiltro, aprovadorFiltro, busca, bundle?.exerciseYear]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 space-y-5">
@@ -83,15 +104,19 @@ export function RadarPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <KpiCard label="BG Times" value={fmtBRL(resumo.bgCurated, true)} sub="curadoria do exercício" />
               <KpiCard
-                label={`Carryover ${resumo.exerciseYear + 1}`}
-                value={fmtBRL(resumo.carryover, true)}
+                label={poStatusLabel("CONFIRMED", resumo.exerciseYear)}
+                value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.bgTimes], true)}
+                sub="curadoria do exercício"
+              />
+              <KpiCard
+                label={poStatusLabel("CARRYOVER", resumo.exerciseYear)}
+                value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.carryover], true)}
                 sub="pagamento previsto após o exercício"
               />
               <KpiCard
                 label="Sem avaliação"
-                value={fmtBRL(resumo.notCurated, true)}
+                value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.notCurated], true)}
                 sub={`${fmtNumber(rcsPendentes)} RC${rcsPendentes === 1 ? "" : "s"} pendente${rcsPendentes === 1 ? "" : "s"}`}
               />
             </div>
@@ -100,24 +125,26 @@ export function RadarPage() {
           <Card>
             <SectionHeader title="Filtros" />
             <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                placeholder="Buscar RC…"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs text-text min-w-[140px] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-              />
-              <Select value={projetoFiltro} onValueChange={setProjetoFiltro} options={opcoesProjeto} placeholder="Projeto" />
-              <Select value={fornecedorFiltro} onValueChange={setFornecedorFiltro} options={opcoesFornecedor} placeholder="Fornecedor" />
-              <label className="inline-flex items-center gap-1.5 text-xs text-text-muted ml-auto">
-                <input type="checkbox" checked={soNaoCurados} onChange={(e) => setSoNaoCurados(e.target.checked)} />
-                só sem avaliação
+              <label className="relative min-w-[220px] flex-1">
+                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-faint" aria-hidden="true" />
+                <span className="sr-only">Buscar na tabela</span>
+                <input
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Buscar RC, fornecedor, projeto, OC ou status"
+                  className="w-full rounded border border-border bg-card py-2 pl-8 pr-3 text-xs text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+                />
               </label>
+              <Select value={plataformaFiltro} onValueChange={setPlataformaFiltro} options={opcoesFiltro.plataformas} placeholder="Plataforma" />
+              <Select value={gestorFiltro} onValueChange={setGestorFiltro} options={opcoesFiltro.gestores} placeholder="Gestor" />
+              <Select value={aprovadorFiltro} onValueChange={setAprovadorFiltro} options={opcoesFiltro.aprovadores} placeholder="1º Aprovador" />
             </div>
           </Card>
 
           <CommitmentTable
             rcViews={rcViewsFiltradas}
+            exerciseYear={resumo.exerciseYear}
             isSaving={isSaving}
             erroDe={erroDe}
             onSalvarRc={salvarRc}

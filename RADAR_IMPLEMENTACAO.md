@@ -35,7 +35,7 @@ Os prompts da seção 9 assumem que este arquivo está no contexto.
 | Chave de armazenamento | `RC:<REQ_COMPRA>\|OC:<ORDEM_DE_COMPRA>\|PPM:<IdPPM>` |
 | Fallback sem OC | `OC:PENDING` |
 | Unidade de edição | **RC** (com expansão opcional por chave) |
-| Campos editáveis | `estimatedDeliveryDate`, `poStatus`, `notes` |
+| Campos editáveis | `estimatedDeliveryDate`, `notes` |
 | Merge | em leitura, no cliente |
 | Persistência | PostgreSQL serverless (Neon), 2 tabelas |
 | API | Vercel Functions, 3 endpoints |
@@ -98,7 +98,7 @@ Arquivo sugerido: `src/features/radar/types.ts`
 // Enums e constantes
 // ─────────────────────────────────────────────────────────────
 
-export const PO_STATUS = ['CONFIRMED', 'AT_RISK', 'CANCELLED', 'NO_VISIBILITY'] as const;
+export const PO_STATUS = ['CONFIRMED', 'AT_RISK', 'CARRYOVER', 'CANCELLED', 'NO_VISIBILITY'] as const;
 export type PoStatus = (typeof PO_STATUS)[number];
 
 export type CurationLevel = 'RC' | 'KEY';
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS commitment_curation (
     updated_at               timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT po_status_valido
-        CHECK (po_status IN ('CONFIRMED','AT_RISK','CANCELLED','NO_VISIBILITY')),
+        CHECK (po_status IN ('CONFIRMED','AT_RISK','CARRYOVER','CANCELLED','NO_VISIBILITY')),
 
     CONSTRAINT curation_level_valido
         CHECK (curation_level IN ('RC','KEY')),

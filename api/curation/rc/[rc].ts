@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { Pool } from "pg";
-import type { RcCurationUpsertRequest, RcCurationUpsertResponse } from "../../../src/features/radar/types";
-import { getPool } from "../../_lib/db";
-import { requireAuth } from "../../_lib/auth";
-import { responderErro } from "../../_lib/http";
-import { ValidationError, validarChave, validarCorpoDeCuradoria, validarSourceValue } from "../../_lib/validation";
+import type { RcCurationUpsertRequest, RcCurationUpsertResponse } from "../../../src/features/radar/types.js";
+import { getPool } from "../../_lib/db.js";
+import { requireAuth } from "../../_lib/auth.js";
+import { responderErro } from "../../_lib/http.js";
+import { ValidationError, validarChave, validarCorpoDeCuradoria, validarSourceValue } from "../../_lib/validation.js";
 
 export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== "PUT") {
@@ -127,5 +127,9 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  return handlePutRc(getPool(), req, res);
+  try {
+    return handlePutRc(getPool(), req, res);
+  } catch (err) {
+    responderErro(res, err);
+  }
 }

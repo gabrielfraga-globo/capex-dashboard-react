@@ -1,0 +1,3 @@
+api/**/*.test.ts
+api/_lib/testDb.ts
+api/_lib/testHttp.ts

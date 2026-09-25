@@ -4,9 +4,9 @@ import path from "node:path";
 import { newDb, DataType } from "pg-mem";
 import type { Pool } from "pg";
 
-const MIGRATION_PATH = path.resolve(
+const MIGRATIONS_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../db/migrations/001_radar_curation.sql"
+  "../../db/migrations"
 );
 
 /**
@@ -36,10 +36,13 @@ export function criarPoolDeTeste(): Pool {
     implementation: (s: string | null, sep: string, n: number) => (s == null ? null : s.split(sep)[n - 1] ?? ""),
   });
 
-  const migrationSql = readFileSync(MIGRATION_PATH, "utf8").replace(
+  const migrationSql = ["001_radar_curation.sql", "002_derived_po_status.sql"]
+    .map((fileName) => readFileSync(path.join(MIGRATIONS_DIR, fileName), "utf8"))
+    .join("\n")
+    .replace(
     /,\s*CONSTRAINT chave_formato\s*\n\s*CHECK \(commitment_key ~ '[^']*'\)/,
     ""
-  );
+    );
 
   db.public.none(migrationSql);
 

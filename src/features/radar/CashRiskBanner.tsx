@@ -3,6 +3,8 @@ import { Button, Card } from "../../components/ui/primitives";
 import { fmtBRL, fmtNumber, fmtPct } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
 import { useCuration } from "./useCuration";
+import { poStatusLabel } from "./status";
+import { RADAR_CARD_BUCKETS } from "./types";
 
 function Stat({ label, value, sub, tone = "text-text" }: { label: string; value: string; sub?: string; tone?: string }) {
   return (
@@ -47,7 +49,8 @@ export function CashRiskBanner() {
   }
 
   const bgSistema = bundle.totals.value;
-  const gap = resumo.bgCurated - bgSistema;
+  const bgTimes = resumo.buckets[RADAR_CARD_BUCKETS.bgTimes];
+  const gap = bgTimes - bgSistema;
   const gapPct = bgSistema ? gap / bgSistema : 0;
   const gapTone = gap >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
   const gapValue = `${gap >= 0 ? "+" : "-"}${fmtBRL(Math.abs(gap), true)}`;
@@ -92,9 +95,13 @@ export function CashRiskBanner() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Stat label="BG Sistêmico" value={fmtBRL(bgSistema, true)} sub="BI total" />
-        <Stat label="BG Times" value={fmtBRL(resumo.bgCurated, true)} sub="curadoria do exercício" />
+        <Stat label={poStatusLabel("CONFIRMED", resumo.exerciseYear)} value={fmtBRL(bgTimes, true)} sub="curadoria do exercício" />
         <Stat label="Gap" value={gapValue} sub={`${fmtPct(gapPct)} vs. sistêmico`} tone={gapTone} />
-        <Stat label="Carryover" value={fmtBRL(resumo.carryover, true)} sub="pagamento previsto após o exercício" />
+        <Stat
+          label={poStatusLabel("CARRYOVER", resumo.exerciseYear)}
+          value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.carryover], true)}
+          sub="pagamento previsto após o exercício"
+        />
         <Stat
           label="Cobertura"
           value={fmtPct(resumo.coverage.ratio)}
