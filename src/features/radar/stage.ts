@@ -378,6 +378,37 @@ export function buildStageReport(items: StageInput[], options?: { referenceDate?
   return report;
 }
 
+export function commitmentLineToStageInput(line: Partial<CommitmentSourceLine> & {
+  statusCompromisso?: string | null;
+  statusRc?: string | null;
+  ordemCompra?: string | null;
+  dataPrometida?: string | null;
+  dataNecessidade?: string | null;
+  valorCompromisso?: number | null;
+  comprador?: string | null;
+  fornecedor?: string | null;
+  sourceValue?: number | null;
+}): StageInput {
+  const ordemCompra = line.ordemCompra && normalizeStatus(line.ordemCompra) !== "PENDING" ? line.ordemCompra : "";
+  const valorCompromisso = line.valorCompromisso ?? line.sourceValue ?? 0;
+
+  return {
+    statusCompromisso: line.statusCompromisso ?? null,
+    statusRc: line.statusRc ?? null,
+    ordemCompra,
+    oc: line.ordemCompra ?? undefined,
+    dataPrometida: line.dataPrometida ?? null,
+    dataNecessidade: line.dataNecessidade ?? null,
+    valorCompromisso,
+    sourceValue: valorCompromisso,
+    value: valorCompromisso,
+    comprador: line.comprador ?? undefined,
+    fornecedor: line.fornecedor ?? undefined,
+    aprovador: undefined,
+    gestor: undefined,
+  };
+}
+
 export function stageReportFromBundle(
   bundle: { commitments: CommitmentSource[] },
   options?: { referenceDate?: Date | string; config?: Partial<StageConfig> }
@@ -400,20 +431,7 @@ export function stageReportFromBundle(
       },
     ];
 
-    return details.map((line) => ({
-      statusCompromisso: line.statusCompromisso,
-      statusRc: line.statusRc,
-      ordemCompra: line.ordemCompra && normalizeStatus(line.ordemCompra) !== "PENDING" ? line.ordemCompra : "",
-      dataPrometida: line.dataPrometida,
-      dataNecessidade: line.dataNecessidade,
-      valorCompromisso: line.valorCompromisso,
-      sourceValue: line.valorCompromisso,
-      value: line.valorCompromisso,
-      comprador: line.comprador || undefined,
-      fornecedor: line.fornecedor,
-      aprovador: undefined,
-      gestor: undefined,
-    }));
+    return details.map((line) => commitmentLineToStageInput(line));
   });
 
   return buildStageReport(items, options);

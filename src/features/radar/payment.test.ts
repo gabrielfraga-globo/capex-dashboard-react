@@ -54,17 +54,17 @@ describe("paymentReport", () => {
 describe("overlapReport", () => {
   it("sobrepõe os pagamentos por RC com o bundle e ordena por valor em pagamento", () => {
     const records = parsePaymentCsv(paymentFixture);
-    const overlap = overlapReport(bundleFixture as any, records);
+    const overlap = overlapReport(bundleFixture as any, records, { referenceDate: "2026-09-25" });
 
     expect(overlap.rcCount).toBe(38);
     expect(overlap.totalPaymentValue).toBeCloseTo(3777304.10, 2);
     expect(overlap.totalCommitmentValue).toBeCloseTo(7620825.25, 2);
     expect(overlap.rows.length).toBe(38);
     expect(overlap.rows[0].paymentValue).toBeGreaterThanOrEqual(overlap.rows[1]?.paymentValue ?? 0);
-    expect(overlap.byDominantStage.E5?.lines ?? 0).toBe(23);
-    expect(overlap.byDominantStage.E5?.paymentValue ?? 0).toBeCloseTo(3194111.43, 2);
-    expect(overlap.byDominantStage.RESIDUAL?.lines ?? 0).toBe(4);
-    expect(overlap.byDominantStage.RESIDUAL?.paymentValue ?? 0).toBeCloseTo(421619.12, 2);
+    expect(overlap.byDominantStage.E5?.lines ?? 0).toBe(21);
+    expect(overlap.byDominantStage.E5?.paymentValue ?? 0).toBeCloseTo(3183902.90, 2);
+    expect(overlap.byDominantStage.RESIDUAL?.lines ?? 0).toBe(6);
+    expect(overlap.byDominantStage.RESIDUAL?.paymentValue ?? 0).toBeCloseTo(431827.65, 2);
     expect(overlap.byDominantStage.E4?.lines ?? 0).toBe(10);
     expect(overlap.byDominantStage.E4?.paymentValue ?? 0).toBeCloseTo(158559.01, 2);
     expect(overlap.byDominantStage.E3?.lines ?? 0).toBe(1);
@@ -84,6 +84,59 @@ describe("overlapReport", () => {
       const stageSum = Object.values(row.stages).reduce((sum, count) => sum + count, 0);
       expect(stageSum).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it("aplica a regra residual quando CLOSED FOR RECEIVING está vencido pela data prometida", () => {
+    const bundle = {
+      commitments: [
+        {
+          rc: "RCGRJ10485649",
+          oc: "OC-1",
+          projectId: "PPM-1",
+          projectName: "Projeto Residual",
+          rubrica: "RUBRICA",
+          supplier: "Fornecedor",
+          systemStatus: "CLOSED FOR RECEIVING",
+          systemNeedDate: "2025-01-01",
+          systemPromisedDate: "2025-04-11",
+          sourceValue: 1000,
+          lineCount: 1,
+          details: [
+            {
+              idPpm: "PPM-1",
+              nomeLb: "Projeto Residual",
+              rubrica: "RUBRICA",
+              reqCompra: "RCGRJ10485649",
+              ordemCompra: "OC-1",
+              fornecedor: "Fornecedor",
+              comprador: "Comprador",
+              statusCompromisso: "CLOSED FOR RECEIVING",
+              statusRc: "APPROVED",
+              dataNecessidade: "2025-01-01",
+              dataPrometida: "2025-04-11",
+              valorCompromisso: 1000,
+            },
+          ],
+        },
+      ],
+    } as any;
+
+    const payments = [{
+      rc: "RCGRJ10485649",
+      nf: "NF-001",
+      nfIssueDate: "2026-01-01",
+      paymentDate: "2026-01-01",
+      paid: 0,
+      pending: 900,
+      projectName: "Projeto Residual",
+      n4: null,
+      rubrica: null,
+      approver: null,
+    }];
+
+    const overlap = overlapReport(bundle, payments, { referenceDate: "2026-09-25" });
+    expect(overlap.rows[0].dominantStage).toBe("RESIDUAL");
+    expect(overlap.rows[0].dominantStageValue).toBeCloseTo(1000, 2);
   });
 });
 

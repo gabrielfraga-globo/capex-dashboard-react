@@ -1,6 +1,7 @@
 import { csvObjects } from "../../lib/csvProcessingCore";
 import type { CommitmentSource } from "./types";
-import { deriveStage } from "./stage";
+import { commitmentLineToStageInput, deriveStage } from "./stage";
+import { stageConfig } from "./stageConfig";
 
 export type PaymentStage = "E7" | "E8";
 
@@ -240,12 +241,12 @@ export function paymentReport(records: PaymentRecord[]): PaymentReport {
   };
 }
 
-function normaliseBundleStage(input: { statusCompromisso?: string | null; statusRc?: string | null; ordemCompra?: string | null; oc?: string | null; valorCompromisso?: number | null }): string {
-  const stage = deriveStage(input as any, { referenceDate: "2026-09-25" });
-  return stage;
-}
-
-export function overlapReport(bundle: { commitments: CommitmentSource[] }, payments: PaymentRecord[]): PaymentOverlapReport {
+export function overlapReport(
+  bundle: { commitments: CommitmentSource[] },
+  payments: PaymentRecord[],
+  options?: { referenceDate?: Date | string }
+): PaymentOverlapReport {
+  const referenceDate = options?.referenceDate ?? stageConfig.referenceDate;
   const paymentByRc = new Map<string, { paymentValue: number; nfSet: Set<string> }>();
 
   for (const payment of payments) {
@@ -285,15 +286,7 @@ export function overlapReport(bundle: { commitments: CommitmentSource[] }, payme
     for (const line of details) {
       const lineValue = Number(line.valorCompromisso ?? 0);
       current.commitmentValue += lineValue;
-      const stage = deriveStage({
-        statusCompromisso: line.statusCompromisso,
-        statusRc: line.statusRc,
-        ordemCompra: line.ordemCompra && String(line.ordemCompra).trim().toUpperCase() !== "PENDING" ? line.ordemCompra : "",
-        oc: line.ordemCompra,
-        valorCompromisso: lineValue,
-        sourceValue: lineValue,
-        value: lineValue,
-      }, { referenceDate: "2026-09-25" });
+      const stage = deriveStage(commitmentLineToStageInput(line), { referenceDate });
       current.stages[stage] = (current.stages[stage] ?? 0) + 1;
       current.stageValues[stage] = (current.stageValues[stage] ?? 0) + lineValue;
       if (current.stageValues[stage] > current.dominantStageValue) {
