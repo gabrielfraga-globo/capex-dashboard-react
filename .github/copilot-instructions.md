@@ -27,3 +27,9 @@ Você é um Staff Frontend Engineer e um Consultor Sênior Especialista em Busin
   - Use gráficos de linha para séries temporais.
   - Oculte eixos Y desnecessários se os rótulos de dados (data labels) já estiverem nas barras.
 - **Contexto de Métrica:** Números isolados são ruins. Todo KPI principal deve tentar mostrar uma comparação (ex: vs. Ano Anterior, vs. Meta, % de Consumo).
+
+## 5. Regras do Radar
+- "A conversão de linha de compromisso em etapa existe só em src/features/radar/stage.ts (commitmentLineToStageInput + deriveStage). Nunca reimplementar em outro arquivo."
+- "Se um teste com valor de referência (oráculo) falhar, nunca alterar o valor esperado: listar os itens que divergem e parar."
+- "Data de referência nunca fixa em código de produção; sempre parâmetro."
+- "Copiar arquivos do git sempre com node + execFileSync, nunca com PowerShell."
