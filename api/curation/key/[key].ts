@@ -4,6 +4,7 @@ import type { CommitmentCuration, CurationUpsertRequest } from "../../../src/fea
 import { getPool } from "../../_lib/db.js";
 import { requireAuth } from "../../_lib/auth.js";
 import { responderErro } from "../../_lib/http.js";
+import { buildCurationWrite, CURATION_WRITE_COLUMN_WHITELIST, rowToCuration } from "../../_lib/curationColumns.js";
 import { validarChave, validarCorpoDeCuradoria, validarSourceValue } from "../../_lib/validation.js";
 
 export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -20,39 +21,87 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
     validarChave(key);
 
     const body = (req.body ?? {}) as Partial<CurationUpsertRequest>;
-    const { poStatus } = validarCorpoDeCuradoria({
+    const { poStatus, exerciseYear } = validarCorpoDeCuradoria({
       estimatedDeliveryDate: body.estimatedDeliveryDate,
       poStatus: body.poStatus,
       notes: body.notes,
+      exerciseYear: body.exerciseYear,
+      forecastPaymentDate: body.forecastPaymentDate,
+      suggestedPaymentDate: body.suggestedPaymentDate,
+      paymentExceptionReason: body.paymentExceptionReason,
+      cashForecast: body.cashForecast,
+      nonOccurrenceReason: body.nonOccurrenceReason,
+      confidence: body.confidence,
+      blocker: body.blocker,
+      nextAction: body.nextAction,
+      physicalArrival: body.physicalArrival,
+      paymentMode: body.paymentMode,
+      priority: body.priority,
+      decisionStage: body.decisionStage,
     });
     const sourceValue = validarSourceValue(body.sourceValue, "sourceValue");
 
-    const estimatedDeliveryDate = body.estimatedDeliveryDate ?? null;
-    const notes = body.notes ?? null;
-
     const client = await pool.connect();
     let inserted = false;
+    let write: ReturnType<typeof buildCurationWrite>;
     try {
       await client.query("BEGIN");
 
-      const existing = await client.query(`SELECT 1 FROM commitment_curation WHERE commitment_key = $1`, [key]);
+      const existing = await client.query(
+        `SELECT * FROM commitment_curation WHERE commitment_key = $1`,
+        [key]
+      );
       inserted = existing.rowCount === 0;
+
+      const writeBody = {
+        ...body,
+        ...(body.estimatedDeliveryDate !== undefined ? { estimatedDeliveryDate: body.estimatedDeliveryDate ?? null } : {}),
+        ...(poStatus != null ? { poStatus } : body.poStatus != null ? { poStatus: body.poStatus } : {}),
+        ...(body.notes !== undefined ? { notes: body.notes ?? null } : {}),
+        sourceValue,
+      };
+
+      write = buildCurationWrite(writeBody, exerciseYear ?? 0);
+
+      const payload = {
+        ...write.columns,
+        source_value_at_curation: sourceValue,
+      };
+      if (write.mode === "OPERACIONAL" && !Object.prototype.hasOwnProperty.call(payload, "po_status")) {
+        payload.po_status = existing.rows[0]?.po_status ?? "NO_VISIBILITY";
+      }
+
+      const updateColumns = CURATION_WRITE_COLUMN_WHITELIST.filter(
+        (column) => column !== "source_value_at_curation" && Object.prototype.hasOwnProperty.call(payload, column)
+      );
+      const updateSql = [
+        "source_value_at_curation = EXCLUDED.source_value_at_curation",
+        ...updateColumns.map((column) => `${column} = EXCLUDED.${column}`),
+      ].join(", ");
+      const insertColumns = ["commitment_key", "source_value_at_curation", ...updateColumns, "curation_level", "inherited_from_key", "updated_by", "updated_at"]
+        .filter((column, index, arr) => arr.indexOf(column) === index);
+      const updatedAt = new Date().toISOString();
+      const insertValues = [
+        key,
+        sourceValue,
+        ...updateColumns.map((column) => payload[column]),
+        "KEY",
+        null,
+        user.email,
+        updatedAt,
+      ];
 
       await client.query(
         `INSERT INTO commitment_curation
-           (commitment_key, estimated_delivery_date, po_status, notes,
-            source_value_at_curation, curation_level, inherited_from_key, updated_by, updated_at)
-         VALUES ($1, $2, $3, $4, $5, 'KEY', NULL, $6, now())
+           (${insertColumns.join(", ")})
+         VALUES (${insertColumns.map((_, index) => `$${index + 1}`).join(", ")})
          ON CONFLICT (commitment_key) DO UPDATE SET
-           estimated_delivery_date  = EXCLUDED.estimated_delivery_date,
-           po_status                = EXCLUDED.po_status,
-           notes                    = EXCLUDED.notes,
-           source_value_at_curation = EXCLUDED.source_value_at_curation,
-           curation_level           = 'KEY',
-           inherited_from_key       = NULL,
-           updated_by               = EXCLUDED.updated_by,
-           updated_at               = EXCLUDED.updated_at`,
-        [key, estimatedDeliveryDate, poStatus, notes, sourceValue, user.email]
+           ${updateSql},
+           curation_level = 'KEY',
+           inherited_from_key = NULL,
+           updated_by = EXCLUDED.updated_by,
+           updated_at = EXCLUDED.updated_at`,
+        insertValues
       );
 
       await client.query(
@@ -62,11 +111,11 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
           key,
           JSON.stringify({
             commitmentKey: key,
-            estimatedDeliveryDate,
-            poStatus,
-            notes,
+            ...body,
+            exerciseYear,
             sourceValueAtCuration: sourceValue,
             curationLevel: "KEY",
+            derived: write,
           }),
           user.email,
         ]
@@ -80,17 +129,33 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
       client.release();
     }
 
-    const curation: CommitmentCuration = {
-      commitmentKey: key,
-      estimatedDeliveryDate,
-      poStatus,
-      notes,
-      sourceValueAtCuration: sourceValue,
-      curationLevel: "KEY",
-      inheritedFromKey: null,
-      updatedBy: user.email,
-      updatedAt: new Date().toISOString(),
-    };
+    const responsePayload = { ...write.columns, source_value_at_curation: sourceValue };
+    const curation: CommitmentCuration = rowToCuration({
+      commitment_key: key,
+      estimated_delivery_date: responsePayload.estimated_delivery_date,
+      po_status: responsePayload.po_status,
+      notes: responsePayload.notes,
+      source_value_at_curation: responsePayload.source_value_at_curation,
+      curation_level: "KEY",
+      inherited_from_key: null,
+      updated_by: user.email,
+      updated_at: new Date().toISOString(),
+      cash_forecast: responsePayload.cash_forecast,
+      suggested_payment_date: responsePayload.suggested_payment_date,
+      forecast_payment_date: responsePayload.forecast_payment_date,
+      payment_date_adjusted: responsePayload.payment_date_adjusted,
+      payment_exception_reason: responsePayload.payment_exception_reason,
+      confidence: responsePayload.confidence,
+      non_occurrence_reason: responsePayload.non_occurrence_reason,
+      blocker: responsePayload.blocker,
+      next_action: responsePayload.next_action,
+      next_action_updated_at: responsePayload.next_action_updated_at,
+      physical_arrival: responsePayload.physical_arrival,
+      payment_mode: responsePayload.payment_mode,
+      priority: responsePayload.priority,
+      decision_stage: responsePayload.decision_stage,
+      decision_updated_at: responsePayload.decision_updated_at,
+    });
     res.status(inserted ? 201 : 200).json(curation);
   } catch (err) {
     responderErro(res, err);

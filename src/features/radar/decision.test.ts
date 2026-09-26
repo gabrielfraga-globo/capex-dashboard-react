@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { criarPoolDeTeste } from "../../../api/_lib/testDb";
 import { mergearRadar } from "./merge";
 import { readDecision } from "./decision";
-import type { CommitmentCuration, CommitmentSource, CommitmentSourceBundle, CurationMap, RcGroup } from "./types";
+import type { CommitmentCuration, CommitmentSource, CommitmentSourceBundle, RcGroup } from "./types";
 
 function makeCommitment(overrides: Partial<CommitmentSource> = {}): CommitmentSource {
   const rc = overrides.rc ?? "RC1";

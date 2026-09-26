@@ -4,6 +4,7 @@ import type { RcCurationUpsertRequest, RcCurationUpsertResponse } from "../../..
 import { getPool } from "../../_lib/db.js";
 import { requireAuth } from "../../_lib/auth.js";
 import { responderErro } from "../../_lib/http.js";
+import { buildCurationWrite, CURATION_WRITE_COLUMN_WHITELIST, rowToCuration } from "../../_lib/curationColumns.js";
 import { ValidationError, validarChave, validarCorpoDeCuradoria, validarSourceValue } from "../../_lib/validation.js";
 
 export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -22,10 +23,23 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
     }
 
     const body = (req.body ?? {}) as Partial<RcCurationUpsertRequest>;
-    const { poStatus } = validarCorpoDeCuradoria({
+    const { poStatus, exerciseYear } = validarCorpoDeCuradoria({
       estimatedDeliveryDate: body.estimatedDeliveryDate,
       poStatus: body.poStatus,
       notes: body.notes,
+      exerciseYear: body.exerciseYear,
+      forecastPaymentDate: body.forecastPaymentDate,
+      suggestedPaymentDate: body.suggestedPaymentDate,
+      paymentExceptionReason: body.paymentExceptionReason,
+      cashForecast: body.cashForecast,
+      nonOccurrenceReason: body.nonOccurrenceReason,
+      confidence: body.confidence,
+      blocker: body.blocker,
+      nextAction: body.nextAction,
+      physicalArrival: body.physicalArrival,
+      paymentMode: body.paymentMode,
+      priority: body.priority,
+      decisionStage: body.decisionStage,
     });
 
     const targets = body.targets;
@@ -43,70 +57,90 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
     }
 
     const overrideKeyLevel = body.overrideKeyLevel === true;
-    const estimatedDeliveryDate = body.estimatedDeliveryDate ?? null;
-    const notes = body.notes ?? null;
-
-    // params compartilhados por todas as linhas do lote
-    const params: unknown[] = [estimatedDeliveryDate, poStatus, notes, user.email, overrideKeyLevel];
-    const valueRows: string[] = [];
-
-    for (const target of targets) {
-      const keyIdx = params.length + 1;
-      params.push(target.commitmentKey);
-      const valIdx = params.length + 1;
-      params.push(target.sourceValue);
-      valueRows.push(`($${keyIdx}, $1, $2, $3, $${valIdx}, 'RC', NULL, $4, now())`);
-    }
 
     const client = await pool.connect();
     let written: string[] = [];
     try {
       await client.query("BEGIN");
 
-      const { rows } = await client.query(
-        `INSERT INTO commitment_curation
-           (commitment_key, estimated_delivery_date, po_status, notes,
-            source_value_at_curation, curation_level, inherited_from_key, updated_by, updated_at)
-         VALUES
-           ${valueRows.join(",\n           ")}
-         ON CONFLICT (commitment_key) DO UPDATE SET
-           estimated_delivery_date  = EXCLUDED.estimated_delivery_date,
-           po_status                = EXCLUDED.po_status,
-           notes                    = EXCLUDED.notes,
-           source_value_at_curation = EXCLUDED.source_value_at_curation,
-           curation_level           = 'RC',
-           inherited_from_key       = NULL,
-           updated_by               = EXCLUDED.updated_by,
-           updated_at               = EXCLUDED.updated_at
-         WHERE $5 OR commitment_curation.curation_level = 'RC'
-         RETURNING commitment_key, updated_by`,
-        params
-      );
-      // Filtra por updated_by = ator atual: em Postgres real o RETURNING já
-      // exclui linhas cujo WHERE deu falso, mas alguns bancos in-memory usados
-      // em teste (pg-mem) incluem a linha no RETURNING mesmo sem aplicar o
-      // UPDATE. Este filtro é redundante (no-op) em Postgres real e garante
-      // que `written` reflita apenas linhas cuja escrita de fato ocorreu.
-      written = rows.filter((r) => r.updated_by === user.email).map((r) => r.commitment_key as string);
-
-      for (const key of written) {
-        const target = targets.find((t) => t.commitmentKey === key)!;
-        await client.query(
-          `INSERT INTO curation_audit (commitment_key, action, payload, actor)
-           VALUES ($1, 'RC_UPSERT', $2::jsonb, $3)`,
-          [
-            key,
-            JSON.stringify({
-              commitmentKey: key,
-              estimatedDeliveryDate,
-              poStatus,
-              notes,
-              sourceValueAtCuration: target.sourceValue,
-              curationLevel: "RC",
-            }),
-            user.email,
-          ]
+      for (const target of targets) {
+        const existing = await client.query(
+          `SELECT * FROM commitment_curation WHERE commitment_key = $1`,
+          [target.commitmentKey]
         );
+
+        const writeBody = {
+          ...body,
+          sourceValue: target.sourceValue,
+          ...(body.estimatedDeliveryDate !== undefined ? { estimatedDeliveryDate: body.estimatedDeliveryDate ?? null } : {}),
+          ...(poStatus != null ? { poStatus } : body.poStatus != null ? { poStatus: body.poStatus } : {}),
+          ...(body.notes !== undefined ? { notes: body.notes ?? null } : {}),
+        };
+
+        const write = buildCurationWrite(writeBody, exerciseYear ?? 0);
+
+        const payload = {
+          ...write.columns,
+          source_value_at_curation: target.sourceValue,
+        };
+        if (write.mode === "OPERACIONAL" && !Object.prototype.hasOwnProperty.call(payload, "po_status")) {
+          payload.po_status = existing.rows[0]?.po_status ?? "NO_VISIBILITY";
+        }
+
+        const updateColumns = CURATION_WRITE_COLUMN_WHITELIST.filter(
+          (column) => column !== "source_value_at_curation" && Object.prototype.hasOwnProperty.call(payload, column)
+        );
+        const updateSql = [
+          "source_value_at_curation = EXCLUDED.source_value_at_curation",
+          ...updateColumns.map((column) => `${column} = EXCLUDED.${column}`),
+        ].join(", ");
+        const insertColumns = ["commitment_key", "source_value_at_curation", ...updateColumns, "curation_level", "inherited_from_key", "updated_by", "updated_at"]
+          .filter((column, index, arr) => arr.indexOf(column) === index);
+        const updatedAt = new Date().toISOString();
+        const insertValues = [
+          target.commitmentKey,
+          target.sourceValue,
+          ...updateColumns.map((column) => payload[column]),
+          "RC",
+          null,
+          user.email,
+          updatedAt,
+        ];
+
+        await client.query(
+          `INSERT INTO commitment_curation
+             (${insertColumns.join(", ")})
+           VALUES (${insertColumns.map((_, index) => `$${index + 1}`).join(", ")})
+           ON CONFLICT (commitment_key) DO UPDATE SET
+             ${updateSql},
+             curation_level = 'RC',
+             inherited_from_key = NULL,
+             updated_by = EXCLUDED.updated_by,
+             updated_at = EXCLUDED.updated_at
+           WHERE $${insertColumns.length + 1} OR commitment_curation.curation_level = 'RC'
+           RETURNING commitment_key, updated_by`,
+          [...insertValues, overrideKeyLevel]
+        );
+
+        if (existing.rows[0] == null || overrideKeyLevel || existing.rows[0].curation_level !== "KEY") {
+          written.push(target.commitmentKey);
+          await client.query(
+            `INSERT INTO curation_audit (commitment_key, action, payload, actor)
+             VALUES ($1, 'RC_UPSERT', $2::jsonb, $3)`,
+            [
+              target.commitmentKey,
+              JSON.stringify({
+                commitmentKey: target.commitmentKey,
+                ...body,
+                exerciseYear,
+                sourceValueAtCuration: target.sourceValue,
+                curationLevel: "RC",
+                derived: write,
+              }),
+              user.email,
+            ]
+          );
+        }
       }
 
       await client.query("COMMIT");

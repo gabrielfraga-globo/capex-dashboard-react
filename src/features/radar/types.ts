@@ -16,6 +16,13 @@ export type DecisionBlocker = 'APROVACAO' | 'COTACAO_LICITACAO' | 'CONTRATO' | '
 export type PaymentMode = 'NORMAL' | 'ANTECIPADO' | 'MEDICAO_MENSAL';
 export type PriorityLevel = 'ALTA' | 'MEDIA' | 'BAIXA';
 
+export const CASH_FORECAST = ['NAO_OCORRE'] as const;
+export const CONFIDENCE_LEVELS = ['CONFIRMADO', 'PROVAVEL', 'INCERTO'] as const;
+export const NON_OCCURRENCE_REASONS = ['CANCELAR', 'REDUZIR', 'TROCAR_FORNECEDOR', 'ENCERRAR_SALDO', 'LEGADO'] as const;
+export const BLOCKER_VALUES = ['APROVACAO', 'COTACAO_LICITACAO', 'CONTRATO', 'PROPOSTA_FORNECEDOR', 'PRAZO_FORNECEDOR', 'IMPORTACAO', 'ENTREGA_PARCIAL', 'RECEBIMENTO', 'NF', 'ORCAMENTO', 'SEM_BLOQUEIO'] as const;
+export const PAYMENT_MODES = ['NORMAL', 'ANTECIPADO', 'MEDICAO_MENSAL'] as const;
+export const PRIORITY_LEVELS = ['ALTA', 'MEDIA', 'BAIXA'] as const;
+
 export type CashBucket =
   | 'CONFIRMED_IN_YEAR'
   | 'CARRYOVER'
@@ -209,6 +216,19 @@ export interface CurationUpsertRequest {
   poStatus: PoStatus;
   notes: string | null;
   sourceValue: number;
+  exerciseYear?: number;
+  forecastPaymentDate?: string | null;
+  suggestedPaymentDate?: string | null;
+  paymentExceptionReason?: string | null;
+  cashForecast?: CashForecast | null;
+  nonOccurrenceReason?: NonOccurrenceReason | null;
+  confidence?: DecisionConfidence | null;
+  blocker?: DecisionBlocker | null;
+  nextAction?: string | null;
+  physicalArrival?: boolean | null;
+  paymentMode?: PaymentMode | null;
+  priority?: PriorityLevel | null;
+  decisionStage?: string | null;
 }
 
 /** Corpo de requisição para curar uma RC e propagar para suas chaves filhas. */
