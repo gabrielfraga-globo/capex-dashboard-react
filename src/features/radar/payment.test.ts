@@ -32,6 +32,9 @@ describe("paymentReport", () => {
       "RC-1;NF-20240615-001;2024-06-15;1234,56;0",
       "RC-2;NF-20240616-002;20240616;0;987,65",
       "RC-3;NF-20240615-999;2024-06-15;0;0",
+      "RC-4;NF-SEM-DATA;2024-06-15;0;25,00",
+      "RC-5;NF-20240617-001;2024-06-15;0;0",
+      "RC-6;;2024-06-15;10,00;0",
     ].join("\n"));
 
     expect(records[0].nfIssueDate).toBe("2024-06-15");
@@ -40,6 +43,11 @@ describe("paymentReport", () => {
     expect(records[1].pending).toBeCloseTo(987.65, 2);
     expect(records[1].nfIssueDate).toBe("2024-06-16");
     expect(records[2].nfIssueDate).toBe("2024-06-15");
+    expect(records[3].nfIssueDate).toBeNull();
+    expect(records[4].paid).toBe(0);
+    expect(records[4].pending).toBe(0);
+    expect(records[5].rc).toBe("RC-6");
+    expect(records[5].paid).toBeCloseTo(10, 2);
   });
 });
 
@@ -53,8 +61,29 @@ describe("overlapReport", () => {
     expect(overlap.totalCommitmentValue).toBeCloseTo(7620825.25, 2);
     expect(overlap.rows.length).toBe(38);
     expect(overlap.rows[0].paymentValue).toBeGreaterThanOrEqual(overlap.rows[1]?.paymentValue ?? 0);
-    expect(overlap.byDominantStage.E5.lines).toBe(23);
-    expect(overlap.byDominantStage.E5.paymentValue).toBeCloseTo(3194111.43, 2);
+    expect(overlap.byDominantStage.E5?.lines ?? 0).toBe(23);
+    expect(overlap.byDominantStage.E5?.paymentValue ?? 0).toBeCloseTo(3194111.43, 2);
+    expect(overlap.byDominantStage.RESIDUAL?.lines ?? 0).toBe(4);
+    expect(overlap.byDominantStage.RESIDUAL?.paymentValue ?? 0).toBeCloseTo(421619.12, 2);
+    expect(overlap.byDominantStage.E4?.lines ?? 0).toBe(10);
+    expect(overlap.byDominantStage.E4?.paymentValue ?? 0).toBeCloseTo(158559.01, 2);
+    expect(overlap.byDominantStage.E3?.lines ?? 0).toBe(1);
+    expect(overlap.byDominantStage.E3?.paymentValue ?? 0).toBeCloseTo(3014.54, 2);
+
+    const totalDominantRc = (overlap.byDominantStage.E5?.lines ?? 0)
+      + (overlap.byDominantStage.RESIDUAL?.lines ?? 0)
+      + (overlap.byDominantStage.E4?.lines ?? 0)
+      + (overlap.byDominantStage.E3?.lines ?? 0);
+    expect(totalDominantRc).toBe(38);
+
+    const values = Object.values(overlap.byDominantStage).map((item) => item.paymentValue);
+    const totalValue = values.reduce((sum, value) => sum + value, 0);
+    expect(totalValue).toBeCloseTo(overlap.totalPaymentValue, 2);
+    for (const row of overlap.rows) {
+      expect(row.dominantStageValue).toBeLessThanOrEqual(Math.max(row.commitmentValue, 0) + 0.01);
+      const stageSum = Object.values(row.stages).reduce((sum, count) => sum + count, 0);
+      expect(stageSum).toBeGreaterThanOrEqual(1);
+    }
   });
 });
 

@@ -257,23 +257,51 @@ export function overlapReport(bundle: { commitments: CommitmentSource[] }, payme
     paymentByRc.set(payment.rc, current);
   }
 
-  const commitmentByRc = new Map<string, { commitmentValue: number; stages: Record<string, number>; dominantStage: string; dominantStageValue: number }>();
+  const commitmentByRc = new Map<string, { commitmentValue: number; stages: Record<string, number>; stageValues: Record<string, number>; dominantStage: string; dominantStageValue: number }>();
   for (const commitment of bundle.commitments) {
-    const current = commitmentByRc.get(commitment.rc) ?? { commitmentValue: 0, stages: {}, dominantStage: "DESCONHECIDA", dominantStageValue: 0 };
-    current.commitmentValue += commitment.sourceValue;
-    const stage = normaliseBundleStage({
-      statusCompromisso: commitment.systemStatus,
-      statusRc: commitment.rc,
+    const details = commitment.details.length ? commitment.details : [{
+      idPpm: commitment.projectId,
+      nomeLb: commitment.projectName,
+      rubrica: commitment.rubrica,
+      reqCompra: commitment.rc,
       ordemCompra: commitment.oc === "PENDING" ? "" : commitment.oc,
-      oc: commitment.oc,
+      fornecedor: commitment.supplier,
+      comprador: "",
+      statusCompromisso: commitment.systemStatus,
+      statusRc: "",
+      dataNecessidade: commitment.systemNeedDate,
+      dataPrometida: commitment.systemPromisedDate,
       valorCompromisso: commitment.sourceValue,
-    });
-    current.stages[stage] = (current.stages[stage] ?? 0) + 1;
-    const stageValue = (current.stages[stage] ?? 0) * commitment.sourceValue;
-    if (stageValue > current.dominantStageValue) {
-      current.dominantStage = stage;
-      current.dominantStageValue = stageValue;
+    }];
+
+    const current = commitmentByRc.get(commitment.rc) ?? {
+      commitmentValue: 0,
+      stages: {},
+      stageValues: {},
+      dominantStage: "DESCONHECIDA",
+      dominantStageValue: 0,
+    };
+
+    for (const line of details) {
+      const lineValue = Number(line.valorCompromisso ?? 0);
+      current.commitmentValue += lineValue;
+      const stage = deriveStage({
+        statusCompromisso: line.statusCompromisso,
+        statusRc: line.statusRc,
+        ordemCompra: line.ordemCompra && String(line.ordemCompra).trim().toUpperCase() !== "PENDING" ? line.ordemCompra : "",
+        oc: line.ordemCompra,
+        valorCompromisso: lineValue,
+        sourceValue: lineValue,
+        value: lineValue,
+      }, { referenceDate: "2026-09-25" });
+      current.stages[stage] = (current.stages[stage] ?? 0) + 1;
+      current.stageValues[stage] = (current.stageValues[stage] ?? 0) + lineValue;
+      if (current.stageValues[stage] > current.dominantStageValue) {
+        current.dominantStage = stage;
+        current.dominantStageValue = current.stageValues[stage];
+      }
     }
+
     commitmentByRc.set(commitment.rc, current);
   }
 
