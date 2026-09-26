@@ -8,6 +8,7 @@ const DATA = resolve("public/data");
 const OUTPUT = resolve(DATA, "carteira-processed.json");
 const RADAR_OUTPUT = resolve(DATA, "radar-bundle.json");
 const read = (name) => readFileSync(resolve(DATA, name), "utf-8").replace(/^\uFEFF/, "");
+const normalizeKey = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLowerCase();
 
 async function main() {
   const start = performance.now();
@@ -30,6 +31,27 @@ async function main() {
   // com o pipeline existente, sem alterar seu formato de saída.
   const linhasRadar = csvObjects(read("compromissos_detalhados.csv"));
   const bundle = consolidarCompromissos(linhasRadar, new Date().getFullYear());
+
+  const gestoresPorN4 = new Map((parsed.gestores ?? []).map((g) => [normalizeKey(g.n4), g]));
+  const n4SemGestor = new Set();
+  for (const commitment of bundle.commitments) {
+    const n4Key = normalizeKey(commitment.n4 || "");
+    const gestor = n4Key ? gestoresPorN4.get(n4Key)?.nome ?? null : null;
+    commitment.platformManager = gestor;
+    for (const line of commitment.details) {
+      line.n4 = commitment.n4 || line.n4 || "";
+      line.platformManager = gestor;
+      if (!n4Key) continue;
+      if (!gestor) n4SemGestor.add(commitment.n4 || line.n4 || "");
+    }
+    if (commitment.n4 && !gestor) {
+      n4SemGestor.add(commitment.n4);
+    }
+  }
+  if (n4SemGestor.size) {
+    const items = [...n4SemGestor].sort();
+    console.warn(`[preprocessCsv] Sem gestor da plataforma para N4(s): ${items.join(", ")}`);
+  }
 
   try {
     const pagamentoCsv = read("Realizado_Detalhado.csv");

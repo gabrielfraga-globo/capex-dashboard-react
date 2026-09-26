@@ -59,11 +59,17 @@ export function derivarPoStatus(estimatedDeliveryDate: string | null, exerciseYe
 export interface CommitmentSourceLine {
   idPpm: string;
   nomeLb: string;
+  n4?: string;
   rubrica: string;
   reqCompra: string;
   ordemCompra: string | null;
   fornecedor: string;
   comprador: string;
+  firstApprover?: string | null;
+  commitmentCreatedAt?: string | null;   // ISO yyyy-mm-dd
+  rcApprovedAt?: string | null;          // ISO yyyy-mm-dd
+  /** gestor da plataforma (N4), não do projeto. */
+  platformManager?: string | null;
   statusCompromisso: string;
   statusRc: string;
   requestDescription?: string;
@@ -79,6 +85,9 @@ export interface CommitmentSource {
   oc: string;                       // 'PENDING' quando ausente
   projectId: string;
   projectName: string;
+  n4?: string;
+  /** gestor da plataforma (N4), não do projeto. */
+  platformManager?: string | null;
   rubrica: string;
   supplier: string;
   systemStatus: string;

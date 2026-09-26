@@ -1,10 +1,13 @@
 import type { CommitmentSource, CommitmentSourceBundle, CommitmentSourceLine, RcGroup } from "../src/features/radar/types";
 import { PAYMENT_LEAD_DAYS, PENDING_OC } from "../src/features/radar/types";
+import { normalizeKey } from "../src/lib/csvProcessingCore.ts";
 
 /** Linha bruta do compromissos_detalhados.csv, como lida do arquivo. */
 export interface RawCsvRow {
   IdPPM: string;
   NomeLB: string;
+  N4: string;
+  "1º Aprovador"?: string;
   Rubrica: string;
   REQ_COMPRA: string;
   ORDEM_DE_COMPRA: string;
@@ -12,7 +15,9 @@ export interface RawCsvRow {
   COMPRADOR: string;
   STATUS_COMPROMISSO: string;
   STATUS_RC: string;
+  DT_CRIACAO_COMP?: string;
   REQ_DESCRICAO?: string;
+  DT_REQ_APROV?: string;
   DATA_NECESSIDADE: string;
   DATA_PROMETIDA: string;
   ValorCompromisso: string;
@@ -32,7 +37,11 @@ function parseData(value: string | undefined): string | null {
   const trimmed = (value ?? "").trim();
   if (!trimmed) return null;
   const match = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
-  return match ? match[1] : null;
+  if (match) return match[1];
+  const isoLike = /^(\d{4}-\d{2}-\d{2})\s\d{2}:\d{2}:\d{2},\d+/.exec(trimmed);
+  if (isoLike) return isoLike[1];
+  const withTime = /^(\d{4}-\d{2}-\d{2})T/.exec(trimmed);
+  return withTime ? withTime[1] : null;
 }
 
 function addDays(iso: string, days: number): string {
@@ -51,14 +60,20 @@ function sum(values: number[]): number {
 
 function normalizarLinha(linha: RawCsvRow): CommitmentSourceLine {
   const ordemCompra = linha.ORDEM_DE_COMPRA.trim();
+  const n4 = linha.N4?.trim() ?? "";
+
   return {
     idPpm: linha.IdPPM.trim(),
     nomeLb: linha.NomeLB,
+    n4,
     rubrica: linha.Rubrica,
     reqCompra: linha.REQ_COMPRA.trim(),
     ordemCompra: ordemCompra || null,
     fornecedor: linha.FORNECEDOR,
     comprador: linha.COMPRADOR,
+    firstApprover: linha["1º Aprovador"]?.trim() || null,
+    commitmentCreatedAt: parseData(linha.DT_CRIACAO_COMP),
+    rcApprovedAt: parseData(linha.DT_REQ_APROV),
     statusCompromisso: linha.STATUS_COMPROMISSO,
     statusRc: linha.STATUS_RC,
     requestDescription: linha.REQ_DESCRICAO?.trim() || undefined,
@@ -93,6 +108,7 @@ export function consolidarCompromissos(linhasCsv: RawCsvRow[], exercicio: number
         oc,
         projectId: ppm,
         projectName: linha.NomeLB,
+        n4: linha.N4?.trim() ?? "",
         rubrica: linha.Rubrica,
         supplier: linha.FORNECEDOR,
         systemStatus: linha.STATUS_COMPROMISSO,

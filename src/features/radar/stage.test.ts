@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { mergearRadar } from "./merge";
-import { buildStageReport, deriveDaysInStage, deriveStage, deriveSubState, stageReportFromBundle } from "./stage";
+import { buildStageReport, deriveDaysInStage, deriveOwner, deriveStage, deriveSubState, stageReportFromBundle } from "./stage";
 
 const fixture = JSON.parse(
   readFileSync(new URL("./__fixtures__/radar-bundle-2026-09-25T16-51-32Z.json", import.meta.url), "utf8")
@@ -121,6 +121,50 @@ describe("deriveStage — regras operacionais reais do BI", () => {
         valorCompromisso: 1500,
       }, { referenceDate: "2026-09-25" })
     ).toBe("DESCONHECIDA");
+  });
+});
+
+describe("deriveOwner por etapa", () => {
+  it("E1 expõe e-mail e displayName, E2 sem comprador e E4 por subestado", () => {
+    const e1 = deriveOwner("E1", "NONE", { firstApprover: "analista@empresa.com" });
+    expect(e1.role).toBe("APROVADOR");
+    expect(e1.name).toBe("analista@empresa.com");
+    expect(e1.displayName).toBe("analista");
+
+    const e2 = deriveOwner("E2", "E2_SEM_COMPRADOR", { statusRc: "APPROVED", statusCompromisso: "APPROVED", ordemCompra: "" });
+    expect(e2.role).toBe("N5_COMPRAS");
+    expect(e2.name).toBeNull();
+    expect(e2.area).toBe("N5 Compras (Torre de Compras)");
+
+    const e4OnTime = deriveOwner("E4", "NONE", { dataPrometida: "2026-10-10", fornecedor: "F1" }, "Carla");
+    expect(e4OnTime.role).toBe("FORNECEDOR");
+
+    const e4Delayed = deriveOwner("E4", "E4_ATRASADO", { dataPrometida: "2026-09-20", comprador: "João" }, "Carla");
+    expect(e4Delayed.role).toBe("COMPRADOR");
+    expect(e4Delayed.name).toBe("João");
+
+    const e4Arrived = deriveOwner("E4", "E4_CHEGOU", { chegouFisicamente: true, platformManager: "Carla" }, "Carla");
+    expect(e4Arrived.role).toBe("GESTOR");
+    expect(e4Arrived.name).toBe("Carla");
+  });
+
+  it("E3, E5, E6 e E7 têm proprietários esperados", () => {
+    const e3 = deriveOwner("E3", "NONE", { comprador: "Ana" });
+    expect(e3.role).toBe("COMPRADOR");
+    expect(e3.area).toBe("N5 Compras (Torre de Compras)");
+
+    const e5 = deriveOwner("E5", "NONE", { platformManager: "Carla", comprador: "João" }, "Carla");
+    expect(e5.role).toBe("GESTOR");
+    expect(e5.area).toBe("Gestor da plataforma");
+
+    const e6 = deriveOwner("E6", "NONE", {});
+    expect(e6.role).toBe("FINANCEIRO");
+    expect(e6.area).toBe("Financeiro");
+
+    const e7 = deriveOwner("E7", "NONE", {});
+    expect(e7.role).toBe("TESOURARIA");
+    expect(e7.name).toBeNull();
+    expect(e7.area).toBe("Tesouraria");
   });
 });
 

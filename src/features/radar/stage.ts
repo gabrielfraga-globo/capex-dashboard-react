@@ -35,6 +35,11 @@ export interface StageInput {
   fornecedor?: string | null;
   aprovador?: string | null;
   gestor?: string | null;
+  platformManager?: string | null;
+  n4?: string | null;
+  firstApprover?: string | null;
+  commitmentCreatedAt?: string | null;
+  rcApprovedAt?: string | null;
   dataPrometida?: string | null;
   systemPromisedDate?: string | null;
   dataNecessidade?: string | null;
@@ -53,6 +58,7 @@ export interface StageInput {
 export interface OwnerRoleResult {
   role: OwnerRole;
   name: string | null;
+  displayName?: string | null;
   area: string;
 }
 
@@ -211,24 +217,31 @@ export function deriveSubState(
   return "NONE";
 }
 
-export function deriveOwnerRole(
+export function deriveOwner(
   stage: StageCode | string,
-  input: StageInput
+  subState: StageSubState | string,
+  input: StageInput,
+  platformManagerOverride?: string | null
 ): OwnerRoleResult {
   const resolvedStage = String(stage).toUpperCase();
+  const resolvedSubState = String(subState).toUpperCase();
+  const platformManager = platformManagerOverride ?? input.platformManager ?? input.gestor ?? null;
 
   if (resolvedStage === "E0") {
     return {
       role: "GESTOR_PROJETO",
-      name: input.gestor ?? null,
+      name: input.gestor ?? platformManager ?? null,
       area: "Tecnologia",
     };
   }
 
   if (resolvedStage === "E1") {
+    const name = input.aprovador ?? input.firstApprover ?? null;
+    const emailPrefix = typeof name === "string" && name.includes("@") ? name.split("@")[0].trim() : null;
     return {
       role: "APROVADOR",
-      name: input.aprovador ?? null,
+      name,
+      displayName: emailPrefix ?? name,
       area: "Tecnologia",
     };
   }
@@ -236,38 +249,28 @@ export function deriveOwnerRole(
   if (resolvedStage === "E2" || resolvedStage === "E3") {
     const name = input.comprador ?? null;
     return {
-      role: "COMPRADOR",
+      role: name ? "COMPRADOR" : "N5_COMPRAS",
       name,
-      area: "Suprimentos",
+      area: "N5 Compras (Torre de Compras)",
     };
   }
 
   if (resolvedStage === "E4") {
     const hasManualArrival = input.chegouFisicamente ?? false;
-    if (hasManualArrival) {
+    if (hasManualArrival || resolvedSubState === "E4_CHEGOU" || resolvedSubState === "E4_PARCIAL") {
       return {
         role: "GESTOR",
-        name: input.gestor ?? null,
-        area: "Tecnologia",
+        name: platformManager ?? input.gestor ?? null,
+        area: "Gestor da plataforma",
       };
     }
 
-    const partial = input.entregaParcial ?? false;
-    if (partial) {
-      return {
-        role: "GESTOR",
-        name: input.gestor ?? null,
-        area: "Tecnologia",
-      };
-    }
-
-    const referenceDate = resolveReferenceDate(stageConfig.referenceDate);
-    const overdue = deriveSubState(input, "E4", { referenceDate }) === "E4_ATRASADO";
+    const overdue = resolvedSubState === "E4_ATRASADO";
     if (overdue) {
       return {
         role: "COMPRADOR",
         name: input.comprador ?? null,
-        area: "Suprimentos",
+        area: "N5 Compras (Torre de Compras)",
       };
     }
 
@@ -281,8 +284,8 @@ export function deriveOwnerRole(
   if (resolvedStage === "E5") {
     return {
       role: "GESTOR",
-      name: input.gestor ?? input.comprador ?? null,
-      area: "Tecnologia",
+      name: platformManager ?? input.gestor ?? input.comprador ?? null,
+      area: "Gestor da plataforma",
     };
   }
 
@@ -294,11 +297,28 @@ export function deriveOwnerRole(
     };
   }
 
+  if (resolvedStage === "E7") {
+    return {
+      role: "TESOURARIA",
+      name: null,
+      area: "Tesouraria",
+    };
+  }
+
   return {
     role: "DESCONHECIDA",
     name: null,
     area: "Não definido",
   };
+}
+
+export function deriveOwnerRole(
+  stage: StageCode | string,
+  input: StageInput
+): OwnerRoleResult {
+  const resolvedStage = String(stage).toUpperCase();
+  const subState = deriveSubState(input, resolvedStage as StageCode, { referenceDate: stageConfig.referenceDate });
+  return deriveOwner(resolvedStage, subState, input, input.platformManager ?? input.gestor ?? null);
 }
 
 export function deriveDaysInStage(
@@ -311,11 +331,11 @@ export function deriveDaysInStage(
 
   switch (resolvedStage) {
     case "E1": {
-      const date = parseDate(input.dtCriacaoComp);
+      const date = parseDate(input.dtCriacaoComp ?? input.commitmentCreatedAt);
       return date ? diffDays(referenceDate, date) : null;
     }
     case "E2": {
-      const date = parseDate(input.dtReqAprov);
+      const date = parseDate(input.dtReqAprov ?? input.rcApprovedAt);
       return date ? diffDays(referenceDate, date) : null;
     }
     case "E4": {
@@ -388,15 +408,23 @@ export function commitmentLineToStageInput(line: Partial<CommitmentSourceLine> &
   comprador?: string | null;
   fornecedor?: string | null;
   sourceValue?: number | null;
+  dtCriacaoComp?: string | null;
+  dtReqAprov?: string | null;
 }): StageInput {
   const ordemCompra = line.ordemCompra && normalizeStatus(line.ordemCompra) !== "PENDING" ? line.ordemCompra : "";
   const valorCompromisso = line.valorCompromisso ?? line.sourceValue ?? 0;
+  const commitmentCreatedAt = line.commitmentCreatedAt ?? line.dtCriacaoComp ?? null;
+  const rcApprovedAt = line.rcApprovedAt ?? line.dtReqAprov ?? null;
 
   return {
     statusCompromisso: line.statusCompromisso ?? null,
     statusRc: line.statusRc ?? null,
     ordemCompra,
     oc: line.ordemCompra ?? undefined,
+    n4: line.n4 ?? null,
+    firstApprover: line.firstApprover ?? null,
+    commitmentCreatedAt,
+    rcApprovedAt,
     dataPrometida: line.dataPrometida ?? null,
     dataNecessidade: line.dataNecessidade ?? null,
     valorCompromisso,
@@ -404,8 +432,11 @@ export function commitmentLineToStageInput(line: Partial<CommitmentSourceLine> &
     value: valorCompromisso,
     comprador: line.comprador ?? undefined,
     fornecedor: line.fornecedor ?? undefined,
-    aprovador: undefined,
+    aprovador: line.firstApprover ?? undefined,
     gestor: undefined,
+    platformManager: line.platformManager ?? undefined,
+    dtCriacaoComp: commitmentCreatedAt,
+    dtReqAprov: rcApprovedAt,
   };
 }
 

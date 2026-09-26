@@ -1,5 +1,6 @@
 import { derivarPoStatus, PAYMENT_LEAD_DAYS } from "./types";
 import type { CommitmentCuration } from "./types";
+import { DELIVERY_TO_NF_DAYS, NF_TO_PAYMENT_DAYS } from "./stageConfig";
 
 export type DecisionOrigin = "NOVO" | "LEGADO" | "NENHUMA";
 
@@ -75,12 +76,59 @@ function deriveCashState(paymentDate: string | null, exerciseYear: number): { ca
   return { cashForecast, cashYear: paymentDate <= limit ? exerciseYear : exerciseYear + 1 };
 }
 
+function toIsoDate(value: string | null | undefined): string | null {
+  if (!value || !String(value).trim()) return null;
+  const trimmed = String(value).trim();
+  const withTime = trimmed.includes(" ") && !trimmed.includes("T") ? trimmed.replace(" ", "T") : trimmed;
+  const parsed = new Date(withTime.includes("T") ? withTime : `${withTime}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+}
+
+function addDateDays(iso: string | null | undefined, days: number): string | null {
+  if (!iso) return null;
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export function suggestPaymentDate(
-  _stage: unknown,
-  _line: unknown,
-  _config: unknown
-): string {
-  throw new Error("TODO: implementar em Fase 3b. A lógica da esteira de sugestão de data de pagamento fica aqui.");
+  stage: unknown,
+  line: Record<string, unknown> | null | undefined,
+  referenceDate?: unknown
+): string | null {
+  const stageName = String(stage ?? "").toUpperCase();
+  const refDate = (typeof referenceDate === "string" || referenceDate instanceof Date)
+    ? toIsoDate(referenceDate instanceof Date ? referenceDate.toISOString().slice(0, 10) : referenceDate)
+    : null;
+
+  if (!refDate) {
+    return null;
+  }
+
+  const rawDataPrometida = toIsoDate(typeof line?.dataPrometida === "string" ? line.dataPrometida : null)
+    ?? toIsoDate(typeof line?.systemPromisedDate === "string" ? line.systemPromisedDate : null);
+
+  if (stageName === "E4") {
+    if (rawDataPrometida) {
+      const promisedDate = new Date(`${rawDataPrometida}T00:00:00Z`);
+      const referenceDateValue = new Date(`${refDate}T00:00:00Z`);
+      const candidate = new Date(Math.max(promisedDate.getTime(), referenceDateValue.getTime()));
+      const base = candidate.toISOString().slice(0, 10);
+      return addDateDays(base, DELIVERY_TO_NF_DAYS + NF_TO_PAYMENT_DAYS);
+    }
+
+    return addDateDays(refDate, DELIVERY_TO_NF_DAYS + NF_TO_PAYMENT_DAYS);
+  }
+
+  if (stageName === "E5") {
+    return addDateDays(refDate, DELIVERY_TO_NF_DAYS + NF_TO_PAYMENT_DAYS);
+  }
+
+  if (stageName === "E6") {
+    return addDateDays(refDate, NF_TO_PAYMENT_DAYS);
+  }
+
+  return null;
 }
 
 function toLegacyForecast(poStatus: string | null, estimatedDeliveryDate: string | null, exerciseYear: number): {
