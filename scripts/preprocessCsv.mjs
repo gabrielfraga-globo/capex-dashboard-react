@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseCsvCarteira, csvObjects } from "../src/lib/csvProcessingCore.ts";
+import { attachPaymentsSection } from "../src/features/radar/payment.ts";
 import { consolidarCompromissos } from "../process-data/consolidateCommitments.ts";
 
 const DATA = resolve("public/data");
@@ -29,6 +30,22 @@ async function main() {
   // com o pipeline existente, sem alterar seu formato de saída.
   const linhasRadar = csvObjects(read("compromissos_detalhados.csv"));
   const bundle = consolidarCompromissos(linhasRadar, new Date().getFullYear());
+
+  try {
+    const pagamentoCsv = read("Realizado_Detalhado.csv");
+    const attached = attachPaymentsSection(bundle, pagamentoCsv);
+    if (attached.status === "ok") {
+      Object.assign(bundle, attached.bundle);
+      console.log(
+        `[preprocessCsv] Radar pagamentos: ${attached.bundle.payments.totals.inPaymentLines} linhas E7, R$ ${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(attached.bundle.payments.totals.pending)} em pagamento`
+      );
+    } else {
+      console.warn(`[preprocessCsv] Radar pagamentos IGNORADO: ${attached.reason}`);
+    }
+  } catch {
+    console.warn("[preprocessCsv] Radar pagamentos IGNORADO: arquivo ausente");
+  }
+
   writeFileSync(RADAR_OUTPUT, `${JSON.stringify(bundle)}\n`, "utf-8");
   console.log(`[preprocessCsv] Radar OK: ${bundle.totals.keys} chaves, ${bundle.totals.rcs} RCs em ${(performance.now() - start).toFixed(1)}ms`);
 }

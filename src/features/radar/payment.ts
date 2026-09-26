@@ -1,5 +1,5 @@
 import { csvObjects } from "../../lib/csvProcessingCore";
-import type { CommitmentSource } from "./types";
+import type { CommitmentSource, PaymentsSection } from "./types";
 import { commitmentLineToStageInput, deriveStage } from "./stage";
 import { stageConfig } from "./stageConfig";
 
@@ -16,6 +16,7 @@ export interface PaymentRecord {
   n4: string | null;
   rubrica: string | null;
   approver: string | null;
+  withoutRc: boolean;
 }
 
 export interface PaymentStageSummary {
@@ -97,12 +98,12 @@ function firstPresent(...values: Array<string | null | undefined>): string | nul
 
 function toMoney(raw: string | number | null | undefined): number {
   if (raw === null || raw === undefined) return 0;
-  if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : Number.NaN;
   const cleaned = String(raw).trim();
   if (!cleaned) return 0;
   const normalized = cleaned.replace(/\./g, "").replace(",", ".");
   const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 function parseIsoDate(raw: string | null | undefined): string | null {
@@ -160,9 +161,15 @@ function parseRow(record: Record<string, string>): PaymentRecord | null {
   const paid = toMoney(firstPresent(normalized.REALIZADO_PAGO, normalized.REALIZADOPAGO));
   const pending = toMoney(firstPresent(normalized.REALIZADO_PENDENTE, normalized.REALIZADOPENDENTE));
 
+  if (!Number.isFinite(paid) || !Number.isFinite(pending)) {
+    return null;
+  }
+
   if (!rc && !nf && !paymentDate && paid === 0 && pending === 0 && !projectName && !n4 && !rubrica && !approver) {
     return null;
   }
+
+  const withoutRc = rc === null;
 
   return {
     rc,
@@ -175,11 +182,88 @@ function parseRow(record: Record<string, string>): PaymentRecord | null {
     n4,
     rubrica,
     approver,
+    withoutRc,
   };
 }
 
+export function buildPaymentsSection(records: PaymentRecord[]): PaymentsSection {
+  if (!Array.isArray(records) || records.length === 0) {
+    throw new Error("Realizado_Detalhado.csv vazio ou inválido: sem linhas de pagamento disponíveis");
+  }
+
+  const inPayment = records.filter((record) => record.pending !== 0);
+  const paid = records.reduce((sum, record) => sum + record.paid, 0);
+  const pending = records.reduce((sum, record) => sum + record.pending, 0);
+  const withoutRcLines = records.filter((record) => !record.rc).length;
+  const withoutRcValue = records
+    .filter((record) => !record.rc)
+    .reduce((sum, record) => sum + record.paid + record.pending, 0);
+
+  if (![paid, pending, withoutRcValue].every(Number.isFinite)) {
+    throw new Error("Realizado_Detalhado.csv com totais não finitos: paid, pending ou withoutRcValue inválidos");
+  }
+
+  return {
+    generatedFrom: "Realizado_Detalhado.csv",
+    inPayment: inPayment.map((record) => ({
+      ...record,
+      withoutRc: record.withoutRc,
+    })),
+    totals: {
+      paid,
+      pending,
+      inPaymentLines: inPayment.length,
+      inPaymentRcs: new Set(inPayment.filter((record) => record.rc).map((record) => record.rc!)).size,
+      withoutRcLines,
+      withoutRcValue,
+    },
+  };
+}
+
+export function attachPaymentsSection(
+  bundle: { payments?: PaymentsSection } | Record<string, unknown>,
+  csvText: string | null
+): { bundle: { payments?: PaymentsSection }; status: "ok" | "skipped"; reason?: string } {
+  if (csvText === null || csvText.trim() === "") {
+    return { bundle, status: "skipped", reason: "csv nulo ou vazio" };
+  }
+
+  const rows = parsePaymentCsv(csvText);
+  if (rows.length === 0) {
+    return { bundle, status: "skipped", reason: "csv sem linhas válidas" };
+  }
+
+  try {
+    const section = buildPaymentsSection(rows);
+    return {
+      bundle: { ...bundle, payments: section },
+      status: "ok",
+    };
+  } catch (error) {
+    return {
+      bundle,
+      status: "skipped",
+      reason: error instanceof Error ? error.message : "csv inválido",
+    };
+  }
+}
+
+function hasPaymentColumns(rows: Array<Record<string, string>>): boolean {
+  return rows.some((row) =>
+    Object.keys(row).some((key) => {
+      const normalized = normalizeHeaderKey(key);
+      return normalized === "REALIZADOPAGO" || normalized === "REALIZADO_PAGO" || normalized === "REALIZADOPENDENTE" || normalized === "REALIZADO_PENDENTE";
+    })
+  );
+}
+
 export function parsePaymentCsv(csvText: string): PaymentRecord[] {
-  return csvObjects(csvText)
+  const rows = csvObjects(csvText);
+  if (rows.length === 0 || !hasPaymentColumns(rows)) {
+    return [];
+  }
+
+  return rows
     .map((row) => parseRow(row))
     .filter((row): row is PaymentRecord => row !== null);
 }

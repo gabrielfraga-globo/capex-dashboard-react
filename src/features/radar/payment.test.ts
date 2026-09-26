@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { overlapReport, parsePaymentCsv, paymentReport, reconciliationVsAggregate } from "./payment";
+import { attachPaymentsSection, buildPaymentsSection, overlapReport, parsePaymentCsv, paymentReport, reconciliationVsAggregate } from "./payment";
 
 const paymentFixture = readFileSync(new URL("./__fixtures__/realizado-detalhado-HEAD-7e3db7b.csv", import.meta.url), "utf8");
 const bundleFixture = JSON.parse(
@@ -48,6 +48,44 @@ describe("paymentReport", () => {
     expect(records[4].pending).toBe(0);
     expect(records[5].rc).toBe("RC-6");
     expect(records[5].paid).toBeCloseTo(10, 2);
+  });
+});
+
+describe("buildPaymentsSection", () => {
+  it("usa o oráculo de pagamentos do Realizado_Detalhado.csv em 2026", () => {
+    const records = parsePaymentCsv(paymentFixture);
+    const section = buildPaymentsSection(records);
+
+    expect(section.generatedFrom).toBe("Realizado_Detalhado.csv");
+    expect(section.totals.pending).toBeCloseTo(8210831.11, 2);
+    expect(section.totals.inPaymentLines).toBe(346);
+    expect(section.totals.inPaymentRcs).toBe(130);
+    expect(section.totals.paid).toBeCloseTo(72386783.47, 2);
+    expect(section.totals.withoutRcLines).toBe(64);
+    expect(section.totals.withoutRcValue).toBeCloseTo(-37131.87, 2);
+    expect(section.inPayment.every((record) => record.pending !== 0)).toBe(true);
+  });
+
+  it("contem somente registros com pending diferente de zero", () => {
+    const records = parsePaymentCsv(paymentFixture);
+    const section = buildPaymentsSection(records);
+
+    expect(section.inPayment.length).toBe(section.totals.inPaymentLines);
+    expect(section.inPayment.every((record) => record.pending !== 0)).toBe(true);
+    expect(section.inPayment.some((record) => record.pending === 0)).toBe(false);
+  });
+
+  it("falha em CSV vazio ou inválido e o chamador não define payments", () => {
+    const invalidCases = [null, "", "REQ_COMPRA;NOTA_FISCAL\n", "REQ_COMPRA;NOTA_FISCAL\nRC-1;NF-1\n", "REQ_COMPRA;NOTA_FISCAL\nRC-1;NaN\n"] as const;
+
+    for (const value of invalidCases) {
+      const bundle = { generatedAt: "2026-09-25T00:00:00.000Z" };
+      const result = attachPaymentsSection(bundle, value === null ? null : value);
+      expect(result.status).toBe("skipped");
+      expect("payments" in result.bundle).toBe(false);
+    }
+
+    expect(() => buildPaymentsSection([])).toThrow(/sem linhas de pagamento/i);
   });
 });
 
@@ -132,6 +170,7 @@ describe("overlapReport", () => {
       n4: null,
       rubrica: null,
       approver: null,
+      withoutRc: false,
     }];
 
     const overlap = overlapReport(bundle, payments, { referenceDate: "2026-09-25" });

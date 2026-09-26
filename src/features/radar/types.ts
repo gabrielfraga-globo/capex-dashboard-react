@@ -2,6 +2,8 @@
 // Enums e constantes
 // ─────────────────────────────────────────────────────────────
 
+import type { PaymentRecord } from "./payment";
+
 export const PO_STATUS = ['CONFIRMED', 'AT_RISK', 'CARRYOVER', 'CANCELLED', 'NO_VISIBILITY'] as const;
 export type PoStatus = (typeof PO_STATUS)[number];
 
@@ -89,6 +91,20 @@ export interface RcGroup {
   splitsExercise: boolean;
 }
 
+/** Seção opcional de pagamentos do Realizado_Detalhado.csv, adicionada ao bundle do radar. */
+export interface PaymentsSection {
+  generatedFrom: "Realizado_Detalhado.csv";
+  inPayment: PaymentRecord[];
+  totals: {
+    paid: number;
+    pending: number;
+    inPaymentLines: number;
+    inPaymentRcs: number;
+    withoutRcLines: number;
+    withoutRcValue: number;
+  };
+}
+
 /** Payload completo produzido pelo process-data. */
 export interface CommitmentSourceBundle {
   generatedAt: string;
@@ -97,6 +113,7 @@ export interface CommitmentSourceBundle {
   rcGroups: RcGroup[];
   discardedLines: number;
   totals: { value: number; lines: number; keys: number; rcs: number };
+  payments?: PaymentsSection;
 }
 
 // ─────────────────────────────────────────────────────────────
