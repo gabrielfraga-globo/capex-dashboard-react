@@ -87,6 +87,14 @@ dos sete tem de bater com o total do BI:
 > ou valor cheio, e se o RI inclui requisições que já viraram RC. Se houver sobreposição,
 > o BG Curado infla. Não bloqueia a implementação; bloqueia a publicação do número.
 
+### Pendências operacionais do pipeline Radar
+
+- `preprocessCsv` usa `new Date().getFullYear()` como exercício do Radar; o exercício da
+  base oficial deve vir do export do BI e não do relógio do build.
+- `csvProcessingCore` usa o relógio do build em `dataBase` / `atualizadoEm`; todo rebuild ou
+  deploy muda a "data base" exibida, mesmo sem dado novo. A data deveria ser trazida do
+  export do BI e não recalculada no cliente/local.
+
 ---
 
 ## 1. Modelo TypeScript
