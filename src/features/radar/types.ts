@@ -2,7 +2,7 @@
 // Enums e constantes
 // ─────────────────────────────────────────────────────────────
 
-import type { PaymentRecord } from "./payment";
+import type { PaymentRecord } from "./payment.js";
 
 export const PO_STATUS = ['CONFIRMED', 'AT_RISK', 'CARRYOVER', 'CANCELLED', 'NO_VISIBILITY'] as const;
 export type PoStatus = (typeof PO_STATUS)[number];

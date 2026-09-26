@@ -4,7 +4,7 @@ import type { RcCurationUpsertRequest, RcCurationUpsertResponse } from "../../..
 import { getPool } from "../../_lib/db.js";
 import { requireAuth } from "../../_lib/auth.js";
 import { responderErro } from "../../_lib/http.js";
-import { buildCurationWrite, CURATION_WRITE_COLUMN_WHITELIST, rowToCuration } from "../../_lib/curationColumns.js";
+import { buildCurationWrite, CURATION_WRITE_COLUMN_WHITELIST } from "../../_lib/curationColumns.js";
 import { ValidationError, validarChave, validarCorpoDeCuradoria, validarSourceValue } from "../../_lib/validation.js";
 
 export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -79,7 +79,7 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
 
         const write = buildCurationWrite(writeBody, exerciseYear ?? 0);
 
-        const payload = {
+        const payload: Record<string, unknown> = {
           ...write.columns,
           source_value_at_curation: target.sourceValue,
         };

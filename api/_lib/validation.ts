@@ -1,12 +1,4 @@
-import type {
-  CashForecast,
-  DecisionBlocker,
-  DecisionConfidence,
-  NonOccurrenceReason,
-  PaymentMode,
-  PoStatus,
-  PriorityLevel,
-} from "../../src/features/radar/types.js";
+import type { PoStatus } from "../../src/features/radar/types.js";
 import {
   PO_STATUS,
   CASH_FORECAST,
@@ -46,10 +38,10 @@ export function validarPoStatus(poStatus: unknown): PoStatus {
 
 export function validarExerciseYear(exerciseYear: unknown): number | undefined {
   if (exerciseYear == null) return undefined;
-  if (!Number.isInteger(exerciseYear) || exerciseYear <= 0) {
+  if (typeof exerciseYear !== "number" || !Number.isInteger(exerciseYear) || exerciseYear <= 0) {
     throw new ValidationError("exerciseYear deve ser um inteiro positivo");
   }
-  return exerciseYear as number;
+  return exerciseYear;
 }
 
 function validateIsoDate(value: unknown, label: string): string | null {
@@ -71,24 +63,24 @@ function hasAnyNewDecisionField(body: Record<string, unknown>): boolean {
   return NEW_DECISION_FIELDS.some((field) => Object.prototype.hasOwnProperty.call(body, field));
 }
 
-interface CorpoDeCuradoria {
+type CorpoDeCuradoria = Partial<{
   estimatedDeliveryDate: unknown;
   poStatus: unknown;
   notes: unknown;
-  exerciseYear?: unknown;
-  forecastPaymentDate?: unknown;
-  suggestedPaymentDate?: unknown;
-  paymentExceptionReason?: unknown;
-  cashForecast?: unknown;
-  nonOccurrenceReason?: unknown;
-  confidence?: unknown;
-  blocker?: unknown;
-  nextAction?: unknown;
-  physicalArrival?: unknown;
-  paymentMode?: unknown;
-  priority?: unknown;
-  decisionStage?: unknown;
-}
+  exerciseYear: unknown;
+  forecastPaymentDate: unknown;
+  suggestedPaymentDate: unknown;
+  paymentExceptionReason: unknown;
+  cashForecast: unknown;
+  nonOccurrenceReason: unknown;
+  confidence: unknown;
+  blocker: unknown;
+  nextAction: unknown;
+  physicalArrival: unknown;
+  paymentMode: unknown;
+  priority: unknown;
+  decisionStage: unknown;
+}>;
 
 /** Regras comuns aos dois endpoints de escrita, antes de qualquer acesso ao banco. */
 export function validarCorpoDeCuradoria(body: CorpoDeCuradoria): { poStatus?: PoStatus; exerciseYear?: number } {
@@ -132,7 +124,7 @@ export function validarCorpoDeCuradoria(body: CorpoDeCuradoria): { poStatus?: Po
   }
 
   if (body.cashForecast != null) {
-    if (typeof body.cashForecast !== "string" || body.cashForecast !== "NAO_OCORRE") {
+    if (typeof body.cashForecast !== "string" || !(CASH_FORECAST as readonly string[]).includes(body.cashForecast)) {
       throw new ValidationError("cashForecast inválido. O valor aceito é 'NAO_OCORRE'");
     }
   }

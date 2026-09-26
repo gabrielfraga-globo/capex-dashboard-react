@@ -5,7 +5,7 @@ import type {
   ProjetoBase,
   RealizadoAnual,
   RelatorioParsing,
-} from "../types";
+} from "../types/index.js";
 
 export interface CsvCarteiraInput {
   orcamentoCsv: string;
@@ -114,8 +114,8 @@ function parseOrcamentoCsv(text: string, _ignoradas: LinhaIgnorada[]): Orcamento
   }
 
   for (const item of map.values()) {
-    item.total2026 = item.meses2026.reduce((sum, value) => sum + value, 0);
-    item.total2027 = item.meses2027.reduce((sum, value) => sum + value, 0);
+    item.total2026 = item.meses2026.reduce<number>((sum, value) => sum + value, 0);
+    item.total2027 = item.meses2027.reduce<number>((sum, value) => sum + value, 0);
     item.totalGeral = item.total2026 + item.total2027;
   }
   return [...map.values()];
@@ -186,7 +186,7 @@ function buildProjetos(
   const realMap = new Map<string, Agg>();
   for (const linha of realizado) {
     const key = `${normalizeKey(linha.n4)}|${normalizeKey(linha.nomeLB)}`;
-    const agg = realMap.get(key) ?? { n4: linha.n4, nomeLB: linha.nomeLB, aprovador: linha.aprovador,
+    const agg: Agg = realMap.get(key) ?? { n4: linha.n4, nomeLB: linha.nomeLB, aprovador: linha.aprovador,
       orcamento2026: 0, realizado2026: 0, emPagamento2026: 0,
       orcamento2027: 0, realizado2027: 0, emPagamento2027: 0,
       compromissos: [], aEmitirValues: [], deltaCaixaValues: [] };
@@ -227,8 +227,8 @@ function buildProjetos(
     projetos.push({ id: key, nome, n4, n4Curta: PLATAFORMA_CURTA[n4] ?? n4,
       gestor: gestor?.nome ?? null, gestorEmail: gestor?.email ?? null,
       aprovador: real?.aprovador ?? null, orcamentoPlurianual, orcamento2026, orcamento2027,
-      h1_2026: orc ? orc.meses2026.slice(0, 6).reduce((a, b) => a + b, 0) : null,
-      h2_2026: orc ? orc.meses2026.slice(6).reduce((a, b) => a + b, 0) : null,
+      h1_2026: orc ? orc.meses2026.slice(0, 6).reduce<number>((a, b) => a + b, 0) : null,
+      h2_2026: orc ? orc.meses2026.slice(6).reduce<number>((a, b) => a + b, 0) : null,
       meses2026: orc?.meses2026 ?? null, meses2027: orc?.meses2027 ?? null,
       realizado2026: real?.realizado2026 ?? null, emPagamento2026: real?.emPagamento2026 ?? null,
       realizado2027: real?.realizado2027 ?? null, emPagamento2027: real?.emPagamento2027 ?? null,

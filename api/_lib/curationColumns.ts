@@ -237,6 +237,13 @@ export function buildCurationWrite(
   return { mode, columns };
 }
 
+/** updated_at é NOT NULL no banco; ausência indica linha corrompida, não "agora". */
+function exigirTimestampIso(value: unknown, coluna: string): string {
+  const iso = paraTimestampIso(value);
+  if (iso == null) throw new Error(`${coluna} ausente na linha de curadoria`);
+  return iso;
+}
+
 export function rowToCuration(row: Record<string, unknown>): CommitmentCuration {
   const curation: CommitmentCuration = {
     commitmentKey: String(row.commitment_key),
@@ -248,7 +255,7 @@ export function rowToCuration(row: Record<string, unknown>): CommitmentCuration 
     curationLevel: row.curation_level as CommitmentCuration["curationLevel"],
     inheritedFromKey: row.inherited_from_key == null ? null : String(row.inherited_from_key),
     updatedBy: String(row.updated_by),
-    updatedAt: paraTimestampIso(row.updated_at),
+    updatedAt: exigirTimestampIso(row.updated_at, "updated_at"),
     cashForecast: row.cash_forecast == null ? null : (String(row.cash_forecast) as CashForecast),
     suggestedPaymentDate: paraDataIso(row.suggested_payment_date),
     forecastPaymentDate: paraDataIso(row.forecast_payment_date),

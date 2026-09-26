@@ -1,6 +1,6 @@
-import type { CommitmentSource, CommitmentSourceLine } from "./types";
-import type { StageConfig as StageConfigType } from "./stageConfig";
-import { stageConfig } from "./stageConfig";
+import type { CommitmentSource, CommitmentSourceLine } from "./types.js";
+import type { StageConfig as StageConfigType } from "./stageConfig.js";
+import { stageConfig } from "./stageConfig.js";
 
 export type StageCode =
   | "E0"

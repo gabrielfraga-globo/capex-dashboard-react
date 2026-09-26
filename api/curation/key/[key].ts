@@ -63,7 +63,7 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
 
       write = buildCurationWrite(writeBody, exerciseYear ?? 0);
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         ...write.columns,
         source_value_at_curation: sourceValue,
       };
@@ -129,7 +129,7 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
       client.release();
     }
 
-    const responsePayload = { ...write.columns, source_value_at_curation: sourceValue };
+    const responsePayload: Record<string, unknown> = { ...write.columns, source_value_at_curation: sourceValue };
     const curation: CommitmentCuration = rowToCuration({
       commitment_key: key,
       estimated_delivery_date: responsePayload.estimated_delivery_date,

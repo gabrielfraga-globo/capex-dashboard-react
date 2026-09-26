@@ -1,7 +1,7 @@
-import { csvObjects } from "../../lib/csvProcessingCore";
-import type { CommitmentSource, PaymentsSection } from "./types";
-import { commitmentLineToStageInput, deriveStage } from "./stage";
-import { stageConfig } from "./stageConfig";
+import { csvObjects } from "../../lib/csvProcessingCore.js";
+import type { CommitmentSource, PaymentsSection } from "./types.js";
+import { commitmentLineToStageInput, deriveStage } from "./stage.js";
+import { stageConfig } from "./stageConfig.js";
 
 export type PaymentStage = "E7" | "E8";
 
@@ -146,9 +146,9 @@ function normalizeProjectName(raw: string | null | undefined): string | null {
   return plain ? plain : null;
 }
 
-function parseRow(record: Record<string, string>): PaymentRecord | null {
+function parseRow(record: Record<string, unknown>): PaymentRecord | null {
   const normalized = Object.fromEntries(
-    Object.entries(record).map(([key, value]) => [normalizeHeaderKey(key), value ?? ""])
+    Object.entries(record).map(([key, value]) => [normalizeHeaderKey(key), typeof value === "string" ? value : String(value ?? "")])
   );
 
   const rc = normalizeRc(normalized.REQCOMPRA ?? normalized.REQ_COMPRA);
@@ -264,7 +264,7 @@ export function parsePaymentCsv(csvText: string): PaymentRecord[] {
   }
 
   return rows
-    .map((row) => parseRow(row))
+    .map((row: Record<string, string>) => parseRow(row))
     .filter((row): row is PaymentRecord => row !== null);
 }
 

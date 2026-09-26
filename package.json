@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "tsx scripts/preprocessCsv.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && npm run typecheck:api && vite build",
     "process-data": "tsx scripts/preprocessCsv.mjs",
     "check-orphan-curation": "tsx scripts/checkOrphanCuration.ts",
     "validate-data": "node scripts/validateMetrics.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck:api": "tsc -p api/tsconfig.json"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
