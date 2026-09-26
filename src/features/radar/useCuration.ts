@@ -43,6 +43,7 @@ export interface UseCurationResult {
   erroDe: (chave: string) => string | null;
   salvarChave: (commitmentKey: string, payload: CurationUpsertRequest) => Promise<boolean>;
   salvarRc: (rc: string, payload: RcCurationUpsertRequest) => Promise<RcCurationUpsertResponse | null>;
+  curationMap: CurationMap;
 }
 
 /** Busca o JSON do BI + a curadoria salva e produz as views prontas para a tela do Radar. */
@@ -245,5 +246,6 @@ export function useCuration(): UseCurationResult {
     erroDe: (chave: string) => errorMap[chave] ?? null,
     salvarChave,
     salvarRc,
+    curationMap,
   };
 }

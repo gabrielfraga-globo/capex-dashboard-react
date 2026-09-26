@@ -251,7 +251,7 @@ export function deriveOwner(
     return {
       role: name ? "COMPRADOR" : "N5_COMPRAS",
       name,
-      area: "N5 Compras (Torre de Compras)",
+      area: name ? "Suprimentos" : "N5 Compras (Torre de Compras)",
     };
   }
 
@@ -268,9 +268,9 @@ export function deriveOwner(
     const overdue = resolvedSubState === "E4_ATRASADO";
     if (overdue) {
       return {
-        role: "COMPRADOR",
+        role: input.comprador ? "COMPRADOR" : "N5_COMPRAS",
         name: input.comprador ?? null,
-        area: "N5 Compras (Torre de Compras)",
+        area: input.comprador ? "Suprimentos" : "N5 Compras (Torre de Compras)",
       };
     }
 

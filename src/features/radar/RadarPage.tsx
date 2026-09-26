@@ -7,6 +7,7 @@ import { fmtBRL, fmtNumber } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
 import { usePortfolioData } from "../../hooks/usePortfolioData";
 import { CommitmentTable } from "./CommitmentTable";
+import { OperationalTable } from "./OperationalTable";
 import { useCuration } from "./useCuration";
 import { precisaAtencao } from "./RcRow";
 import { poStatusLabel } from "./status";
@@ -22,12 +23,13 @@ function formatGeradoEm(iso: string): string {
 }
 
 export function RadarPage() {
-  const { isLoading, error, bundle, views, rcViews, resumo, isSaving, erroDe, salvarChave, salvarRc } = useCuration();
+  const { isLoading, error, bundle, views, rcViews, resumo, isSaving, erroDe, salvarChave, salvarRc, curationMap } = useCuration();
   const { parsed } = usePortfolioData();
   const [plataformaFiltro, setPlataformaFiltro] = useState<string | null>(null);
   const [gestorFiltro, setGestorFiltro] = useState<string | null>(null);
   const [aprovadorFiltro, setAprovadorFiltro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [activeTab, setActiveTab] = useState<"curadoria" | "operacional">("curadoria");
 
   const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
 
@@ -68,6 +70,8 @@ export function RadarPage() {
       return true;
     });
   }, [rcViews, projetoPorNome, plataformaFiltro, gestorFiltro, aprovadorFiltro, busca, bundle?.exerciseYear]);
+
+  const rcsFiltradas = useMemo(() => new Set(rcViewsFiltradas.map((rc) => rc.rc)), [rcViewsFiltradas]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 space-y-5">
@@ -142,14 +146,38 @@ export function RadarPage() {
             </div>
           </Card>
 
-          <CommitmentTable
-            rcViews={rcViewsFiltradas}
-            exerciseYear={resumo.exerciseYear}
-            isSaving={isSaving}
-            erroDe={erroDe}
-            onSalvarRc={salvarRc}
-            onSalvarChave={salvarChave}
-          />
+          <div className="flex gap-4 border-b border-border">
+            <button
+              className={`pb-2 text-sm font-medium transition-colors ${activeTab === "curadoria" ? "border-b-2 border-accent text-accent" : "text-text-muted hover:text-text"}`}
+              onClick={() => setActiveTab("curadoria")}
+            >
+              Curadoria
+            </button>
+            <button
+              className={`pb-2 text-sm font-medium transition-colors ${activeTab === "operacional" ? "border-b-2 border-accent text-accent" : "text-text-muted hover:text-text"}`}
+              onClick={() => setActiveTab("operacional")}
+            >
+              Operacional (beta)
+            </button>
+          </div>
+
+          {activeTab === "curadoria" ? (
+            <CommitmentTable
+              rcViews={rcViewsFiltradas}
+              exerciseYear={resumo.exerciseYear}
+              isSaving={isSaving}
+              erroDe={erroDe}
+              onSalvarRc={salvarRc}
+              onSalvarChave={salvarChave}
+            />
+          ) : (
+            <OperationalTable
+              bundle={bundle!}
+              curationMap={curationMap}
+              referenceDateStr={bundle!.generatedAt}
+              allowedRcs={rcsFiltradas}
+            />
+          )}
         </>
       )}
     </div>

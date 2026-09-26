@@ -142,6 +142,7 @@ describe("deriveOwner por etapa", () => {
     const e4Delayed = deriveOwner("E4", "E4_ATRASADO", { dataPrometida: "2026-09-20", comprador: "João" }, "Carla");
     expect(e4Delayed.role).toBe("COMPRADOR");
     expect(e4Delayed.name).toBe("João");
+    expect(e4Delayed.area).toBe("Suprimentos");
 
     const e4Arrived = deriveOwner("E4", "E4_CHEGOU", { chegouFisicamente: true, platformManager: "Carla" }, "Carla");
     expect(e4Arrived.role).toBe("GESTOR");
@@ -151,7 +152,7 @@ describe("deriveOwner por etapa", () => {
   it("E3, E5, E6 e E7 têm proprietários esperados", () => {
     const e3 = deriveOwner("E3", "NONE", { comprador: "Ana" });
     expect(e3.role).toBe("COMPRADOR");
-    expect(e3.area).toBe("N5 Compras (Torre de Compras)");
+    expect(e3.area).toBe("Suprimentos");
 
     const e5 = deriveOwner("E5", "NONE", { platformManager: "Carla", comprador: "João" }, "Carla");
     expect(e5.role).toBe("GESTOR");
