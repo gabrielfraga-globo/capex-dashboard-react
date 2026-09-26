@@ -9,6 +9,13 @@ export type PoStatus = (typeof PO_STATUS)[number];
 
 export type CurationLevel = 'RC' | 'KEY';
 
+export type CashForecast = 'CAIXA_EXERCICIO' | 'CAIXA_PROXIMO_EXERCICIO' | 'NAO_OCORRE';
+export type DecisionConfidence = 'CONFIRMADO' | 'PROVAVEL' | 'INCERTO';
+export type NonOccurrenceReason = 'CANCELAR' | 'REDUZIR' | 'TROCAR_FORNECEDOR' | 'ENCERRAR_SALDO' | 'LEGADO';
+export type DecisionBlocker = 'APROVACAO' | 'COTACAO_LICITACAO' | 'CONTRATO' | 'PROPOSTA_FORNECEDOR' | 'PRAZO_FORNECEDOR' | 'IMPORTACAO' | 'ENTREGA_PARCIAL' | 'RECEBIMENTO' | 'NF' | 'ORCAMENTO' | 'SEM_BLOQUEIO';
+export type PaymentMode = 'NORMAL' | 'ANTECIPADO' | 'MEDICAO_MENSAL';
+export type PriorityLevel = 'ALTA' | 'MEDIA' | 'BAIXA';
+
 export type CashBucket =
   | 'CONFIRMED_IN_YEAR'
   | 'CARRYOVER'
@@ -131,6 +138,25 @@ export interface CommitmentCuration {
   inheritedFromKey: string | null;        // chave PENDING de origem
   updatedBy: string;
   updatedAt: string;                      // ISO timestamp
+
+  // Campos opcionais da decisão do gestor, adicionados na Fase 3a.
+  // cashForecast só pode ser gravado como 'NAO_OCORRE'; a intenção de caixa do exercício
+  // e do próximo exercício é derivada de forecastPaymentDate.
+  cashForecast?: CashForecast | null;
+  suggestedPaymentDate?: string | null;    // ISO yyyy-mm-dd, sugestão da esteira
+  forecastPaymentDate?: string | null;     // ISO yyyy-mm-dd, data efetiva da decisão
+  paymentDateAdjusted?: boolean | null;    // true quando o gestor mudou a sugestão
+  paymentExceptionReason?: string | null;  // opcional, até 120 caracteres
+  confidence?: DecisionConfidence | null;
+  nonOccurrenceReason?: NonOccurrenceReason | null;
+  blocker?: DecisionBlocker | null;
+  nextAction?: string | null;
+  nextActionUpdatedAt?: string | null;    // ISO timestamp
+  physicalArrival?: boolean | null;
+  paymentMode?: PaymentMode | null;
+  priority?: PriorityLevel | null;
+  decisionStage?: string | null;
+  decisionUpdatedAt?: string | null;      // ISO timestamp
 }
 
 export type CurationMap = Record<string, CommitmentCuration>;
