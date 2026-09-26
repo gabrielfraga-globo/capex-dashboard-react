@@ -1,5 +1,5 @@
 {
-  "extends": "../tsconfig.node.json",
+  "extends": "./tsconfig.node.json",
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -7,6 +7,6 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["./**/*.ts"],
-  "exclude": ["./**/*.test.ts", "_lib/testDb.ts", "_lib/testHttp.ts"]
+  "include": ["api/**/*.ts"],
+  "exclude": ["api/**/*.test.ts", "api/_lib/testDb.ts", "api/_lib/testHttp.ts"]
 }
