@@ -435,3 +435,93 @@ export function buildFlowSummary(lista: ProjetoBase[]): FlowSummary {
   const desvioRel = planejadoAcumulado > 0 ? desvio / planejadoAcumulado : 0;
   return { realizadoAcumulado, planejadoAcumulado, desvio, desvioRel };
 }
+
+// ────────────────────────────────────────────────────────────
+// Radar Operacional — Resumo e Criticidade
+// ────────────────────────────────────────────────────────────
+
+export type Criticality = 'CRITICO' | 'ATENCAO' | 'NORMAL';
+
+export function classifyCriticality(row: OperationalRow, dataBase: Date): Criticality {
+  if (row.stage === 'RESIDUAL' || row.stage === 'DESCONHECIDA') return 'NORMAL';
+  
+  const dbStr = dataBase.toISOString().slice(0, 10);
+  
+  if (row.classification === 'EM_RISCO' && row.value >= 1_000_000) {
+    return 'CRITICO';
+  }
+  if (row.isClassificationConfirmed && row.classification !== 'NAO_OCORRE') {
+    if (row.forecastPaymentDate && row.forecastPaymentDate < dbStr) {
+      return 'CRITICO';
+    }
+  }
+
+  if (row.classification === 'EM_RISCO') {
+    return 'ATENCAO';
+  }
+  if (row.classification === 'CAIXA_27' && !row.isClassificationConfirmed) {
+    return 'ATENCAO';
+  }
+
+  return 'NORMAL';
+}
+
+export interface RadarSummary {
+  impacto: { value: number; pctBg: number; provRisco: number; prov27: number };
+  rcs: { emRisco: number; caixa27: number; confirmadas: number };
+  gargalo: { stage: string; area: string; value: number; rcCount: number; pctImpacto: number } | null;
+  criticidade: {
+    critico: { count: number; value: number };
+    atencao: { count: number; value: number };
+    normal: { count: number; value: number };
+  };
+}
+
+export function buildRadarSummary(opRows: OperationalRow[], bg: number, dataBase: Date): RadarSummary {
+  const { provRisco, prov27 } = sumProvisioned(opRows);
+  const impactoValue = provRisco + prov27;
+  
+  const rcs = { emRisco: 0, caixa27: 0, confirmadas: 0 };
+  const crit = {
+    critico: { count: 0, value: 0 },
+    atencao: { count: 0, value: 0 },
+    normal: { count: 0, value: 0 }
+  };
+
+  for (const r of opRows) {
+    if (r.stage === 'RESIDUAL' || r.stage === 'DESCONHECIDA') continue;
+    
+    if (r.classification === 'EM_RISCO') rcs.emRisco++;
+    if (r.classification === 'CAIXA_27') rcs.caixa27++;
+    if (r.isClassificationConfirmed) rcs.confirmadas++;
+
+    const c = classifyCriticality(r, dataBase);
+    if (c === 'CRITICO') {
+      crit.critico.count++;
+      crit.critico.value += r.value;
+    } else if (c === 'ATENCAO') {
+      crit.atencao.count++;
+      crit.atencao.value += r.value;
+    } else {
+      crit.normal.count++;
+      crit.normal.value += r.value;
+    }
+  }
+
+  const bottlenecks = buildBottleneck(opRows);
+  let gargalo = null;
+  if (bottlenecks.length > 0) {
+    const top = bottlenecks[0];
+    gargalo = {
+      ...top,
+      pctImpacto: provRisco > 0 ? top.value / provRisco : 0
+    };
+  }
+
+  return {
+    impacto: { value: impactoValue, pctBg: bg > 0 ? impactoValue / bg : 0, provRisco, prov27 },
+    rcs,
+    gargalo,
+    criticidade: crit
+  };
+}

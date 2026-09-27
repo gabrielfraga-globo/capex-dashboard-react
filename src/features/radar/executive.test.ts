@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary } from "./executive";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -256,5 +256,61 @@ describe("buildFlowSummary", () => {
     const lista = [{ realizadoAcumulado: 50, planejadoAcumulado: 60 }] as any[];
     const s = buildFlowSummary(lista);
     expect(s.realizadoAcumulado).toBe(50);
+  });
+});
+
+describe("classifyCriticality e buildRadarSummary", () => {
+  const db = new Date("2026-09-30T00:00:00Z");
+
+  it("classifica EM_RISCO >= 1M como CRITICO e < 1M como ATENCAO", () => {
+    const r1 = { stage: "E2", classification: "EM_RISCO", value: 1_000_000 } as OperationalRow;
+    const r2 = { stage: "E2", classification: "EM_RISCO", value: 999_999 } as OperationalRow;
+    expect(classifyCriticality(r1, db)).toBe("CRITICO");
+    expect(classifyCriticality(r2, db)).toBe("ATENCAO");
+  });
+
+  it("classifica RC confirmada vencida como CRITICO (mesmo não sendo EM_RISCO)", () => {
+    const r = { stage: "E2", classification: "CAIXA_26", isClassificationConfirmed: true, forecastPaymentDate: "2026-09-15", value: 100 } as OperationalRow;
+    expect(classifyCriticality(r, db)).toBe("CRITICO");
+  });
+
+  it("não classifica como CRITICO se data vencida não estiver confirmada", () => {
+    const r = { stage: "E2", classification: "CAIXA_26", isClassificationConfirmed: false, forecastPaymentDate: "2026-09-15", value: 100 } as OperationalRow;
+    expect(classifyCriticality(r, db)).toBe("NORMAL"); // not confirmed, not EM_RISCO
+  });
+
+  it("classifica CAIXA_27 não confirmada como ATENCAO, e confirmada como NORMAL", () => {
+    const rN = { stage: "E2", classification: "CAIXA_27", isClassificationConfirmed: false, forecastPaymentDate: "2027-01-10", value: 100 } as OperationalRow;
+    const rC = { stage: "E2", classification: "CAIXA_27", isClassificationConfirmed: true, forecastPaymentDate: "2027-01-10", value: 100 } as OperationalRow;
+    expect(classifyCriticality(rN, db)).toBe("ATENCAO");
+    expect(classifyCriticality(rC, db)).toBe("NORMAL");
+  });
+
+  it("classifica RESIDUAL/DESCONHECIDA sempre como NORMAL, ignorando regras", () => {
+    const r = { stage: "RESIDUAL", classification: "EM_RISCO", value: 2_000_000 } as OperationalRow;
+    expect(classifyCriticality(r, db)).toBe("NORMAL");
+  });
+
+  it("buildRadarSummary computa impacto, rcs, gargalo pctImpacto, e criticidade", () => {
+    // 2 EM_RISCO, 1 CAIXA_27
+    const r1 = { stage: "E2", ownerArea: "A", classification: "EM_RISCO", value: 1_000_000, isClassificationConfirmed: false } as OperationalRow;
+    const r2 = { stage: "E2", ownerArea: "A", classification: "EM_RISCO", value: 400_000, isClassificationConfirmed: false } as OperationalRow;
+    const r3 = { stage: "E3", ownerArea: "B", classification: "CAIXA_27", value: 600_000, isClassificationConfirmed: false } as OperationalRow;
+    
+    const sum = buildRadarSummary([r1, r2, r3], 10_000_000, db);
+    
+    // Impacto: provRisco (1.4M) + prov27 (0.6M) = 2.0M
+    expect(sum.impacto.value).toBe(2_000_000);
+    expect(sum.impacto.pctBg).toBe(0.2);
+
+    expect(sum.rcs).toEqual({ emRisco: 2, caixa27: 1, confirmadas: 0 });
+    
+    // Gargalo: E2 (A) com 1.4M
+    expect(sum.gargalo?.stage).toBe("E2");
+    expect(sum.gargalo?.pctImpacto).toBe(1); // 1.4M / 1.4M
+
+    expect(sum.criticidade.critico).toEqual({ count: 1, value: 1_000_000 });
+    expect(sum.criticidade.atencao).toEqual({ count: 2, value: 1_000_000 }); // r2 e r3
+    expect(sum.criticidade.normal).toEqual({ count: 0, value: 0 });
   });
 });

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, Search } from "lucide-react";
-import { Card, KpiCard, SectionHeader } from "../../components/ui/primitives";
+import { Card, KpiCard } from "../../components/ui/primitives";
 import { Select } from "../../components/ui/select";
 import { SkeletonList } from "../../components/ui/SkeletonCard";
 import { fmtBRL, fmtNumber } from "../../lib/format";
@@ -29,7 +29,7 @@ export function RadarPage() {
   const [gestorFiltro, setGestorFiltro] = useState<string | null>(null);
   const [aprovadorFiltro, setAprovadorFiltro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [activeTab, setActiveTab] = useState<"curadoria" | "operacional">("curadoria");
+  const [activeTab, setActiveTab] = useState<"curadoria" | "operacional">("operacional");
 
   const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
 
@@ -74,7 +74,7 @@ export function RadarPage() {
   const rcsFiltradas = useMemo(() => new Set(rcViewsFiltradas.map((rc) => rc.rc)), [rcViewsFiltradas]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 space-y-5">
+    <div className="mx-auto max-w-6xl px-4 py-3 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -107,7 +107,7 @@ export function RadarPage() {
               </div>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${activeTab === "curadoria" ? "" : "hidden"}`}>
               <KpiCard
                 label={poStatusLabel("CONFIRMED", resumo.exerciseYear)}
                 value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.bgTimes], true)}
@@ -126,8 +126,7 @@ export function RadarPage() {
             </div>
           )}
 
-          <Card>
-            <SectionHeader title="Filtros" />
+          <Card className="p-3">
             <div className="flex flex-wrap items-center gap-2">
               <label className="relative min-w-[220px] flex-1">
                 <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-faint" aria-hidden="true" />
