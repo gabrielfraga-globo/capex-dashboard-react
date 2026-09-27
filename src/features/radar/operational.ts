@@ -1,6 +1,8 @@
-import type { CommitmentSourceBundle, CurationMap, DecisionConfidence, DecisionBlocker, PriorityLevel, NonOccurrenceReason, RcCurationUpsertRequest } from "./types";
+import type { CommitmentSourceBundle, CurationMap, DecisionConfidence, NonOccurrenceReason, RcCurationUpsertRequest } from "./types";
 import { deriveStage, deriveSubState, deriveOwner, deriveDaysInStage, commitmentLineToStageInput } from "./stage";
+import type { ReadDecisionResult } from "./decision";
 import { readDecision, suggestPaymentDate } from "./decision";
+import { DELIVERY_TO_NF_DAYS, NF_TO_PAYMENT_DAYS } from "./stageConfig";
 import type { PaymentRecord } from "./payment";
 
 /** Rótulos das etapas da esteira (RADAR_V1_COPILOT_PROMPT.md, seção 6.3). */
@@ -50,67 +52,91 @@ export interface PipelineCounters {
   noForecast: { count: number; value: number };
 }
 
-export interface DecisionForm {
-  naoOcorre: boolean;
-  motivoNaoOcorre: NonOccurrenceReason | null;
-  dataPagamento: string | null;
-  motivoAntecipacao: string | null;
-  confianca: DecisionConfidence | null;
-  bloqueio: DecisionBlocker | null;
-  proximaAcao: string | null;
-  prioridade: PriorityLevel | null;
+export function suggestClassification(row: OperationalRow, exerciseYear: number): "CAIXA_26" | "EM_RISCO" | "CAIXA_27" | "NAO_OCORRE" {
+  const limit = `${exerciseYear}-12-31`;
+  // a data sugerida decide o ano primeiro; só dentro do exercício a etapa decide entre Caixa 26 e Em risco
+  if (!row.suggestedPaymentDate || row.suggestedPaymentDate > limit) return "CAIXA_27";
+  if (row.stage === "E1" || row.stage === "E2" || row.stage === "E3" || row.subState === "E4_ATRASADO") {
+    return "EM_RISCO";
+  }
+  return "CAIXA_26";
 }
 
-export function buildDecisionPayload(
+export function classificationFromDecision(decision: ReadDecisionResult, exerciseYear: number): "CAIXA_26" | "EM_RISCO" | "CAIXA_27" | "NAO_OCORRE" | null {
+  if (decision.cashForecast === "NAO_OCORRE" || decision.nonOccurrenceReason === "LEGADO") return "NAO_OCORRE";
+  if (decision.cashYear && decision.cashYear > exerciseYear) return "CAIXA_27";
+  if (decision.confidence === "INCERTO") return "EM_RISCO";
+  
+  if (decision.origin === "LEGADO") {
+    if (decision.cashForecast === "CAIXA_EXERCICIO") {
+      return "CAIXA_26";
+    }
+    if (decision.cashForecast === "CAIXA_PROXIMO_EXERCICIO") return "CAIXA_27";
+  }
+  
+  if (decision.origin === "NOVO") {
+    if (decision.cashForecast === "CAIXA_EXERCICIO" || decision.cashYear === exerciseYear) return "CAIXA_26";
+  }
+  
+  return null;
+}
+
+function addDays(iso: string, days: number): string {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function paymentFromDelivery(delivery: string): string {
+  return addDays(delivery, DELIVERY_TO_NF_DAYS + NF_TO_PAYMENT_DAYS);
+}
+
+export function deliveryFromPayment(payment: string): string {
+  return addDays(payment, -(DELIVERY_TO_NF_DAYS + NF_TO_PAYMENT_DAYS));
+}
+
+export function buildClassificationPayload(
   row: OperationalRow,
-  form: DecisionForm,
+  estado: "CAIXA_26" | "EM_RISCO" | "CAIXA_27" | "NAO_OCORRE",
+  options: { entregaEsperada?: string | null; motivo?: NonOccurrenceReason | null },
   exerciseYear: number
 ): Partial<RcCurationUpsertRequest> {
-  const nextAction = form.proximaAcao?.trim() ? form.proximaAcao.trim() : null;
-  if (nextAction && nextAction.length > 80) {
-    throw new Error("Próxima ação deve ter até 80 caracteres.");
-  }
-  if (form.naoOcorre) {
-    if (!form.motivoNaoOcorre) {
-      throw new Error("Motivo de não ocorre é obrigatório.");
-    }
+  if (estado === "NAO_OCORRE") {
+    if (!options.motivo) throw new Error("Motivo de não ocorre é obrigatório.");
     return {
       exerciseYear,
       cashForecast: "NAO_OCORRE",
-      // a API rejeita NAO_OCORRE junto com qualquer data (400)
       forecastPaymentDate: null,
       suggestedPaymentDate: null,
       paymentExceptionReason: null,
-      nonOccurrenceReason: form.motivoNaoOcorre,
-      confidence: form.confianca,
-      blocker: form.bloqueio,
-      nextAction,
-      priority: form.prioridade,
+      nonOccurrenceReason: options.motivo,
+      confidence: null,
+      blocker: null,
+      nextAction: row.nextAction,
     };
   }
 
-  let paymentExceptionReason = null;
-  if (form.dataPagamento && row.suggestedPaymentDate && form.dataPagamento < row.suggestedPaymentDate) {
-    if (!form.motivoAntecipacao || form.motivoAntecipacao.trim() === "") {
-      throw new Error("Motivo da antecipação é obrigatório.");
-    }
-    if (form.motivoAntecipacao.length > 120) {
-      throw new Error("Motivo da antecipação deve ter até 120 caracteres.");
-    }
-    paymentExceptionReason = form.motivoAntecipacao.trim();
+  const forecast = options.entregaEsperada ? paymentFromDelivery(options.entregaEsperada) : row.suggestedPaymentDate;
+  
+  if (estado === "CAIXA_27" && forecast && forecast <= `${exerciseYear}-12-31`) {
+    throw new Error("Informe a entrega esperada");
   }
 
+  const is27 = forecast && forecast > `${exerciseYear}-12-31`;
+  const finalState = is27 ? "CAIXA_27" : estado;
+
+  let confidence: DecisionConfidence = "CONFIRMADO";
+  if (finalState === "EM_RISCO") confidence = "INCERTO";
+  
   return {
     exerciseYear,
-    cashForecast: null, // limpa um NAO_OCORRE anterior
-    forecastPaymentDate: form.dataPagamento || null,
-    suggestedPaymentDate: row.suggestedPaymentDate,
-    paymentExceptionReason,
+    cashForecast: null,
     nonOccurrenceReason: null,
-    confidence: form.confianca,
-    blocker: form.bloqueio,
-    nextAction,
-    priority: form.prioridade,
+    suggestedPaymentDate: row.suggestedPaymentDate,
+    forecastPaymentDate: forecast,
+    paymentExceptionReason: null,
+    confidence,
+    nextAction: row.nextAction,
   };
 }
 

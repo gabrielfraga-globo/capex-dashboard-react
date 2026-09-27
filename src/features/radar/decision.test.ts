@@ -73,9 +73,9 @@ describe("suggestPaymentDate", () => {
     expect(suggestPaymentDate("E4", {}, "2026-09-25")).toBe("2026-11-13");
     expect(suggestPaymentDate("E5", {}, "2026-09-25")).toBe("2026-11-13");
     expect(suggestPaymentDate("E6", {}, "2026-09-25")).toBe("2026-11-03");
-    expect(suggestPaymentDate("E1", {}, "2026-09-25")).toBeNull();
-    expect(suggestPaymentDate("E2", {}, "2026-09-25")).toBeNull();
-    expect(suggestPaymentDate("E3", {}, "2026-09-25")).toBeNull();
+    expect(suggestPaymentDate("E1", {}, "2026-09-25")).toBe("2026-12-05");
+    expect(suggestPaymentDate("E2", {}, "2026-09-25")).toBe("2026-12-05");
+    expect(suggestPaymentDate("E3", {}, "2026-09-25")).toBe("2026-12-05");
     expect(suggestPaymentDate("RESIDUAL", {}, "2026-09-25")).toBeNull();
   });
 });

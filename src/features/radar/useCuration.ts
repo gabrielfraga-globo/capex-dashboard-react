@@ -199,10 +199,12 @@ export function useCuration(): UseCurationResult {
         setCurationMap((prev) => {
           const next = { ...prev };
           next[target.commitmentKey] = {
+            // mantém o que já existe: gravações da aba Operacional não mandam os campos legados
+            ...(atual ?? {}),
             commitmentKey: target.commitmentKey,
-            estimatedDeliveryDate: payload.estimatedDeliveryDate,
-            poStatus: payload.poStatus,
-            notes: payload.notes,
+            estimatedDeliveryDate: payload.estimatedDeliveryDate !== undefined ? payload.estimatedDeliveryDate : atual?.estimatedDeliveryDate ?? null,
+            poStatus: payload.poStatus ?? atual?.poStatus ?? "NO_VISIBILITY",
+            notes: payload.notes !== undefined ? payload.notes : atual?.notes ?? null,
             sourceValueAtCuration: atual?.sourceValueAtCuration ?? target.sourceValue,
             curationLevel: atual?.curationLevel ?? "RC",
             inheritedFromKey: atual?.inheritedFromKey ?? null,

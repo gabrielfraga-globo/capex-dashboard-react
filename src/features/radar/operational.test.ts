@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildOperationalRows, buildPipelineCounters, buildDecisionPayload } from "./operational";
+import { buildOperationalRows, buildPipelineCounters, buildClassificationPayload } from "./operational";
 import bundleData from "./__fixtures__/radar-bundle-2026-09-25T16-51-32Z.json";
 import type { CommitmentSourceBundle, CurationMap } from "./types";
 import { deriveStage, commitmentLineToStageInput } from "./stage";
@@ -100,72 +100,79 @@ describe("operational.ts — curadoria da RC", () => {
   });
 });
 
-describe("buildDecisionPayload", () => {
+describe("buildClassificationPayload", () => {
   const baseRow = {
     rc: "RC-123",
     suggestedPaymentDate: "2026-10-15",
   } as any;
 
-  const baseForm = {
-    naoOcorre: false,
-    motivoNaoOcorre: null,
-    dataPagamento: "2026-10-15",
-    motivoAntecipacao: null,
-    confianca: null,
-    bloqueio: null,
-    proximaAcao: null,
-    prioridade: null,
-  };
-
-  it("data sugerida sem ajuste", () => {
-    const payload = buildDecisionPayload(baseRow, baseForm, 2026);
+  it("CAIXA_26 sem entrega esperada usa sugerida", () => {
+    const payload = buildClassificationPayload(baseRow, "CAIXA_26", {}, 2026);
     expect(payload.forecastPaymentDate).toBe("2026-10-15");
-    expect(payload.suggestedPaymentDate).toBe("2026-10-15");
-    expect(payload.exerciseYear).toBe(2026);
-    expect(payload.nonOccurrenceReason).toBeNull();
-    expect(payload.paymentExceptionReason).toBeNull();
+    expect(payload.confidence).toBe("CONFIRMADO");
   });
 
-  it("antecipada sem motivo → erro de validação", () => {
+  it("EM_RISCO marca confiança INCERTO", () => {
+    const payload = buildClassificationPayload(baseRow, "EM_RISCO", {}, 2026);
+    expect(payload.forecastPaymentDate).toBe("2026-10-15");
+    expect(payload.confidence).toBe("INCERTO");
+  });
+
+  it("CAIXA_27 com data no exercício exige entrega esperada", () => {
     expect(() => {
-      buildDecisionPayload(
-        baseRow,
-        { ...baseForm, dataPagamento: "2026-10-01" },
-        2026
-      );
-    }).toThrow("Motivo da antecipação é obrigatório");
+      buildClassificationPayload(baseRow, "CAIXA_27", {}, 2026);
+    }).toThrow("Informe a entrega esperada");
   });
 
-  it("antecipada com motivo", () => {
-    const payload = buildDecisionPayload(
-      baseRow,
-      { ...baseForm, dataPagamento: "2026-10-01", motivoAntecipacao: "Fornecedor exigiu adiantamento" },
-      2026
-    );
-    expect(payload.forecastPaymentDate).toBe("2026-10-01");
-    expect(payload.paymentExceptionReason).toBe("Fornecedor exigiu adiantamento");
-  });
-
-  it("Não ocorre sem motivo → erro", () => {
+  it("NAO_OCORRE exige motivo e zera datas", () => {
     expect(() => {
-      buildDecisionPayload(
-        baseRow,
-        { ...baseForm, naoOcorre: true },
-        2026
-      );
+      buildClassificationPayload(baseRow, "NAO_OCORRE", {}, 2026);
     }).toThrow("Motivo de não ocorre é obrigatório");
-  });
 
-  it("Não ocorre com motivo → forecast null", () => {
-    const payload = buildDecisionPayload(
-      baseRow,
-      { ...baseForm, naoOcorre: true, motivoNaoOcorre: "CANCELAR" },
-      2026
-    );
+    const payload = buildClassificationPayload(baseRow, "NAO_OCORRE", { motivo: "CANCELAR" }, 2026);
     expect(payload.cashForecast).toBe("NAO_OCORRE");
-    expect(payload.suggestedPaymentDate).toBeNull();
-    expect(payload.exerciseYear).toBe(2026);
     expect(payload.forecastPaymentDate).toBeNull();
     expect(payload.nonOccurrenceReason).toBe("CANCELAR");
+  });
+});
+
+import { mergearRadar } from "./merge";
+import { suggestClassification } from "./operational";
+
+describe("classificação do gestor → cartões (mergearRadar)", () => {
+  const bundle = bundleData as unknown as CommitmentSourceBundle;
+  const key = bundle.commitments[0].commitmentKey;
+  const base = {
+    commitmentKey: key, estimatedDeliveryDate: null, poStatus: "NO_VISIBILITY", notes: null,
+    sourceValueAtCuration: 0, curationLevel: "KEY", inheritedFromKey: null, updatedBy: "t",
+    updatedAt: "2026-09-26T00:00:00.000Z",
+  };
+  const bucketOf = (cur: Record<string, unknown>) =>
+    mergearRadar(bundle, { [key]: { ...base, ...cur } } as unknown as CurationMap, 2026).views.find((v) => v.commitmentKey === key)!.bucket;
+
+  it.each([
+    ["Caixa 26 com pagamento em outubro", { forecastPaymentDate: "2026-10-20", confidence: "CONFIRMADO", poStatus: "CONFIRMED", estimatedDeliveryDate: "2026-09-20" }, "CONFIRMED_IN_YEAR"],
+    ["Caixa 26 com pagamento em 20/12 (a regra antiga daria Em risco)", { forecastPaymentDate: "2026-12-20", confidence: "CONFIRMADO", poStatus: "CONFIRMED", estimatedDeliveryDate: "2026-11-20" }, "CONFIRMED_IN_YEAR"],
+    ["Em risco com pagamento em outubro (a regra antiga daria Caixa 26)", { forecastPaymentDate: "2026-10-20", confidence: "INCERTO", poStatus: "AT_RISK", estimatedDeliveryDate: "2026-09-20" }, "AT_RISK"],
+    ["Caixa 27", { forecastPaymentDate: "2027-01-20", poStatus: "CARRYOVER", estimatedDeliveryDate: "2026-12-21" }, "CARRYOVER"],
+    ["Não ocorre", { cashForecast: "NAO_OCORRE", nonOccurrenceReason: "CANCELAR", poStatus: "CANCELLED" }, "CANCELLED"],
+  ])("%s", (_nome, cur, esperado) => {
+    expect(bucketOf(cur as Record<string, unknown>)).toBe(esperado);
+  });
+
+  it("legado continua derivando pela data de entrega", () => {
+    expect(bucketOf({ poStatus: "CONFIRMED", estimatedDeliveryDate: "2026-11-20" })).toBe("AT_RISK");
+  });
+});
+
+describe("suggestClassification", () => {
+  const row = (stage: string, date: string | null, subState = "NONE") =>
+    ({ stage, subState, suggestedPaymentDate: date }) as unknown as Parameters<typeof suggestClassification>[0];
+  it("a data decide o ano antes da etapa", () => {
+    expect(suggestClassification(row("E1", "2027-01-10"), 2026)).toBe("CAIXA_27");
+    expect(suggestClassification(row("E1", "2026-12-05"), 2026)).toBe("EM_RISCO");
+    expect(suggestClassification(row("E4", "2026-11-13", "E4_ATRASADO"), 2026)).toBe("EM_RISCO");
+    expect(suggestClassification(row("E4", "2026-11-13"), 2026)).toBe("CAIXA_26");
+    expect(suggestClassification(row("E5", null), 2026)).toBe("CAIXA_27");
   });
 });

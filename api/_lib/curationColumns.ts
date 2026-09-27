@@ -196,7 +196,7 @@ export function buildCurationWrite(
   } else if (forecastPaymentDate != null) {
     const limit = `${exerciseYear}-12-31`;
     if (forecastPaymentDate <= limit) {
-      nextPoStatus = "CONFIRMED";
+      nextPoStatus = confidence === "INCERTO" ? "AT_RISK" : "CONFIRMED";
       nextEstimatedDeliveryDate = addDays(forecastPaymentDate, -PAYMENT_LEAD_DAYS);
     } else {
       nextPoStatus = "CARRYOVER";

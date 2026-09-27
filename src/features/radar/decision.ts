@@ -1,6 +1,6 @@
 import { derivarPoStatus, PAYMENT_LEAD_DAYS } from "./types";
 import type { CommitmentCuration } from "./types";
-import { DELIVERY_TO_NF_DAYS, NF_TO_PAYMENT_DAYS } from "./stageConfig";
+import { DELIVERY_TO_NF_DAYS, NF_TO_PAYMENT_DAYS, RC_TO_PAYMENT_DAYS } from "./stageConfig";
 
 export type DecisionOrigin = "NOVO" | "LEGADO" | "NENHUMA";
 
@@ -107,6 +107,10 @@ export function suggestPaymentDate(
 
   const rawDataPrometida = toIsoDate(typeof line?.dataPrometida === "string" ? line.dataPrometida : null)
     ?? toIsoDate(typeof line?.systemPromisedDate === "string" ? line.systemPromisedDate : null);
+
+  if (stageName === "E1" || stageName === "E2" || stageName === "E3") {
+    return addDateDays(refDate, RC_TO_PAYMENT_DAYS);
+  }
 
   if (stageName === "E4") {
     if (rawDataPrometida) {

@@ -95,11 +95,22 @@ export function mergearRadar(
       }
     }
 
-    if (cur && cur.poStatus !== "CANCELLED" && cur.estimatedDeliveryDate) {
+    // Decisão nova (classificação do gestor): o estado escolhido manda, não a data de entrega derivada.
+    const isDecisaoNova = !!cur && (cur.cashForecast != null || cur.forecastPaymentDate != null);
+    if (cur && isDecisaoNova) {
+      const status =
+        cur.cashForecast === "NAO_OCORRE" ? "CANCELLED"
+        : cur.forecastPaymentDate && cur.forecastPaymentDate > corte ? "CARRYOVER"
+        : cur.confidence === "INCERTO" ? "AT_RISK"
+        : "CONFIRMED";
+      cur = { ...cur, poStatus: status };
+    } else if (cur && cur.poStatus !== "CANCELLED" && cur.estimatedDeliveryDate) {
       cur = { ...cur, poStatus: derivarPoStatus(cur.estimatedDeliveryDate, exercicio) };
     }
 
-    const pagamento = cur?.estimatedDeliveryDate ? addDays(cur.estimatedDeliveryDate, PAYMENT_LEAD_DAYS) : null;
+    const pagamento = isDecisaoNova
+      ? cur?.forecastPaymentDate ?? null
+      : cur?.estimatedDeliveryDate ? addDays(cur.estimatedDeliveryDate, PAYMENT_LEAD_DAYS) : null;
     const bucket = classificar(cur, pagamento, corte);
 
     const sourceValueAtCuration = cur?.sourceValueAtCuration ?? null;
