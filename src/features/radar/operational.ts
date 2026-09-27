@@ -1,4 +1,4 @@
-import type { CommitmentSourceBundle, CurationMap } from "./types";
+import type { CommitmentSourceBundle, CurationMap, DecisionConfidence, DecisionBlocker, PriorityLevel, NonOccurrenceReason, RcCurationUpsertRequest } from "./types";
 import { deriveStage, deriveSubState, deriveOwner, deriveDaysInStage, commitmentLineToStageInput } from "./stage";
 import { readDecision, suggestPaymentDate } from "./decision";
 import type { PaymentRecord } from "./payment";
@@ -48,6 +48,70 @@ export interface OperationalRow {
 export interface PipelineCounters {
   byStage: Record<string, { count: number; value: number }>;
   noForecast: { count: number; value: number };
+}
+
+export interface DecisionForm {
+  naoOcorre: boolean;
+  motivoNaoOcorre: NonOccurrenceReason | null;
+  dataPagamento: string | null;
+  motivoAntecipacao: string | null;
+  confianca: DecisionConfidence | null;
+  bloqueio: DecisionBlocker | null;
+  proximaAcao: string | null;
+  prioridade: PriorityLevel | null;
+}
+
+export function buildDecisionPayload(
+  row: OperationalRow,
+  form: DecisionForm,
+  exerciseYear: number
+): Partial<RcCurationUpsertRequest> {
+  const nextAction = form.proximaAcao?.trim() ? form.proximaAcao.trim() : null;
+  if (nextAction && nextAction.length > 80) {
+    throw new Error("Próxima ação deve ter até 80 caracteres.");
+  }
+  if (form.naoOcorre) {
+    if (!form.motivoNaoOcorre) {
+      throw new Error("Motivo de não ocorre é obrigatório.");
+    }
+    return {
+      exerciseYear,
+      cashForecast: "NAO_OCORRE",
+      // a API rejeita NAO_OCORRE junto com qualquer data (400)
+      forecastPaymentDate: null,
+      suggestedPaymentDate: null,
+      paymentExceptionReason: null,
+      nonOccurrenceReason: form.motivoNaoOcorre,
+      confidence: form.confianca,
+      blocker: form.bloqueio,
+      nextAction,
+      priority: form.prioridade,
+    };
+  }
+
+  let paymentExceptionReason = null;
+  if (form.dataPagamento && row.suggestedPaymentDate && form.dataPagamento < row.suggestedPaymentDate) {
+    if (!form.motivoAntecipacao || form.motivoAntecipacao.trim() === "") {
+      throw new Error("Motivo da antecipação é obrigatório.");
+    }
+    if (form.motivoAntecipacao.length > 120) {
+      throw new Error("Motivo da antecipação deve ter até 120 caracteres.");
+    }
+    paymentExceptionReason = form.motivoAntecipacao.trim();
+  }
+
+  return {
+    exerciseYear,
+    cashForecast: null, // limpa um NAO_OCORRE anterior
+    forecastPaymentDate: form.dataPagamento || null,
+    suggestedPaymentDate: row.suggestedPaymentDate,
+    paymentExceptionReason,
+    nonOccurrenceReason: null,
+    confidence: form.confianca,
+    blocker: form.bloqueio,
+    nextAction,
+    priority: form.prioridade,
+  };
 }
 
 const STAGE_ORDER: Record<string, number> = {

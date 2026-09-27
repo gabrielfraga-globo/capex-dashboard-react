@@ -176,6 +176,8 @@ export function RadarPage() {
               curationMap={curationMap}
               referenceDateStr={bundle!.generatedAt}
               allowedRcs={rcsFiltradas}
+              salvarRc={salvarRc}
+              erroDe={erroDe}
             />
           )}
         </>

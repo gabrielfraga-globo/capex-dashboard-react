@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildOperationalRows, buildPipelineCounters } from "./operational";
+import { buildOperationalRows, buildPipelineCounters, buildDecisionPayload } from "./operational";
 import bundleData from "./__fixtures__/radar-bundle-2026-09-25T16-51-32Z.json";
 import type { CommitmentSourceBundle, CurationMap } from "./types";
 import { deriveStage, commitmentLineToStageInput } from "./stage";
@@ -97,5 +97,75 @@ describe("operational.ts — curadoria da RC", () => {
     expect(row.isEarlyException).toBe(true);
     expect(row.confidence).toBe("PROVAVEL");
     expect(row.nextAction).toBe("Cobrar fornecedor");
+  });
+});
+
+describe("buildDecisionPayload", () => {
+  const baseRow = {
+    rc: "RC-123",
+    suggestedPaymentDate: "2026-10-15",
+  } as any;
+
+  const baseForm = {
+    naoOcorre: false,
+    motivoNaoOcorre: null,
+    dataPagamento: "2026-10-15",
+    motivoAntecipacao: null,
+    confianca: null,
+    bloqueio: null,
+    proximaAcao: null,
+    prioridade: null,
+  };
+
+  it("data sugerida sem ajuste", () => {
+    const payload = buildDecisionPayload(baseRow, baseForm, 2026);
+    expect(payload.forecastPaymentDate).toBe("2026-10-15");
+    expect(payload.suggestedPaymentDate).toBe("2026-10-15");
+    expect(payload.exerciseYear).toBe(2026);
+    expect(payload.nonOccurrenceReason).toBeNull();
+    expect(payload.paymentExceptionReason).toBeNull();
+  });
+
+  it("antecipada sem motivo → erro de validação", () => {
+    expect(() => {
+      buildDecisionPayload(
+        baseRow,
+        { ...baseForm, dataPagamento: "2026-10-01" },
+        2026
+      );
+    }).toThrow("Motivo da antecipação é obrigatório");
+  });
+
+  it("antecipada com motivo", () => {
+    const payload = buildDecisionPayload(
+      baseRow,
+      { ...baseForm, dataPagamento: "2026-10-01", motivoAntecipacao: "Fornecedor exigiu adiantamento" },
+      2026
+    );
+    expect(payload.forecastPaymentDate).toBe("2026-10-01");
+    expect(payload.paymentExceptionReason).toBe("Fornecedor exigiu adiantamento");
+  });
+
+  it("Não ocorre sem motivo → erro", () => {
+    expect(() => {
+      buildDecisionPayload(
+        baseRow,
+        { ...baseForm, naoOcorre: true },
+        2026
+      );
+    }).toThrow("Motivo de não ocorre é obrigatório");
+  });
+
+  it("Não ocorre com motivo → forecast null", () => {
+    const payload = buildDecisionPayload(
+      baseRow,
+      { ...baseForm, naoOcorre: true, motivoNaoOcorre: "CANCELAR" },
+      2026
+    );
+    expect(payload.cashForecast).toBe("NAO_OCORRE");
+    expect(payload.suggestedPaymentDate).toBeNull();
+    expect(payload.exerciseYear).toBe(2026);
+    expect(payload.forecastPaymentDate).toBeNull();
+    expect(payload.nonOccurrenceReason).toBe("CANCELAR");
   });
 });
