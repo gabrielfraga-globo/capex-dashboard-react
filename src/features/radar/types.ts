@@ -137,6 +137,12 @@ export interface CommitmentSourceBundle {
   discardedLines: number;
   totals: { value: number; lines: number; keys: number; rcs: number };
   payments?: PaymentsSection;
+  projectActivity?: Array<{
+    projectKey: string;
+    lastPaymentAt: string | null;
+    lastCommitmentCreatedAt: string | null;
+    lastRcApprovedAt: string | null;
+  }>;
 }
 
 // ─────────────────────────────────────────────────────────────

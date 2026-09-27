@@ -53,6 +53,31 @@ async function main() {
     console.warn(`[preprocessCsv] Sem gestor da plataforma para N4(s): ${items.join(", ")}`);
   }
 
+  const projectActivityMap = new Map();
+  const getAct = (n4, nomeLB) => {
+    const pKey = `${normalizeKey(n4)}|${normalizeKey(nomeLB)}`;
+    if (!pKey || pKey === "|") return null;
+    let act = projectActivityMap.get(pKey);
+    if (!act) {
+      act = { projectKey: pKey, lastPaymentAt: null, lastCommitmentCreatedAt: null, lastRcApprovedAt: null };
+      projectActivityMap.set(pKey, act);
+    }
+    return act;
+  };
+
+  for (const commitment of bundle.commitments) {
+    const act = getAct(commitment.n4, commitment.projectName);
+    if (!act) continue;
+    for (const det of commitment.details) {
+      if (det.commitmentCreatedAt && (!act.lastCommitmentCreatedAt || det.commitmentCreatedAt > act.lastCommitmentCreatedAt)) {
+        act.lastCommitmentCreatedAt = det.commitmentCreatedAt;
+      }
+      if (det.rcApprovedAt && (!act.lastRcApprovedAt || det.rcApprovedAt > act.lastRcApprovedAt)) {
+        act.lastRcApprovedAt = det.rcApprovedAt;
+      }
+    }
+  }
+
   try {
     const pagamentoCsv = read("Realizado_Detalhado.csv");
     const attached = attachPaymentsSection(bundle, pagamentoCsv);
@@ -64,10 +89,22 @@ async function main() {
     } else {
       console.warn(`[preprocessCsv] Radar pagamentos IGNORADO: ${attached.reason}`);
     }
+
+    const pagamentosObj = csvObjects(pagamentoCsv);
+    for (const pag of pagamentosObj) {
+      const act = getAct(pag.N4, pag.NomeLB);
+      if (act && pag.NF_DT_PAGAMENTO) {
+        const dt = pag.NF_DT_PAGAMENTO.slice(0, 10);
+        if (!act.lastPaymentAt || dt > act.lastPaymentAt) {
+          act.lastPaymentAt = dt;
+        }
+      }
+    }
   } catch {
     console.warn("[preprocessCsv] Radar pagamentos IGNORADO: arquivo ausente");
   }
 
+  bundle.projectActivity = Array.from(projectActivityMap.values());
   writeFileSync(RADAR_OUTPUT, `${JSON.stringify(bundle)}\n`, "utf-8");
   console.log(`[preprocessCsv] Radar OK: ${bundle.totals.keys} chaves, ${bundle.totals.rcs} RCs em ${(performance.now() - start).toFixed(1)}ms`);
 }

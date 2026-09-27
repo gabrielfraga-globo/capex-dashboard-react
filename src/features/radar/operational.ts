@@ -22,6 +22,8 @@ export const STAGE_LABELS: Record<string, string> = {
 export interface OperationalRow {
   rc: string;
   projectName: string;
+  n4: string;
+  platformManager: string | null;
   supplier: string;
   priority: "ALTA" | "MEDIA" | "BAIXA" | null;
   stage: string;
@@ -45,6 +47,8 @@ export interface OperationalRow {
   confidence: "CONFIRMADO" | "PROVAVEL" | "INCERTO" | null;
   nextAction: string | null;
   isResidual: boolean;
+  classification: "CAIXA_26" | "EM_RISCO" | "CAIXA_27" | "NAO_OCORRE";
+  isClassificationConfirmed: boolean;
 }
 
 export interface PipelineCounters {
@@ -235,9 +239,11 @@ export function buildOperationalRows(
        suggested = decision.suggestedPaymentDate;
     }
 
-    rows.push({
+    const row: OperationalRow = {
       rc: group.rc,
       projectName: [...new Set(rcCommitments.map((c) => c.projectName).filter(Boolean))].join(", "),
+      n4: [...new Set(rcCommitments.map((c) => c.n4).filter(Boolean))].join(", "),
+      platformManager: [...new Set(rcCommitments.map((c) => c.platformManager).filter(Boolean))].join(", "),
       supplier: group.suppliers.join(", "),
       priority: hasHighPriority ? "ALTA" : curation?.priority ?? null,
       stage: dominantStage,
@@ -261,7 +267,19 @@ export function buildOperationalRows(
       confidence: decision.confidence,
       nextAction: decision.nextAction,
       isResidual: dominantStage === "RESIDUAL",
-    });
+      classification: "CAIXA_26",
+      isClassificationConfirmed: false,
+    };
+
+    const fromDec = classificationFromDecision(decision, bundle.exerciseYear);
+    if (fromDec) {
+      row.classification = fromDec;
+      row.isClassificationConfirmed = true;
+    } else {
+      row.classification = suggestClassification(row, bundle.exerciseYear);
+    }
+
+    rows.push(row);
   }
 
   rows.sort((a, b) => b.value - a.value);
