@@ -13,7 +13,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck:api": "tsc -p tsconfig.api.json"
+    "typecheck:api": "tsc -p tsconfig.api.json",
+    "verify": "tsc -b && npm run typecheck:api && vitest run"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

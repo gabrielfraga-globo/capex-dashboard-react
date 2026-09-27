@@ -372,3 +372,66 @@ export function buildInsights(input: BuildInsightsInput): Insight[] {
   rest.sort((a, b) => b.value - a.value);
   return [resumo, ...rest].slice(0, 4);
 }
+
+// ────────────────────────────────────────────────────────────
+// buildPlatformComposition — BG 2026 por n4Curta, topN + Outras
+// ────────────────────────────────────────────────────────────
+
+export interface PlatformCompositionRow {
+  label: string;
+  value: number;
+  pct: number;
+  isOther: boolean;
+}
+
+export function buildPlatformComposition(
+  lista: ProjetoBase[],
+  topN = 4
+): { rows: PlatformCompositionRow[]; total: number } {
+  const map = new Map<string, number>();
+  for (const p of lista) {
+    const key = p.n4Curta || "Sem plataforma";
+    map.set(key, (map.get(key) ?? 0) + (p.orcamento2026 ?? 0));
+  }
+  const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  const total = sorted.reduce((s, [, v]) => s + v, 0);
+  const top = sorted.slice(0, topN);
+  const otherValue = sorted.slice(topN).reduce((s, [, v]) => s + v, 0);
+
+  const rows: PlatformCompositionRow[] = top.map(([label, value]) => ({
+    label,
+    value,
+    pct: total > 0 ? value / total : 0,
+    isOther: false,
+  }));
+
+  if (otherValue > 0) {
+    rows.push({ label: "Outras", value: otherValue, pct: total > 0 ? otherValue / total : 0, isOther: true });
+  }
+
+  return { rows, total };
+}
+
+// ────────────────────────────────────────────────────────────
+// buildFlowSummary — resumo do fluxo de caixa planejado × real
+// ────────────────────────────────────────────────────────────
+
+export interface FlowSummary {
+  realizadoAcumulado: number;
+  planejadoAcumulado: number;
+  desvio: number;
+  /** desvio em relação ao planejado, 0..1 (pode ser negativo) */
+  desvioRel: number;
+}
+
+export function buildFlowSummary(lista: ProjetoBase[]): FlowSummary {
+  let realizadoAcumulado = 0;
+  let planejadoAcumulado = 0;
+  for (const p of lista) {
+    realizadoAcumulado += (p as any).executadoAcumulado ?? (p as any).realizadoAcumulado ?? 0;
+    planejadoAcumulado += (p as any).planejadoAcumulado ?? 0;
+  }
+  const desvio = realizadoAcumulado - planejadoAcumulado;
+  const desvioRel = planejadoAcumulado > 0 ? desvio / planejadoAcumulado : 0;
+  return { realizadoAcumulado, planejadoAcumulado, desvio, desvioRel };
+}

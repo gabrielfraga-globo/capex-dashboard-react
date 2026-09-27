@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow } from "./executive";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -211,5 +211,50 @@ describe("monthsWindow e buildBridge", () => {
     const r = (v: number, stage: string, owner: string, area: string) => ({ value: v, stage, owner, ownerArea: area, classification: "EM_RISCO" }) as unknown as OperationalRow;
     const bot = buildBottleneck([r(100, "E2", "Ana · Suprimentos", "Suprimentos"), r(200, "E2", "Bia · Suprimentos", "Suprimentos"), r(999, "RESIDUAL", "x", "Suprimentos")]);
     expect(bot).toEqual([{ stage: "E2", area: "Suprimentos", value: 300, rcCount: 2 }]);
+  });
+});
+
+describe("buildPlatformComposition", () => {
+  it("retorna top 4 + Outras, ordenados desc por valor", () => {
+    const lista = [
+      { n4Curta: "A", orcamento2026: 100 },
+      { n4Curta: "A", orcamento2026: 50 },
+      { n4Curta: "B", orcamento2026: 200 },
+      { n4Curta: "C", orcamento2026: 30 },
+      { n4Curta: "D", orcamento2026: 20 },
+      { n4Curta: "E", orcamento2026: 10 },
+    ] as any[];
+    const { rows, total } = buildPlatformComposition(lista, 4);
+    expect(total).toBe(410);
+    expect(rows[0]).toMatchObject({ label: "B", value: 200, isOther: false });
+    expect(rows[1]).toMatchObject({ label: "A", value: 150, isOther: false });
+    expect(rows.at(-1)).toMatchObject({ label: "Outras", isOther: true, value: 10 });
+    expect(rows.every(r => Math.abs(r.pct - r.value / total) < 1e-9)).toBe(true);
+  });
+
+  it("quando há <= topN plataformas, não gera linha Outras", () => {
+    const lista = [{ n4Curta: "X", orcamento2026: 100 }] as any[];
+    const { rows } = buildPlatformComposition(lista, 4);
+    expect(rows.find(r => r.isOther)).toBeUndefined();
+  });
+});
+
+describe("buildFlowSummary", () => {
+  it("soma executadoAcumulado e planejadoAcumulado e calcula desvio", () => {
+    const lista = [
+      { executadoAcumulado: 80, planejadoAcumulado: 100 },
+      { executadoAcumulado: 60, planejadoAcumulado: 50 },
+    ] as any[];
+    const s = buildFlowSummary(lista);
+    expect(s.realizadoAcumulado).toBe(140);
+    expect(s.planejadoAcumulado).toBe(150);
+    expect(s.desvio).toBeCloseTo(-10);
+    expect(s.desvioRel).toBeCloseTo(-10 / 150);
+  });
+
+  it("cai para realizadoAcumulado quando executadoAcumulado ausente", () => {
+    const lista = [{ realizadoAcumulado: 50, planejadoAcumulado: 60 }] as any[];
+    const s = buildFlowSummary(lista);
+    expect(s.realizadoAcumulado).toBe(50);
   });
 });

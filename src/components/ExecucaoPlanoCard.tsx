@@ -11,7 +11,7 @@ const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: str
   naoEmitido:  { bg: "bg-slate-500",   text: "text-slate-900",   colorHex: "#64748b" },
 };
 
-export function ExecucaoPlanoCard({ lista }: { lista: ProjetoMetricas[] }) {
+export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoMetricas[]; noGradient?: boolean; bare?: boolean }) {
   const pctVsPlano = usePctExecucaoPlano(lista);
   const risco = useMemo(() => generateRiskSummary(lista), [lista]);
   const aEmitirAno = useAEmitirAno(lista);
@@ -79,60 +79,61 @@ export function ExecucaoPlanoCard({ lista }: { lista: ProjetoMetricas[] }) {
     return `${iconCaixa} ${ritmoTexto} · ⚠ ${formatCurrencyMillions(pendente)} pendentes de emissão`;
   }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
 
-  return (
-    <article className="rounded-card border border-border bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 p-4 text-white shadow-card shrink-0">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/75 mb-2">Execução do Plano</p>
-
+  const inner = (
+    <>
       {pctVsPlano !== null && (
-        <div className="flex flex-row items-center justify-between w-full gap-4">
-          <div className="shrink-0 grid grid-cols-2 gap-4 min-w-[270px]">
-            <div>
-              <p
-                aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
-                className={`text-[2.8rem] leading-none font-extrabold tabular-nums ${
-                  Math.abs(pctVsPlano - 1) <= 0.05
-                    ? "text-emerald-300"
-                    : Math.abs(pctVsPlano - 1) <= 0.15
-                    ? "text-amber-300"
-                    : "text-red-300"
-                }`}
-              >
-                {fmtPct(pctVsPlano)}
-              </p>
-              <p className="text-[10px] text-white/70 mt-1 leading-tight">
-                Provisionado = Realizado + Em pgto + Emitido
-              </p>
-            </div>
+        <div className="w-full">
+          <div className="flex items-baseline gap-3 mb-2">
+            <p
+              aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
+              className={`text-[2.2rem] leading-none font-extrabold tabular-nums ${
+                Math.abs(pctVsPlano - 1) <= 0.05
+                  ? bare ? "text-ok" : "text-emerald-300"
+                  : Math.abs(pctVsPlano - 1) <= 0.15
+                  ? bare ? "text-warn" : "text-amber-300"
+                  : bare ? "text-crit" : "text-red-300"
+              }`}
+            >
+              {fmtPct(pctVsPlano)}
+            </p>
+            <p className={`text-[10px] leading-tight ${bare ? "text-text-faint" : "text-white/70"}`}>
+              Realizado + Em pgto + Emitido vs. BG
+            </p>
           </div>
-
-          <div className="flex-1 min-w-0 max-w-[620px]">
-            <div className="flex h-4 rounded-md overflow-hidden bg-white/15 gap-0.5">
-              {breakdownSegments.map((seg) => (
-                <div
-                  key={seg.key}
-                  className={`${seg.bg} flex items-center justify-center px-1 text-[8px] font-bold whitespace-nowrap overflow-hidden`}
-                  style={{ width: `${seg.pct}%` }}
-                  title={`${seg.label}: ${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}`}
-                >
-                  {seg.pct >= 18 ? fmtPct(seg.pct / 100) : ""}
-                </div>
-              ))}
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              {breakdownSegments.filter((seg) => seg.pct > 0).map((seg) => (
-                <span key={`legend-${seg.key}`} className="text-[10px] text-white/90 leading-none flex items-center gap-1">
-                  <span className={`w-2 h-2 rounded-full ${seg.bg}`} aria-hidden="true" />
-                  {seg.label}: {fmtPct(seg.pct / 100)}
-                </span>
-              ))}
-            </div>
+          {/* Barra segmentada — largura total */}
+          <div className={`flex h-3 w-full rounded overflow-hidden gap-0.5 ${bare ? "bg-border" : "bg-white/15"}`}>
+            {breakdownSegments.map((seg) => (
+              <div
+                key={seg.key}
+                className={`${seg.bg}`}
+                style={{ width: `${seg.pct}%` }}
+                title={`${seg.label}: ${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}`}
+              />
+            ))}
+          </div>
+          {/* Legenda em linha abaixo da barra */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            {breakdownSegments.filter((seg) => seg.pct > 0).map((seg) => (
+              <span key={`legend-${seg.key}`} className={`text-[10px] leading-none flex items-center gap-1 ${bare ? "text-text-muted" : "text-white/90"}`}>
+                <span className={`w-2 h-2 rounded-full ${seg.bg}`} aria-hidden="true" />
+                {seg.label}: {fmtPct(seg.pct / 100)}
+              </span>
+            ))}
           </div>
         </div>
       )}
-
-      <div className="mt-2.5 flex items-center gap-2 text-[12px] leading-snug text-white/90">
+      <div className={`mt-2 flex items-center gap-2 text-[11px] leading-snug ${bare ? "text-text-muted" : "text-white/90"}`}>
         <p className="truncate">{insightLinha}</p>
       </div>
+    </>
+  );
+
+  if (bare) return <div className="flex flex-col gap-1 h-full">{inner}</div>;
+
+  return (
+    <article className={`rounded-card border border-border p-4 shadow-card shrink-0 ${noGradient ? "bg-card text-text" : "bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 text-white"}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-wide mb-2 ${noGradient ? "text-text-muted" : "text-white/75"}`}>Execução do Plano</p>
+      {inner}
     </article>
   );
 }

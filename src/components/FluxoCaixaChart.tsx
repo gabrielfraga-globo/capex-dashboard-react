@@ -103,11 +103,14 @@ export function FluxoCaixaChart({
   dataBase,
   isLoadingCompromisso,
   compact,
+  bare,
 }: {
   lista: ProjetoMetricas[];
   dataBase?: string | null;
   isLoadingCompromisso?: boolean;
   compact?: boolean;
+  /** Remove o card wrapper e o cabeçalho interno. */
+  bare?: boolean;
 }) {
   const temFluxoReal = useMemo(() => lista.some((p) => p.executadoMensal2026 !== null), [lista]);
 
@@ -194,25 +197,8 @@ export function FluxoCaixaChart({
     });
   }, [dataBase, lista, partialMonthInfo, temFluxoReal, ultimoMesComDadoIdx]);
 
-  return (
-    <article className={`rounded-card border border-border bg-card p-3 shadow-card flex-1 min-h-0 flex flex-col ${compact ? "h-full" : ""}`}>
-      {!compact && (
-        <div className="flex items-start justify-between gap-3 mb-2 shrink-0">
-          <div>
-            <p className="text-sm font-semibold text-text">Fluxo de Caixa: Planejado × Realizado</p>
-          </div>
-        </div>
-      )}
-      {compact && (
-        <div className="flex items-center justify-between mb-1 shrink-0">
-          <p className="text-[12px] font-semibold text-text">Planejado x Realizado</p>
-          <div className="flex gap-2 text-[10px] font-medium">
-            <span className="flex items-center gap-1 text-text-muted"><span className="w-2 h-0 border-b border-dashed border-text-muted"></span> Plan</span>
-            <span className="flex items-center gap-1 text-info"><span className="w-2 h-1 bg-info rounded-sm"></span> Real</span>
-          </div>
-        </div>
-      )}
-
+  const chartContent = (
+    <>
       {temFluxoReal ? (
         <div className="flex-1 min-h-0 relative">
           <ResponsiveContainer width="100%" height="100%">
@@ -321,6 +307,32 @@ export function FluxoCaixaChart({
           </p>
         </div>
       )}
+    </>
+  );
+
+  if (bare) {
+    return <div className="flex flex-col h-full min-h-0 flex-1">{chartContent}</div>;
+  }
+
+  return (
+    <article className={`rounded-card border border-border bg-card p-3 shadow-card flex-1 min-h-0 flex flex-col ${compact ? "h-full" : ""}`}>
+      {!compact && (
+        <div className="flex items-start justify-between gap-3 mb-2 shrink-0">
+          <div>
+            <p className="text-sm font-semibold text-text">Fluxo de Caixa: Planejado × Realizado</p>
+          </div>
+        </div>
+      )}
+      {compact && (
+        <div className="flex items-center justify-between mb-1 shrink-0">
+          <p className="text-[12px] font-semibold text-text">Planejado x Realizado</p>
+          <div className="flex gap-2 text-[10px] font-medium">
+            <span className="flex items-center gap-1 text-text-muted"><span className="w-2 h-0 border-b border-dashed border-text-muted"></span> Plan</span>
+            <span className="flex items-center gap-1 text-info"><span className="w-2 h-1 bg-info rounded-sm"></span> Real</span>
+          </div>
+        </div>
+      )}
+      {chartContent}
     </article>
   );
 }

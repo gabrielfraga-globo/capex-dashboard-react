@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import type { ProjetoMetricas, FiltrosState, RelatorioParsing } from "./types";
 import { useFilterStore } from "./store/filterStore";
 import { useShallow } from "zustand/react/shallow";
@@ -98,6 +98,14 @@ export default function App() {
 
   useThemeSync(theme);
 
+  // links internos ("Ver detalhes", "Ver Auditoria") usam /auditoria; a Auditoria é um modo da tela inicial
+  useEffect(() => {
+    if (pathname === "/auditoria") {
+      setViewMode("auditoria");
+      navigate("/");
+    }
+  }, [pathname]);
+
   const { parsed, isLoadingCompromisso, loadError } = usePortfolioData();
   const { todasMetricas } = usePortfolioMetrics(parsed, filtros.periodo);
   const { metricasFiltradas, comparaveis, periodoLabel } = useFilteredProjects(
@@ -163,8 +171,8 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          {/* Navegação entre as duas experiências */}
-          <div className="flex rounded-md border border-border overflow-hidden">
+          {/* Abas de navegação */}
+          <nav className="flex rounded-md border border-border overflow-hidden" aria-label="Navegação principal">
             <button
               onClick={() => setViewMode("radar")}
               aria-pressed={viewMode === "radar"}
@@ -172,7 +180,13 @@ export default function App() {
                 viewMode === "radar" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
               }`}
             >
-              <Radar size={13} aria-hidden="true" /> Radar Executivo
+              <Gauge size={13} aria-hidden="true" /> Visão Executiva
+            </button>
+            <button
+              onClick={() => navigate("/radar")}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors bg-card-alt text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70"
+            >
+              <Radar size={13} aria-hidden="true" /> Radar de Caixa
             </button>
             <button
               onClick={() => setViewMode("auditoria")}
@@ -181,15 +195,15 @@ export default function App() {
                 viewMode === "auditoria" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
               }`}
             >
-              <ClipboardList size={13} aria-hidden="true" /> Auditoria Detalhada
+              <ClipboardList size={13} aria-hidden="true" /> Auditoria
             </button>
-          </div>
-          <button
-            onClick={() => navigate("/radar")}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs font-semibold text-text-muted hover:text-text hover:border-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
-          >
-            <Gauge size={13} aria-hidden="true" /> Radar de Risco de Caixa
-          </button>
+            <button
+              onClick={() => navigate("/radar")}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors bg-card-alt text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70"
+            >
+              <ClipboardList size={13} aria-hidden="true" /> Curadoria
+            </button>
+          </nav>
         </div>
       </header>
 
