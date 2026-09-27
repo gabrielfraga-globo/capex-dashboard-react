@@ -212,3 +212,163 @@ export function buildCurationConsistency(rows: OperationalRow[], dataBase: Date,
 
   return { scopeCount, scopeValue, confirmed, divergent, expired, grandTotal };
 }
+
+export interface BuildInsightsInput {
+  bgSistemico: number;
+  projetado: number;
+  realizado: number;
+  emPagamento: number;
+  projetosEmRiscoCount: number;
+  projetosEmRiscoValue: number;
+  top10RiscoValue: number;
+  dataBase: Date;
+  opRows: OperationalRow[];
+  saldoParadoValue: number;
+  curadoriaPendenteValue: number;
+}
+
+export interface Insight {
+  kind: 'resumo' | 'risco' | 'tendencia' | 'acao';
+  text: string;
+  value: number;
+  severity: 'neutral' | 'warn' | 'crit' | 'info';
+  target: 'composicao' | 'risco' | 'saldo' | 'curadoria' | 'radar';
+}
+
+function formatBrl(val: number): string {
+  return (val / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "M";
+}
+
+export function buildBottleneck(opRows: OperationalRow[]) {
+  const map = new Map<string, { stage: string, area: string, value: number, rcCount: number }>();
+  for (const r of opRows) {
+    if (r.classification !== 'EM_RISCO') continue;
+    if (r.stage === 'RESIDUAL' || r.stage === 'DESCONHECIDA') continue;
+    const stage = r.stage || "Desconhecida";
+    const area = r.ownerArea || "Área não informada";
+    const key = `${stage}|${area}`;
+    let b = map.get(key);
+    if (!b) {
+      b = { stage, area, value: 0, rcCount: 0 };
+      map.set(key, b);
+    }
+    b.value += r.value;
+    b.rcCount++;
+  }
+  return Array.from(map.values()).sort((a, b) => b.value - a.value);
+}
+
+/** Meses inteiros depois do mês da data-base até dezembro (mínimo 1) e meses decorridos até o mês da data-base. */
+export function monthsWindow(dataBase: Date) {
+  const m = dataBase.getMonth();
+  return { elapsed: m + 1, left: Math.max(1, 11 - m) };
+}
+
+export interface BridgeInput {
+  bg: number;
+  realizado: number;
+  emPagamento: number;
+  prov26: number;
+  provRisco: number;
+  prov27: number;
+  residual: number;
+  naoOcorre?: number;
+  saldoLiquido: number;
+}
+
+export interface BridgeStep { label: string; value: number; kind: 'start' | 'minus' | 'result' | 'diff' }
+
+/**
+ * Ponte do BG ao caixa projetado. Fecha por construção quando o compromisso da carteira
+ * bate com a soma das RCs do bundle; a diferença entre as duas bases aparece numa linha própria.
+ */
+export function buildBridge(i: BridgeInput): { steps: BridgeStep[]; projetado: number; diferenca: number } {
+  const projetado = i.realizado + i.emPagamento + i.prov26;
+  const naoOcorre = i.naoOcorre ?? 0;
+  const diferenca = i.bg - i.saldoLiquido - i.residual - naoOcorre - i.prov27 - i.provRisco - projetado;
+  const steps: BridgeStep[] = [
+    { label: 'BG 2026', value: i.bg, kind: 'start' },
+    { label: 'Saldo líquido a emitir', value: i.saldoLiquido, kind: 'minus' },
+    { label: 'Residuais (sem emissão prevista)', value: i.residual, kind: 'minus' },
+    ...(naoOcorre > 0 ? [{ label: 'Não ocorre (liberado pelo gestor)', value: naoOcorre, kind: 'minus' as const }] : []),
+    { label: 'Provisionado 27 (atraso, não é saldo)', value: i.prov27, kind: 'minus' },
+    { label: 'Em risco', value: i.provRisco, kind: 'minus' },
+  ];
+  if (Math.abs(diferenca) >= 10_000) steps.push({ label: 'Diferença entre bases (compromisso da carteira × RCs)', value: diferenca, kind: 'diff' });
+  steps.push({ label: 'Caixa projetado 2026', value: projetado, kind: 'result' });
+  return { steps, projetado, diferenca };
+}
+
+export function buildInsights(input: BuildInsightsInput): Insight[] {
+  const { bgSistemico, projetado, realizado, emPagamento, projetosEmRiscoValue, top10RiscoValue, dataBase, opRows, saldoParadoValue, curadoriaPendenteValue } = input;
+  
+  const pctBg = bgSistemico > 0 ? (projetado / bgSistemico) * 100 : 0;
+  const faltam = bgSistemico - projetado;
+  const faltamStr = faltam > 0 ? formatBrl(faltam) : "0";
+  const pctRiscoTop10 = projetosEmRiscoValue > 0 ? (top10RiscoValue / projetosEmRiscoValue) * 100 : 0;
+
+  const insights: Insight[] = [];
+  
+  insights.push({
+    kind: 'resumo',
+    text: `Caixa projetado de R$ ${formatBrl(projetado)} (${pctBg.toFixed(0)}% do BG). Faltam R$ ${faltamStr}; R$ ${formatBrl(projetosEmRiscoValue)} estão em risco, ${pctRiscoTop10.toFixed(0)}% deles em 10 projetos.`,
+    value: 0,
+    severity: 'neutral',
+    target: 'composicao'
+  });
+
+  const bottlenecks = buildBottleneck(opRows);
+  if (bottlenecks.length > 0) {
+    const topBot = bottlenecks[0];
+    const isMaterial = topBot.value >= 1_000_000 || (faltam > 0 && topBot.value >= 0.05 * faltam);
+    if (isMaterial) {
+      insights.push({
+        kind: 'risco',
+        text: `A etapa ${topBot.stage} (${topBot.area}) segura R$ ${formatBrl(topBot.value)} em ${topBot.rcCount} RCs.`,
+        value: topBot.value,
+        severity: 'warn',
+        target: 'risco'
+      });
+    }
+  }
+
+  const { elapsed: monthsElapsed, left: monthsLeft } = monthsWindow(dataBase);
+  const gap = bgSistemico - realizado - emPagamento;
+  const ritmoNecessario = gap > 0 ? gap / monthsLeft : 0;
+  const ritmoMedio = realizado / monthsElapsed;
+
+  if (ritmoNecessario > ritmoMedio) {
+    const isCrit = ritmoNecessario > 2 * ritmoMedio;
+    insights.push({
+      kind: 'tendencia',
+      text: `Para chegar ao BG é preciso pagar R$ ${formatBrl(ritmoNecessario)}/mês até dezembro; a média do ano é R$ ${formatBrl(ritmoMedio)}/mês.`,
+      value: ritmoNecessario - ritmoMedio,
+      severity: isCrit ? 'crit' : 'warn',
+      target: 'composicao'
+    });
+  }
+
+  if (curadoriaPendenteValue > 0 || saldoParadoValue > 0) {
+    if (curadoriaPendenteValue >= saldoParadoValue) {
+      insights.push({
+        kind: 'acao',
+        text: `Confirmar as RCs do pareto: R$ ${formatBrl(curadoriaPendenteValue)} ainda sem decisão do gestor.`,
+        value: curadoriaPendenteValue,
+        severity: 'info',
+        target: 'curadoria'
+      });
+    } else {
+      insights.push({
+        kind: 'acao',
+        text: `Revisar o saldo parado: R$ ${formatBrl(saldoParadoValue)} sem movimentação há mais de 60 dias.`,
+        value: saldoParadoValue,
+        severity: 'info',
+        target: 'saldo'
+      });
+    }
+  }
+
+  const [resumo, ...rest] = insights;
+  rest.sort((a, b) => b.value - a.value);
+  return [resumo, ...rest].slice(0, 4);
+}

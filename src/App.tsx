@@ -13,7 +13,6 @@ import { BrandMark } from "./components/ui/BrandMark";
 import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
 import { RadarPage as RadarRiscoCaixaPage } from "./features/radar/RadarPage";
-import { ExecutiveCashSummary } from "./features/radar/ExecutiveCashSummary";
 import { useCurrentPath, navigate } from "./lib/simpleRouter";
 import { AlertTriangle, Radar, ClipboardList, Gauge } from "lucide-react";
 import { SkeletonRadar } from "./components/ui/SkeletonCard";
@@ -199,11 +198,7 @@ export default function App() {
         periodoLabel={periodoLabel}
       />
 
-      <ExecutiveCashSummary
-        lista={metricasFiltradas}
-        dataBase={parsed.dataBase}
-        onSelectProject={handleSelectFromRadar}
-      />
+
 
       {viewMode === "radar" ? (
         <RadarExecutivoPage
@@ -227,6 +222,9 @@ export default function App() {
             periodo={filtros.periodo}
             onSetPeriodo={setPeriodo}
             onSelect={setSelected}
+            kpisEstrategicos={kpisEstrategicos}
+            isLoadingCompromisso={isLoadingCompromisso}
+            dataBase={parsed.dataBase}
           />
         </Suspense>
       )}

@@ -33,6 +33,8 @@ export interface OperationalRow {
   daysInStage: number | null;
   subState: string;
   owner: string;
+  /** área responsável da etapa (Suprimentos, Gestor da plataforma, Fornecedor…), sem o nome da pessoa */
+  ownerArea: string;
   tooltip: {
     statusRc: string;
     statusCompromisso: string;
@@ -253,6 +255,7 @@ export function buildOperationalRows(
       daysInStage,
       subState,
       owner: ownerStr,
+      ownerArea: ownerResult.area ?? "",
       tooltip: {
         statusRc: dominantLineDetails.statusRc ?? "",
         statusCompromisso: dominantLineDetails.statusCompromisso ?? "",

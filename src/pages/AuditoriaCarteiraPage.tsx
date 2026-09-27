@@ -8,6 +8,9 @@ import { Rankings } from "../components/Rankings";
 import { ActionPlan } from "../components/ActionPlan";
 import { ProjectsTable } from "../components/ProjectsTable";
 import { BentoCard } from "../components/ui/bento";
+import { ExecucaoPlanoCard } from "../components/ExecucaoPlanoCard";
+import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
+import type { KPIEstrategicoCarteira } from "../types";
 
 interface Props {
   metricasFiltradas: ProjetoMetricas[];
@@ -15,6 +18,9 @@ interface Props {
   periodo: Periodo;
   onSetPeriodo: (p: Periodo) => void;
   onSelect: (p: ProjetoMetricas | null) => void;
+  kpisEstrategicos?: KPIEstrategicoCarteira[];
+  isLoadingCompromisso?: boolean;
+  dataBase?: string | null;
 }
 
 export function AuditoriaCarteiraPage({
@@ -23,6 +29,8 @@ export function AuditoriaCarteiraPage({
   periodo,
   onSetPeriodo,
   onSelect,
+  kpisEstrategicos = [],
+  isLoadingCompromisso,
 }: Props) {
   return (
     <>
@@ -44,6 +52,20 @@ export function AuditoriaCarteiraPage({
       <FilterBar projetos={parsed.projetos} />
 
       <ExecutiveSummary lista={metricasFiltradas} periodo={periodo} />
+
+      <div className="grid grid-cols-12 gap-4 mb-6 max-lg:grid-cols-1">
+        <div className="col-span-7 max-lg:col-span-1">
+          <ExecucaoPlanoCard lista={metricasFiltradas} />
+        </div>
+        <div className="col-span-5 max-lg:col-span-1">
+          <AnaliseRiscoPanel
+            lista={metricasFiltradas}
+            kpisEstrategicos={kpisEstrategicos}
+            isLoadingCompromisso={isLoadingCompromisso}
+            onSelectProject={onSelect}
+          />
+        </div>
+      </div>
 
       <div className="space-y-3 mb-6">
         <BentoCard title="Destaques" icon="🎯">

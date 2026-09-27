@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned } from "./executive";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -107,5 +107,109 @@ describe("executive.ts", () => {
       expect(res.projects[0]).toMatchObject({ projectName: "P1", rcCount: 1, value: 100 });
       expect(res.totalValue).toBe(100);
     });
+  });
+
+  describe("buildBottleneck", () => {
+    it("groups and orders by value", () => {
+      const mkCustom = (val: number, classif: string, stage: string, owner: string): OperationalRow => ({
+        rc: "rc", projectName: "p", n4: "n4", platformManager: owner, supplier: "s", priority: null,
+        stage, value: val, lineCount: 1, ocCount: 1, daysInStage: null, subState: "", owner, ownerArea: owner, tooltip: { statusRc: "", statusCompromisso: "", oc: "", comprador: "", dataPrometida: "" },
+        forecast: null, forecastPaymentDate: null, suggestedPaymentDate: null, isEarlyException: false, confidence: null, nextAction: null, isResidual: false,
+        classification: classif as any, isClassificationConfirmed: false
+      });
+      const rows = [
+        mkCustom(200, "EM_RISCO", "S1", "O1"),
+        mkCustom(300, "EM_RISCO", "S1", "O1"),
+        mkCustom(100, "EM_RISCO", "S2", "O1"),
+      ];
+      const bot = buildBottleneck(rows);
+      expect(bot.length).toBe(2);
+      expect(bot[0].value).toBe(500);
+      expect(bot[0].stage).toBe("S1");
+      expect(bot[0].area).toBe("O1");
+      expect(bot[1].value).toBe(100);
+    });
+  });
+
+  describe("buildInsights", () => {
+    it("generates resumo and respects materiality for risco", () => {
+      const db = new Date("2026-09-27T00:00:00Z"); // month = 8, 9 elapsed, 3 left
+      const input = {
+        bgSistemico: 10_000_000,
+        projetado: 9_000_000,
+        realizado: 4_500_000,
+        emPagamento: 500_000,
+        projetosEmRiscoCount: 1,
+        projetosEmRiscoValue: 50_000,
+        top10RiscoValue: 50_000,
+        dataBase: db,
+        opRows: [
+          {
+            rc: "rc1", projectName: "p1", n4: "n4", platformManager: "O1", supplier: "s", priority: null,
+            stage: "S1", value: 50_000, lineCount: 1, ocCount: 1, daysInStage: null, subState: "", owner: "O1", ownerArea: "O1", tooltip: { statusRc: "", statusCompromisso: "", oc: "", comprador: "", dataPrometida: "" },
+            forecast: null, forecastPaymentDate: null, suggestedPaymentDate: null, isEarlyException: false, confidence: null, nextAction: null, isResidual: false,
+            classification: "EM_RISCO", isClassificationConfirmed: false
+          }
+        ] as OperationalRow[],
+        saldoParadoValue: 0,
+        curadoriaPendenteValue: 0
+      };
+      
+      const insights = buildInsights(input);
+      expect(insights[0].kind).toBe("resumo");
+      expect(insights[0].text).toContain("9,0M (90% do BG)");
+      
+      // Risco 50k is not material (not >= 1M, and gap is 1M, 5% is 50k, wait, 50k is 5% so it IS material)
+      // Let's change gap so it's not material
+      input.bgSistemico = 15_000_000; // gap = 6M. 5% = 300k
+      const insights2 = buildInsights(input);
+      expect(insights2.find((i: any) => i.kind === "risco")).toBeUndefined();
+    });
+
+    it("evaluates trend crit/warn", () => {
+      const db = new Date("2026-09-27T00:00:00Z"); // 9 elapsed, 3 left
+      const input = {
+        bgSistemico: 12_000_000,
+        projetado: 12_000_000,
+        realizado: 900_000,
+        emPagamento: 0,
+        projetosEmRiscoCount: 0,
+        projetosEmRiscoValue: 0,
+        top10RiscoValue: 0,
+        dataBase: db,
+        opRows: [] as OperationalRow[],
+        saldoParadoValue: 0,
+        curadoriaPendenteValue: 0
+      };
+      // media = 900k / 9 = 100k
+      // gap = 12M - 900k = 11.1M. necessario = 11.1M / 3 = 3.7M
+      // > 2x media -> crit
+      const insights = buildInsights(input);
+      const tend = insights.find((i: any) => i.kind === "tendencia");
+      expect(tend?.severity).toBe("crit");
+    });
+  });
+});
+
+describe("monthsWindow e buildBridge", () => {
+  it("setembro: 9 meses decorridos, 3 restantes; dezembro: 1 restante", () => {
+    expect(monthsWindow(new Date(2026, 8, 25))).toEqual({ elapsed: 9, left: 3 });
+    expect(monthsWindow(new Date(2026, 11, 10))).toEqual({ elapsed: 12, left: 1 });
+  });
+
+  it("a ponte fecha quando as bases batem e expõe a diferença quando não batem", () => {
+    const base = { bg: 145.5, realizado: 72.4, emPagamento: 8.2, prov26: 21.2, provRisco: 30.1, prov27: 2.1, residual: 2.8, saldoLiquido: 8.7 };
+    const ok = buildBridge({ ...base, bg: 72.4 + 8.2 + 21.2 + 30.1 + 2.1 + 2.8 + 8.7 });
+    expect(Math.abs(ok.diferenca)).toBeLessThan(1e-9);
+    expect(ok.steps.find(s => s.kind === "diff")).toBeUndefined();
+    const off = buildBridge({ ...base, bg: 72.4 + 8.2 + 21.2 + 30.1 + 2.1 + 2.8 + 8.7 + 50_000 });
+    expect(off.steps.find(s => s.kind === "diff")?.value).toBeCloseTo(50_000);
+    expect(off.steps.at(-1)?.kind).toBe("result");
+  });
+
+  it("gargalo agrupa por área, sem o nome da pessoa, e ignora residuais", () => {
+    const r = (v: number, stage: string, owner: string, area: string) => ({ value: v, stage, owner, ownerArea: area, classification: "EM_RISCO" }) as unknown as OperationalRow;
+    const bot = buildBottleneck([r(100, "E2", "Ana · Suprimentos", "Suprimentos"), r(200, "E2", "Bia · Suprimentos", "Suprimentos"), r(999, "RESIDUAL", "x", "Suprimentos")]);
+    expect(bot).toEqual([{ stage: "E2", area: "Suprimentos", value: 300, rcCount: 2 }]);
   });
 });
