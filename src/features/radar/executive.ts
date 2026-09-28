@@ -437,6 +437,72 @@ export function buildFlowSummary(lista: ProjetoBase[]): FlowSummary {
 }
 
 // ────────────────────────────────────────────────────────────
+// buildProgramProgress — Progresso por programa
+// ────────────────────────────────────────────────────────────
+
+export interface ProgramProgressRow {
+  label: string;
+  executado: number;
+  orcamento: number;
+  risco: number;
+  pct: number;
+}
+
+export function buildProgramProgress(lista: ProjetoBase[], opRows: OperationalRow[]): { rows: ProgramProgressRow[]; total: ProgramProgressRow } {
+  const map = new Map<string, { executado: number; orcamento: number; risco: number }>();
+  
+  for (const p of lista) {
+    const key = p.n4Curta || "Sem plataforma";
+    const orcamento = p.orcamento2026 ?? 0;
+    const executado = (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0);
+    const curr = map.get(key) ?? { executado: 0, orcamento: 0, risco: 0 };
+    curr.orcamento += orcamento;
+    curr.executado += executado;
+    map.set(key, curr);
+  }
+  
+  // Find project n4Curta by projectName
+  const projMap = new Map<string, string>();
+  for (const p of lista) {
+    if (p.nome) projMap.set(p.nome.trim().toLowerCase(), p.n4Curta || "Sem plataforma");
+  }
+
+  for (const r of opRows) {
+    if (r.stage === 'DESCONHECIDA' || r.stage === 'RESIDUAL') continue;
+    if (r.classification === 'EM_RISCO') {
+      const pName = r.projectName ? r.projectName.trim().toLowerCase() : "";
+      const key = projMap.get(pName) || r.n4 || "Sem plataforma";
+      const curr = map.get(key);
+      if (curr) curr.risco += r.value;
+    }
+  }
+
+  const rows: ProgramProgressRow[] = [];
+  const total = { label: "Total", executado: 0, orcamento: 0, risco: 0, pct: 0 };
+
+  for (const [label, data] of map.entries()) {
+    rows.push({
+      label,
+      executado: data.executado,
+      orcamento: data.orcamento,
+      risco: data.risco,
+      pct: data.orcamento > 0 ? data.executado / data.orcamento : 0
+    });
+    total.executado += data.executado;
+    total.orcamento += data.orcamento;
+    total.risco += data.risco;
+  }
+  
+  total.pct = total.orcamento > 0 ? total.executado / total.orcamento : 0;
+  
+  // Sort by budget desc
+  rows.sort((a, b) => b.orcamento - a.orcamento);
+  
+  return { rows, total };
+}
+
+
+// ────────────────────────────────────────────────────────────
 // Radar Operacional — Resumo e Criticidade
 // ────────────────────────────────────────────────────────────
 

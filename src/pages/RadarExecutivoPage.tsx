@@ -4,7 +4,7 @@
  */
 import { useState, useMemo } from "react";
 import {
-  FolderKanban, Wallet, AlertTriangle, ShieldAlert, ArrowLeftRight,
+  FolderKanban, Wallet, AlertTriangle, ShieldAlert, Gauge
 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
@@ -29,6 +29,10 @@ import { FluxoCaixaChart } from "../components/FluxoCaixaChart";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { BalancesPanel } from "../features/radar/panels/BalancesPanel";
 import { BridgePanel } from "../features/radar/panels/BridgePanel";
+import { KpiStat } from "../components/ui/pattern/KpiStat";
+import { SectionCard } from "../components/ui/pattern/SectionCard";
+import { BarList } from "../components/ui/pattern/BarList";
+import { buildProgramProgress } from "../features/radar/executive";
 
 function parseDateBR(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -116,6 +120,21 @@ export function RadarExecutivoPage({
     const nAcompanhar = lista.filter((p) => p.status === "Revisar Caixa Ano").length;
     const nRequerAcao = lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização").length;
 
+    const programProgress = buildProgramProgress(lista, opRows);
+    const top3RequerAcao = lista
+      .filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização")
+      .sort((a, b) => (b.orcamentoPeriodo ?? 0) - (a.orcamentoPeriodo ?? 0))
+      .slice(0, 3);
+      
+    // KPI Execução (mesma conta do ExecucaoPlanoCard)
+    const orcamentoTotalBreakdown = lista.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
+    const emitidoBreakdown = lista.reduce((a, p) => a + (p.compromisso ?? 0), 0);
+    const pctExecucao = orcamentoTotalBreakdown > 0 ? (totalRealizado + totalEmPagamento + emitidoBreakdown) / orcamentoTotalBreakdown : 0;
+    
+    // KPI Cobertura do BG
+    const projetado = totalRealizado + totalEmPagamento + prov26;
+    const pctCoberturaBg = bgSistemico > 0 ? projetado / bgSistemico : 0;
+
     // Values for Ritmo rows
     const ritmoRows = [
       {
@@ -138,7 +157,7 @@ export function RadarExecutivoPage({
     return {
       bgSistemico, totalRealizado, totalEmPagamento, prov26, provRisco, prov27,
       balanceSummary, projectBalances, risk, bridge, bottleneck,
-      composition, flow, nNoRitmo, nAcompanhar, nRequerAcao, ritmoRows,
+      composition, flow, nNoRitmo, nAcompanhar, nRequerAcao, ritmoRows, programProgress, top3RequerAcao, pctExecucao, pctCoberturaBg, projetado
     };
   }, [bundle, curationMap, lista, dataBase]);
 
@@ -154,49 +173,14 @@ export function RadarExecutivoPage({
   }
 
   const {
-    bgSistemico, balanceSummary, risk, bridge, composition, flow,
+    bgSistemico, balanceSummary, risk, bridge, flow,
     nNoRitmo, nAcompanhar, nRequerAcao, ritmoRows, projectBalances,
+    programProgress, top3RequerAcao, pctExecucao, pctCoberturaBg, projetado
   } = computed;
 
   const nTotal = nNoRitmo + nAcompanhar + nRequerAcao;
-  const M = (v: number) => (v / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const maxCount = Math.max(...ritmoRows.map((r) => r.count), 1);
-
   // ── Faixa KPI ──────────────────────────────────────────────────────
-  const kpiItems = [
-    {
-      icon: <FolderKanban size={18} className="text-text-muted" />,
-      value: nTotal.toString(),
-      label: "projetos com orçamento 2026",
-      onClick: undefined as (() => void) | undefined,
-    },
-    {
-      icon: <Wallet size={18} className="text-text-muted" />,
-      value: `R$ ${M(bgSistemico)}M`,
-      label: "orçamento total",
-      onClick: undefined as (() => void) | undefined,
-    },
-    {
-      icon: <AlertTriangle size={18} className="text-crit" />,
-      value: nRequerAcao.toString(),
-      label: "requer ação (ritmo)",
-      valueClass: "text-crit",
-      onClick: undefined as (() => void) | undefined,
-    },
-    {
-      icon: <ShieldAlert size={18} className="text-warn" />,
-      value: `R$ ${M(risk.totalValue)}M`,
-      label: "em risco de caixa",
-      valueClass: "text-warn",
-      onClick: () => setPanel("risk"),
-    },
-    {
-      icon: <ArrowLeftRight size={18} className="text-text-muted" />,
-      value: `R$ ${M(balanceSummary.parado.value)}M`,
-      label: "saldo remanejável",
-      onClick: () => setPanel("balances"),
-    },
-  ] as const;
+
 
   return (
     <div
@@ -204,128 +188,86 @@ export function RadarExecutivoPage({
       style={{ minHeight: 0 }}
     >
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
-      <div className="flex gap-2 shrink-0 max-lg:flex-wrap">
-        {kpiItems.map((k) => (
-          <button
-            key={k.label}
-            type="button"
-            onClick={k.onClick}
-            disabled={!k.onClick}
-            className={`flex-1 min-w-0 flex items-center gap-2.5 px-3 py-2.5 rounded-card border border-border bg-card text-left transition-colors ${k.onClick ? "hover:border-accent/60 cursor-pointer" : "cursor-default"}`}
-          >
-            <span className="shrink-0">{k.icon}</span>
-            <div className="min-w-0">
-              <div className={`text-[20px] font-bold tabular-nums leading-tight text-text ${"valueClass" in k ? k.valueClass : ""}`}>
-                {k.value}
-              </div>
-              <div className="text-[11px] text-text-muted leading-snug truncate">{k.label}</div>
-            </div>
-          </button>
-        ))}
+      <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
+        <KpiStat icon={<FolderKanban size={16} />} label="Projetos" value={nTotal.toString()} context="com orçamento 2026" />
+        <KpiStat icon={<Gauge size={16} />} label="Execução do plano" value={fmtPct(pctExecucao)} context="vs plano provisionado" />
+        <KpiStat icon={<AlertTriangle size={16} />} label="Ritmo dos projetos" value={nRequerAcao.toString()} tone="crit" context="requerem ação" />
+        <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value={fmtBRL(risk.totalValue, true)} tone="warn" context={`${risk.count} projetos`} onClick={() => setPanel("risk")} />
+        <KpiStat icon={<Wallet size={16} />} label="Cobertura do BG" value={fmtPct(pctCoberturaBg)} context={`${fmtBRL(projetado, true)} de ${fmtBRL(bgSistemico, true)}`} tone="info" onClick={() => setPanel("bridge")} />
       </div>
 
       {/* ── Grade 2×2 ─────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0 max-lg:grid-cols-1 max-lg:h-auto">
 
         {/* 1. Execução do Plano */}
-        <div className="flex flex-col rounded-card border border-border bg-card px-4 pt-3 pb-2 min-h-0">
-          <div className="flex items-center justify-between shrink-0 mb-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Execução do Plano</p>
-            <button
-              type="button"
-              className="text-[12px] text-info hover:underline"
-              onClick={() => navigate("/auditoria")}
-            >
-              Ver detalhes →
-            </button>
-          </div>
-          <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-center">
-            <ExecucaoPlanoCard lista={lista} bare />
-          </div>
-        </div>
+        <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
+          <ExecucaoPlanoCard lista={lista} bare />
+        </SectionCard>
 
         {/* 2. Ritmo dos projetos */}
-        <div className="flex flex-col rounded-card border border-border bg-card px-4 pt-3 pb-2 min-h-0">
-          <div className="flex items-center justify-between shrink-0 mb-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Ritmo dos projetos</p>
-            <button
-              type="button"
-              className="text-[12px] text-info hover:underline"
-              onClick={() => navigate("/auditoria")}
-            >
-              Ver Auditoria →
-            </button>
-          </div>
-          {/* 4 cols: rótulo fixo · barra flex · contagem · R$ */}
-          <div className="flex flex-col justify-around flex-1 min-h-0">
-            {ritmoRows.map((r) => (
-              <div
-                key={r.label}
-                className="grid items-center gap-x-3 text-[13px]"
-                style={{ gridTemplateColumns: "110px 1fr auto auto" }}
-              >
-                <span className="text-text-muted">{r.label}</span>
-                <div className="relative h-2 rounded bg-border overflow-hidden">
-                  <div
-                    className={`absolute inset-y-0 left-0 rounded ${r.color}`}
-                    style={{ width: `${Math.round((r.count / maxCount) * 100)}%` }}
-                  />
+        <SectionCard title="Ritmo dos projetos" action={{ label: "Ver Auditoria →", onClick: () => navigate("/auditoria") }}>
+          <BarList 
+            rows={ritmoRows.map(r => ({ label: r.label, count: r.count, value: r.valor, color: r.color }))}
+            totalLabel="Total"
+            totalCount={nTotal}
+          />
+          <div className="mt-4 flex flex-col justify-end flex-1 min-h-0">
+            <div className="flex justify-between items-end mb-2">
+              <p className="text-[11px] font-semibold text-text-muted">Principais projetos que requerem ação</p>
+              <span className="text-[10px] uppercase font-semibold text-text-muted">Orçamento</span>
+            </div>
+            <div className="flex flex-col gap-1.5 mb-3">
+              {top3RequerAcao.map(p => (
+                <div key={p.id} className="flex justify-between items-center text-[13px]">
+                   <span className="truncate pr-2 border-l-2 border-crit pl-2">{p.nome}</span>
+                   <span className="tabular-nums text-text">{fmtBRL(p.orcamentoPeriodo ?? 0, true)}</span>
                 </div>
-                <span className="font-semibold tabular-nums text-text text-right">{r.count}</span>
-                <span className="text-text-muted tabular-nums text-right text-[12px]">{fmtBRL(r.valor, true)}</span>
-              </div>
-            ))}
-            <div className="pt-1.5 border-t border-border flex justify-between text-[12px] font-semibold text-text">
-              <span>Total</span>
-              <span>{nTotal} projetos</span>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-border flex justify-between items-center text-[12px]">
+               <span className="text-text-muted">Saldo remanejável <span className="font-semibold text-text ml-1">{fmtBRL(balanceSummary.parado.value, true)}</span></span>
+               <button type="button" onClick={() => setPanel("balances")} className="text-info hover:underline font-semibold">Ver painel de saldos →</button>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
-        {/* 3. Composição por plataforma */}
-        <div className="flex flex-col rounded-card border border-border bg-card px-4 pt-3 pb-2 min-h-0">
-          <div className="flex items-center justify-between shrink-0 mb-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Composição por plataforma</p>
-            <button
-              type="button"
-              className="text-[12px] text-info hover:underline"
-              onClick={() => navigate("/auditoria")}
-            >
-              Ver todas →
-            </button>
-          </div>
-          {/* 4 cols: nome · barra flex · R$ · % */}
-          <div className="flex flex-col justify-around flex-1 min-h-0">
-            {composition.rows.map((r) => (
-              <div
-                key={r.label}
-                className="grid items-center gap-x-3 text-[13px]"
-                style={{ gridTemplateColumns: "minmax(0, 210px) 1fr 76px 48px" }}
-              >
-                <span
-                  className={`truncate ${r.isOther ? "text-text-faint" : "text-text-muted"}`}
-                  title={r.label}
-                >
-                  {r.label}
-                </span>
-                <div className="relative h-2 rounded bg-border overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded bg-text-muted"
-                    style={{ width: `${Math.round(r.pct * 100)}%`, opacity: r.isOther ? 0.3 : 0.65 }}
-                  />
+        {/* 3. Progresso por programa */}
+        <SectionCard title="Progresso por programa" action={{ label: "Ver todas →", onClick: () => navigate("/auditoria") }}>
+          <div className="flex flex-col flex-1 min-h-0 justify-around pb-2">
+            <div className="grid gap-x-3 text-[11px] uppercase tracking-wide text-text-muted font-semibold pb-2 whitespace-nowrap" style={{ gridTemplateColumns: "200px 1fr 84px 84px" }}>
+              <span>Programa</span>
+              <span>Progresso</span>
+              <span className="text-right">Orçamento</span>
+              <span className="text-right">Risco</span>
+            </div>
+            <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-2">
+              {programProgress.rows.map((r) => (
+                <div key={r.label} className="grid items-center gap-x-3 text-[13px] whitespace-nowrap" style={{ gridTemplateColumns: "200px 1fr 84px 84px" }}>
+                  <span className="truncate text-text-muted" title={r.label}>{r.label}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="relative h-[6px] flex-1 rounded bg-border overflow-hidden">
+                      <div className="absolute inset-y-0 left-0 rounded bg-info" style={{ width: `${Math.round(r.pct * 100)}%` }} />
+                    </div>
+                    <span className="tabular-nums text-[12px] w-[3ch]">{Math.round(r.pct * 100)}%</span>
+                  </div>
+                  <span className="tabular-nums text-text text-right text-[12px]">{fmtBRL(r.orcamento, true)}</span>
+                  <span className={`tabular-nums text-right text-[12px] ${r.risco > 0 ? "text-warn" : "text-text-muted"}`}>{r.risco > 0 ? fmtBRL(r.risco, true) : "—"}</span>
                 </div>
-                <span className="tabular-nums text-text text-right text-[12px]">{fmtBRL(r.value, true)}</span>
-                <span className="tabular-nums text-text-muted text-right text-[12px]">{fmtPct(r.pct)}</span>
-              </div>
-            ))}
-            <div className="pt-1.5 border-t border-border grid gap-x-3 text-[12px] font-semibold text-text" style={{ gridTemplateColumns: "minmax(0, 210px) 1fr 76px 48px" }}>
+              ))}
+            </div>
+            <div className="pt-2 mt-2 border-t border-border grid gap-x-3 text-[12px] font-semibold text-text whitespace-nowrap" style={{ gridTemplateColumns: "200px 1fr 84px 84px" }}>
               <span>Total</span>
-              <span />
-              <span className="text-right">{fmtBRL(composition.total, true)}</span>
-              <span className="text-right text-text-muted">100%</span>
+              <div className="flex items-center gap-2">
+                <div className="relative h-[6px] flex-1 rounded bg-border overflow-hidden">
+                  <div className="absolute inset-y-0 left-0 rounded bg-info" style={{ width: `${Math.round(programProgress.total.pct * 100)}%` }} />
+                </div>
+                <span className="tabular-nums text-[12px] w-[3ch]">{Math.round(programProgress.total.pct * 100)}%</span>
+              </div>
+              <span className="text-right">{fmtBRL(programProgress.total.orcamento, true)}</span>
+              <span className={`text-right ${programProgress.total.risco > 0 ? "text-warn" : "text-text-muted"}`}>{programProgress.total.risco > 0 ? fmtBRL(programProgress.total.risco, true) : "—"}</span>
             </div>
           </div>
-        </div>
+        </SectionCard>
 
         {/* 4. Fluxo de caixa */}
         <div className="flex flex-col rounded-card border border-border bg-card px-4 pt-3 pb-2 min-h-0">

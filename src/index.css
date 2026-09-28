@@ -4,19 +4,19 @@
 
 :root,
 [data-theme="dark"] {
-  --color-bg: #0E1520;
-  --color-bg-sidebar: #0A1019;
-  --color-card: #121A26;
-  --color-card-alt: #16202F;
-  --color-border: #22304A;
+  --color-bg: #0B1220;
+  --color-bg-sidebar: #0E1526;
+  --color-card: #111A2C;
+  --color-card-alt: #131C2F;
+  --color-border: #1E2A40;
   --color-border-subtle: #1B2534;
   --color-text: #E6EAF2;
-  --color-text-muted: #8CA0BF;
-  --color-text-faint: #6B85AD;
-  --color-accent: 124 143 224;
-  --gradient-a: #6D5BD0;
-  --gradient-b: #3DA5F4;
-  --card-shadow: 0 4px 24px rgba(0,0,0,.35);
+  --color-text-muted: #8A96AD;
+  --color-text-faint: #64748B;
+  --color-accent: 47 107 255;
+  --gradient-a: #2F6BFF;
+  --gradient-b: #3B82F6;
+  --card-shadow: none;
 }
 
 [data-theme="light"] {

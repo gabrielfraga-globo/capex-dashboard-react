@@ -14,7 +14,7 @@ import { ThemeToggle } from "./components/ui/ThemeToggle";
 import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
 import { RadarPage as RadarRiscoCaixaPage } from "./features/radar/RadarPage";
 import { useCurrentPath, navigate } from "./lib/simpleRouter";
-import { AlertTriangle, Radar, ClipboardList, Gauge } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { SkeletonRadar } from "./components/ui/SkeletonCard";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -169,41 +169,43 @@ export default function App() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
+        <div className="flex items-center gap-6">
           {/* Abas de navegação */}
-          <nav className="flex rounded-md border border-border overflow-hidden" aria-label="Navegação principal">
+          <nav className="flex gap-6 mt-1" aria-label="Navegação principal">
             <button
               onClick={() => setViewMode("radar")}
               aria-pressed={viewMode === "radar"}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70 ${
-                viewMode === "radar" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+              className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
+                viewMode === "radar" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
               }`}
             >
-              <Gauge size={13} aria-hidden="true" /> Visão Executiva
+              Visão Executiva
             </button>
             <button
               onClick={() => navigate("/radar")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors bg-card-alt text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70"
+              className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
+                pathname === "/radar" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
+              }`}
             >
-              <Radar size={13} aria-hidden="true" /> Radar de Caixa
+              Radar de Caixa
             </button>
             <button
               onClick={() => setViewMode("auditoria")}
               aria-pressed={viewMode === "auditoria"}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70 ${
-                viewMode === "auditoria" ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text"
+              className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
+                viewMode === "auditoria" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
               }`}
             >
-              <ClipboardList size={13} aria-hidden="true" /> Auditoria
+              Auditoria
             </button>
             <button
-              onClick={() => navigate("/radar")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors bg-card-alt text-text-muted hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70"
+              onClick={() => navigate("/radar")} // fallback to radar or curadoria route
+              className="pb-1 text-[13px] font-semibold transition-colors text-text-muted hover:text-text border-b-2 border-transparent focus-visible:outline-none"
             >
-              <ClipboardList size={13} aria-hidden="true" /> Curadoria
+              Curadoria
             </button>
           </nav>
+          <ThemeToggle />
         </div>
       </header>
 

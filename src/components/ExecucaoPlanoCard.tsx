@@ -3,6 +3,7 @@ import { fmtPct, formatCurrencyMillions } from "../lib/format";
 import { usePctExecucaoPlano, useAEmitirAno } from "../hooks/usePortfolioMetrics";
 import type { ProjetoMetricas } from "../types";
 import { generateRiskSummary } from "../lib/insights";
+import { SegmentedBar } from "./ui/pattern/SegmentedBar";
 
 const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: string }> = {
   realizado:   { bg: "bg-emerald-500", text: "text-emerald-900", colorHex: "#10b981" },
@@ -100,26 +101,14 @@ export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoM
               Realizado + Em pgto + Emitido vs. BG
             </p>
           </div>
-          {/* Barra segmentada — largura total */}
-          <div className={`flex h-3 w-full rounded overflow-hidden gap-0.5 ${bare ? "bg-border" : "bg-white/15"}`}>
-            {breakdownSegments.map((seg) => (
-              <div
-                key={seg.key}
-                className={`${seg.bg}`}
-                style={{ width: `${seg.pct}%` }}
-                title={`${seg.label}: ${fmtPct(seg.pct / 100)} · ${formatCurrencyMillions(seg.valor)}`}
-              />
-            ))}
-          </div>
-          {/* Legenda em linha abaixo da barra */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-            {breakdownSegments.filter((seg) => seg.pct > 0).map((seg) => (
-              <span key={`legend-${seg.key}`} className={`text-[10px] leading-none flex items-center gap-1 ${bare ? "text-text-muted" : "text-white/90"}`}>
-                <span className={`w-2 h-2 rounded-full ${seg.bg}`} aria-hidden="true" />
-                {seg.label}: {fmtPct(seg.pct / 100)}
-              </span>
-            ))}
-          </div>
+          <SegmentedBar 
+            parts={breakdownSegments.map(seg => ({
+              key: seg.key,
+              label: seg.label,
+              pct: seg.pct,
+              color: seg.bg
+            }))}
+          />
         </div>
       )}
       <div className={`mt-2 flex items-center gap-2 text-[11px] leading-snug ${bare ? "text-text-muted" : "text-white/90"}`}>
@@ -128,7 +117,7 @@ export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoM
     </>
   );
 
-  if (bare) return <div className="flex flex-col gap-1 h-full">{inner}</div>;
+  if (bare) return <div className="flex flex-col justify-center h-full gap-2">{inner}</div>;
 
   return (
     <article className={`rounded-card border border-border p-4 shadow-card shrink-0 ${noGradient ? "bg-card text-text" : "bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-800 text-white"}`}>

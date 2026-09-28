@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary } from "./executive";
+import { describe, it, test, expect } from "vitest";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary, buildProgramProgress } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -312,5 +312,40 @@ describe("classifyCriticality e buildRadarSummary", () => {
     expect(sum.criticidade.critico).toEqual({ count: 1, value: 1_000_000 });
     expect(sum.criticidade.atencao).toEqual({ count: 2, value: 1_000_000 }); // r2 e r3
     expect(sum.criticidade.normal).toEqual({ count: 0, value: 0 });
+  });
+});
+
+describe("executive / buildProgramProgress", () => {
+  test("calculates progress and risk by n4Curta", () => {
+    const lista = [
+      { id: "p1", nome: "Proj 1", n4Curta: "Tec", orcamento2026: 100, realizado2026: 20, emPagamento2026: 10 },
+      { id: "p2", nome: "Proj 2", n4Curta: "Tec", orcamento2026: 50, realizado2026: 50, emPagamento2026: 0 },
+      { id: "p3", nome: "Proj 3", n4Curta: "Ops", orcamento2026: 200, realizado2026: 50, emPagamento2026: 50 }
+    ] as ProjetoBase[];
+
+    const opRows = [
+      { projectName: "Proj 1", stage: "E1", classification: "EM_RISCO", value: 15 },
+      { projectName: "Proj 2", stage: "E1", classification: "EM_RISCO", value: 5 },
+      { projectName: "Proj 3", stage: "E1", classification: "CAIXA_26", value: 100 }
+    ] as OperationalRow[];
+
+    const { rows, total } = buildProgramProgress(lista, opRows);
+
+    expect(rows).toHaveLength(2);
+    
+    const tec = rows.find(r => r.label === "Tec")!;
+    expect(tec.orcamento).toBe(150);
+    expect(tec.executado).toBe(80); // 20+10 + 50+0
+    expect(tec.risco).toBe(20); // 15 + 5
+    expect(tec.pct).toBe(80 / 150);
+
+    const ops = rows.find(r => r.label === "Ops")!;
+    expect(ops.orcamento).toBe(200);
+    expect(ops.executado).toBe(100);
+    expect(ops.risco).toBe(0);
+    
+    expect(total.orcamento).toBe(350);
+    expect(total.executado).toBe(180);
+    expect(total.risco).toBe(20);
   });
 });
