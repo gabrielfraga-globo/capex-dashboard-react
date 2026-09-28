@@ -38,3 +38,7 @@ Leia este arquivo inteiro antes de qualquer fase. Ele vale mais que qualquer sup
 ## Estilo
 - Tema escuro atual, fonte atual. Cor só em exceção (ponto, borda, segmento). Números em `text-text`. Sem gradientes, sem emojis novos.
 - Telas executivas sem rolagem em ≥ 1280×800.
+
+## Padrão visual
+- Siga `docs/design/capex-executivo-escuro/pattern.md` (layout, componentes, cores). O mapa do que falta por tela está em `references/telas.md`.
+- Números: sempre dos cálculos do app, nunca os da imagem de referência (ver "Diferenças que NÃO devem ser copiadas" em telas.md).
