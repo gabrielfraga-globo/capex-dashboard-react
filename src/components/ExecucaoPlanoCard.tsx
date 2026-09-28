@@ -6,9 +6,9 @@ import { generateRiskSummary } from "../lib/insights";
 import { SegmentedBar } from "./ui/pattern/SegmentedBar";
 
 const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: string }> = {
-  realizado:   { bg: "bg-emerald-500", text: "text-emerald-900", colorHex: "#10b981" },
-  emPagamento: { bg: "bg-amber-500",   text: "text-amber-900",   colorHex: "#f59e0b" },
-  emitido:     { bg: "bg-indigo-400",  text: "text-indigo-900",  colorHex: "#818cf8" },
+  realizado:   { bg: "bg-info", text: "text-white", colorHex: "#3B82F6" },
+  emPagamento: { bg: "bg-ok",   text: "text-white",   colorHex: "#22C55E" },
+  emitido:     { bg: "bg-violet-500",  text: "text-white",  colorHex: "#8B5CF6" },
   naoEmitido:  { bg: "bg-slate-500",   text: "text-slate-900",   colorHex: "#64748b" },
 };
 

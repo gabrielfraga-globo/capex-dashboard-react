@@ -32,7 +32,7 @@ export function BarList({ rows, totalValue, totalLabel = "Total", totalCount, sh
   else if (hasCount && hasPct) gridCols = "minmax(0, 140px) 1fr auto auto auto";
 
   return (
-    <div className="flex flex-col justify-around flex-1 min-h-0 gap-3">
+    <div className="flex flex-col gap-3">
       {rows.map((r, i) => (
         <div
           key={i}

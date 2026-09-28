@@ -184,8 +184,7 @@ export function RadarExecutivoPage({
 
   return (
     <div
-      className="flex flex-col gap-2.5 h-[calc(100vh-10.75rem)] overflow-hidden max-lg:h-auto max-lg:overflow-visible"
-      style={{ minHeight: 0 }}
+      className="flex flex-col gap-3"
     >
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
@@ -197,7 +196,7 @@ export function RadarExecutivoPage({
       </div>
 
       {/* ── Grade 2×2 ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2.5 flex-1 min-h-0 max-lg:grid-cols-1 max-lg:h-auto">
+      <div className="grid grid-cols-2 gap-3 items-stretch max-lg:grid-cols-1">
 
         {/* 1. Execução do Plano */}
         <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
@@ -207,20 +206,22 @@ export function RadarExecutivoPage({
         {/* 2. Ritmo dos projetos */}
         <SectionCard title="Ritmo dos projetos" action={{ label: "Ver Auditoria →", onClick: () => navigate("/auditoria") }}>
           <BarList 
-            rows={ritmoRows.map(r => ({ label: r.label, count: r.count, value: r.valor, color: r.color }))}
+            rows={ritmoRows.map(r => ({ label: r.label, dot: true, count: r.count, value: r.valor, pct: nTotal ? r.count / nTotal : 0, color: r.color }))}
             totalLabel="Total"
             totalCount={nTotal}
           />
-          <div className="mt-4 flex flex-col justify-end flex-1 min-h-0">
+          <div className="mt-4 flex flex-col">
             <div className="flex justify-between items-end mb-2">
               <p className="text-[11px] font-semibold text-text-muted">Principais projetos que requerem ação</p>
               <span className="text-[10px] uppercase font-semibold text-text-muted">Orçamento</span>
             </div>
             <div className="flex flex-col gap-1.5 mb-3">
-              {top3RequerAcao.map(p => (
-                <div key={p.id} className="flex justify-between items-center text-[13px]">
-                   <span className="truncate pr-2 border-l-2 border-crit pl-2">{p.nome}</span>
-                   <span className="tabular-nums text-text">{fmtBRL(p.orcamentoPeriodo ?? 0, true)}</span>
+              {top3RequerAcao.map((p, i) => (
+                <div key={p.id} className="grid items-center gap-x-3 text-[13px]" style={{ gridTemplateColumns: "16px minmax(0,1fr) 140px 72px" }}>
+                   <span className="text-text-faint tabular-nums">{i + 1}</span>
+                   <span className="truncate text-text" title={p.nome}>{p.nome}</span>
+                   <span className="relative h-[6px] rounded bg-border overflow-hidden"><span className="absolute inset-y-0 left-0 rounded bg-crit" style={{ width: `${Math.round(((p.orcamentoPeriodo ?? 0) / Math.max(1, top3RequerAcao[0]?.orcamentoPeriodo ?? 1)) * 100)}%` }} /></span>
+                   <span className="tabular-nums text-text text-right">{fmtBRL(p.orcamentoPeriodo ?? 0, true)}</span>
                 </div>
               ))}
             </div>
@@ -233,20 +234,20 @@ export function RadarExecutivoPage({
 
         {/* 3. Progresso por programa */}
         <SectionCard title="Progresso por programa" action={{ label: "Ver todas →", onClick: () => navigate("/auditoria") }}>
-          <div className="flex flex-col flex-1 min-h-0 justify-around pb-2">
+          <div className="flex flex-col">
             <div className="grid gap-x-3 text-[11px] uppercase tracking-wide text-text-muted font-semibold pb-2 whitespace-nowrap" style={{ gridTemplateColumns: "200px 1fr 84px 84px" }}>
               <span>Programa</span>
               <span>Progresso</span>
               <span className="text-right">Orçamento</span>
               <span className="text-right">Risco</span>
             </div>
-            <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto pr-2">
-              {programProgress.rows.map((r) => (
+            <div className="flex flex-col gap-3">
+              {programProgress.rows.map((r, idx) => (
                 <div key={r.label} className="grid items-center gap-x-3 text-[13px] whitespace-nowrap" style={{ gridTemplateColumns: "200px 1fr 84px 84px" }}>
                   <span className="truncate text-text-muted" title={r.label}>{r.label}</span>
                   <div className="flex items-center gap-2">
                     <div className="relative h-[6px] flex-1 rounded bg-border overflow-hidden">
-                      <div className="absolute inset-y-0 left-0 rounded bg-info" style={{ width: `${Math.round(r.pct * 100)}%` }} />
+                      <div className={`absolute inset-y-0 left-0 rounded ${["bg-info", "bg-ok", "bg-violet-500", "bg-warn", "bg-slate-500"][idx % 5]}`} style={{ width: `${Math.min(100, Math.round(r.pct * 100))}%` }} />
                     </div>
                     <span className="tabular-nums text-[12px] w-[3ch]">{Math.round(r.pct * 100)}%</span>
                   </div>
@@ -270,29 +271,29 @@ export function RadarExecutivoPage({
         </SectionCard>
 
         {/* 4. Fluxo de caixa */}
-        <div className="flex flex-col rounded-card border border-border bg-card px-4 pt-3 pb-2 min-h-0">
+        <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3">
           {/* Cabeçalho com legenda Plan/Real */}
           <div className="flex items-center justify-between shrink-0 mb-1">
             <div className="flex items-center gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Fluxo de caixa</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-text-muted">Fluxo de caixa</p>
               <span className="flex items-center gap-1 text-[10px] text-text-muted font-medium">
-                <span className="w-4 h-0 border-b border-dashed border-text-muted inline-block" /> Plan
+                <span className="w-4 h-0 border-b border-dashed border-text-muted inline-block" /> Planejado
               </span>
               <span className="flex items-center gap-1 text-[10px] text-info font-medium">
-                <span className="inline-block w-4 h-1.5 bg-info rounded-sm" /> Real
+                <span className="inline-block w-4 h-1.5 bg-info rounded-sm" /> Realizado
               </span>
             </div>
             <button
               type="button"
               className="text-[12px] text-info hover:underline"
-              onClick={() => setPanel("bridge")}
+              onClick={() => navigate("/auditoria")}
             >
-              Do BG ao projetado →
+              Ver fluxo completo →
             </button>
           </div>
           {/* Corpo: gráfico (flex-1) + 3 números (fixo) */}
-          <div className="flex flex-1 min-h-0 gap-3">
-            <div className="flex-[2] min-h-0">
+          <div className="flex gap-4 items-stretch">
+            <div className="flex-1 min-w-0 h-[205px]">
               <FluxoCaixaChart
                 lista={lista}
                 dataBase={dataBase ?? null}
