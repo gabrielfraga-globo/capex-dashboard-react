@@ -91,10 +91,12 @@ export function ExecucaoPlanoCard({
         : ritmo > 1
         ? "Caixa acima do plano"
         : "Caixa abaixo do plano";
-    const pendente = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
     const iconCaixa = ritmo !== null && Math.abs(ritmo - 1) <= 0.05 ? "🟢" : "⚠";
-    return `${iconCaixa} ${ritmoTexto} · ⚠ ${formatCurrencyMillions(pendente)} pendentes de emissão`;
-  }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown]);
+    const pendente = aEmitirAno !== null && aEmitirAno > 0 ? aEmitirAno : risco.emissoesFaltantes.valor;
+    return ano === 2027
+      ? `${iconCaixa} ${ritmoTexto}`
+      : `${iconCaixa} ${ritmoTexto} · ⚠ ${formatCurrencyMillions(pendente)} pendentes de emissão`;
+  }, [aEmitirAno, risco.emissoesFaltantes.valor, totalPlanejadoAcumulado, totalRealizadoBreakdown, ano]);
 
   const inner = (
     <>

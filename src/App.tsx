@@ -187,7 +187,7 @@ export default function App() {
                 pathname === "/radar" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
               }`}
             >
-              Radar de Caixa
+              Classificação Risco Empenho
             </button>
             <button
               onClick={() => setViewMode("auditoria")}

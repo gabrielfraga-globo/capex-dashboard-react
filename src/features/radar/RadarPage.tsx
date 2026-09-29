@@ -84,7 +84,7 @@ export function RadarPage() {
           >
             <ArrowLeft size={15} /> Voltar
           </button>
-          <h1 className="text-lg font-bold text-text">Radar de Risco de Caixa</h1>
+          <h1 className="text-lg font-bold text-text">Classificação Risco Empenho</h1>
         </div>
         {bundle && <div className="text-[11px] text-text-faint">Dados BI: {formatGeradoEm(bundle.generatedAt)}</div>}
       </div>
@@ -177,6 +177,7 @@ export function RadarPage() {
               allowedRcs={rcsFiltradas}
               salvarRc={salvarRc}
               erroDe={erroDe}
+              lista={parsed?.projetos ?? []}
             />
           )}
         </>

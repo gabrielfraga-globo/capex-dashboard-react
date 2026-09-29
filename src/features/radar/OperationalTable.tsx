@@ -1,7 +1,10 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { buildOperationalRows, buildPipelineCounters, STAGE_LABELS, suggestClassification, buildClassificationPayload, deliveryFromPayment } from "./operational";
-import { classifyCriticality, buildRadarSummary } from "./executive";
+import { classifyCriticality, buildRadarSummary, buildDeltaCaixa, aEmitirPorProjeto } from "./executive";
+import { buildStageCounters, buildDirectorateBreakdown, displayStage, DISPLAY_STAGE_LABELS, directorateOf } from "./esteira";
 import type { OperationalRow } from "./operational";
+import type { ProjetoBase } from "../../types";
+import { OPERATIONAL_TABLE_WIDTH, OperationalColGroup } from "./tableLayout";
 import type { CommitmentSourceBundle, CurationMap, RcCurationUpsertRequest, RcCurationUpsertResponse, NonOccurrenceReason } from "./types";
 import { NON_OCCURRENCE_REASONS } from "./types";
 import { fmtBRL, fmtNumber } from "../../lib/format";
@@ -14,6 +17,7 @@ interface Props {
   allowedRcs: Set<string>;
   salvarRc: (rc: string, payload: RcCurationUpsertRequest) => Promise<RcCurationUpsertResponse | null>;
   erroDe: (chave: string) => string | null;
+  lista: ProjetoBase[];
 }
 
 const ENUM_LABELS: Record<string, string> = {
@@ -159,8 +163,8 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
         </td>
         <td className="p-2 text-right font-medium whitespace-nowrap">{fmtBRL(row.value)}</td>
         <td className="p-2">
-          <div className="inline-flex items-center font-medium px-2 py-0.5 rounded bg-muted text-text cursor-help" title={`Status RC: ${row.tooltip.statusRc || "—"}\nStatus compromisso: ${row.tooltip.statusCompromisso || "—"}\nOC: ${row.tooltip.oc || "—"}\nComprador: ${row.tooltip.comprador || "—"}\nData prometida: ${fmtDate(row.tooltip.dataPrometida)}`}>
-            {row.stage} · {STAGE_LABELS[row.stage] ?? row.stage}
+          <div className="block max-w-full truncate whitespace-nowrap font-medium px-2 py-0.5 rounded bg-muted text-text cursor-help" title={`Etapa interna: ${row.stage} · ${STAGE_LABELS[row.stage] ?? row.stage}\nStatus RC: ${row.tooltip.statusRc || "—"}\nStatus compromisso: ${row.tooltip.statusCompromisso || "—"}\nOC: ${row.tooltip.oc || "—"}\nComprador: ${row.tooltip.comprador || "—"}\nData prometida: ${fmtDate(row.tooltip.dataPrometida)}`}>
+            {(() => { const ds = displayStage(row); return ds ? DISPLAY_STAGE_LABELS[ds] : (STAGE_LABELS[row.stage] ?? row.stage); })()}
           </div>
           <div className="mt-0.5 text-[11px] text-text-muted truncate" title={row.owner}>{row.owner || "—"}</div>
         </td>
@@ -246,6 +250,7 @@ export function OperationalTable({
   allowedRcs,
   salvarRc,
   erroDe,
+  lista,
 }: Props) {
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [showResidual, setShowResidual] = useState(false);
@@ -261,6 +266,18 @@ export function OperationalTable({
     return buildPipelineCounters(filteredRows, bundle.payments);
   }, [filteredRows, bundle.payments]);
 
+  const deltaCaixa = useMemo(() => buildDeltaCaixa(lista), [lista]);
+  const bgTotal = useMemo(() => lista.reduce((a, p) => a + (p.orcamento2026 ?? 0), 0), [lista]);
+  const aEmitir2026 = useMemo(() => aEmitirPorProjeto(lista, filteredRows, 2026), [lista, filteredRows]);
+
+  const stageCounters = useMemo(() => {
+    return buildStageCounters(filteredRows, aEmitir2026, counters.byStage.E7);
+  }, [filteredRows, aEmitir2026, counters.byStage.E7]);
+
+  const directorateBreakdown = useMemo(() => {
+    return buildDirectorateBreakdown(filteredRows, aEmitir2026, counters.byStage.E7);
+  }, [filteredRows, aEmitir2026, counters.byStage.E7]);
+
   const summary = useMemo(() => buildRadarSummary(filteredRows, 145_500_000, new Date(referenceDateStr)), [filteredRows, referenceDateStr]);
 
   const displayRows = useMemo(() => {
@@ -272,7 +289,7 @@ export function OperationalTable({
       if (selectedStage === "NO_FORECAST") {
         res = res.filter((r) => !r.forecast);
       } else {
-        res = res.filter((r) => r.stage === selectedStage);
+        res = res.filter((r) => displayStage(r) === selectedStage);
       }
     }
     
@@ -283,6 +300,12 @@ export function OperationalTable({
       } else if (activeCardFilter.startsWith('Gargalo:')) {
         const [, stage, area] = activeCardFilter.split(':');
         res = res.filter(r => r.stage === stage && r.ownerArea === area);
+      } else if (activeCardFilter.startsWith('Dir:')) {
+        const dir = activeCardFilter.split(':')[1];
+        res = res.filter(r => {
+          const ds = displayStage(r);
+          return ds && directorateOf(ds) === dir;
+        });
       } else if (activeCardFilter.startsWith('Crit:')) {
         const crit = activeCardFilter.split(':')[1];
         res = res.filter(r => classifyCriticality(r, dataBase) === crit);
@@ -310,17 +333,17 @@ export function OperationalTable({
     <div className="space-y-3">
       {/* 4 Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
-        {/* Card 1: Impacto financeiro */}
+        {/* Card 1: Delta caixa */}
         <div className="flex flex-col p-4 rounded-card border border-border bg-card">
-          <div className="text-text-muted text-[11px] font-semibold uppercase tracking-wide mb-1">Impacto financeiro</div>
+          <div className="text-text-muted text-[11px] font-semibold uppercase tracking-wide mb-1">Delta caixa (Orçamento − Realizado)</div>
           <div className="text-2xl font-bold text-text tabular-nums leading-tight">
-            R$ {(summary.impacto.value / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M
+            R$ {(deltaCaixa / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M
           </div>
           <div className="text-text-muted text-xs mt-1">
-            {Math.round(summary.impacto.pctBg * 100)}% do BG
+            {bgTotal > 0 ? Math.round((deltaCaixa / bgTotal) * 100) : 0}% do BG
           </div>
           <div className="text-text-muted text-[10px] mt-auto pt-2">
-            {fmtBRL(summary.impacto.provRisco, true)} em risco + {fmtBRL(summary.impacto.prov27, true)} em 27
+            BG total: {fmtBRL(bgTotal, true)}
           </div>
         </div>
 
@@ -364,29 +387,27 @@ export function OperationalTable({
           </div>
         )}
 
-        {/* Card 4: Criticidade */}
+        {/* Card 4: Gargalo por diretoria */}
         <div className="flex flex-col p-4 rounded-card border border-border bg-card relative">
-          <div className="text-text-muted text-[11px] font-semibold uppercase tracking-wide mb-2">Criticidade</div>
+          <div className="text-text-muted text-[11px] font-semibold uppercase tracking-wide mb-2">Gargalo por diretoria</div>
           <div className="flex-1 flex gap-2">
-            <div className="flex flex-col justify-between text-[11px] flex-1">
-              {[
-                { label: 'Crítico', key: 'CRITICO', color: 'bg-crit', val: summary.criticidade.critico },
-                { label: 'Atenção', key: 'ATENCAO', color: 'bg-warn', val: summary.criticidade.atencao },
-                { label: 'Normal', key: 'NORMAL', color: 'bg-border', val: summary.criticidade.normal },
-              ].map(c => {
-                const total = summary.criticidade.critico.count + summary.criticidade.atencao.count + summary.criticidade.normal.count;
-                const pct = total > 0 ? Math.round((c.val.count / total) * 100) : 0;
-                const isActive = activeCardFilter === `Crit:${c.key}`;
+            <div className="flex flex-col justify-between text-[11px] flex-1 min-w-0">
+              {directorateBreakdown.map(c => {
+                const isActive = activeCardFilter === `Dir:${c.label}`;
                 return (
                   <button 
-                    key={c.key} 
-                    onClick={() => setActiveCardFilter(isActive ? null : `Crit:${c.key}`)}
+                    key={c.label} 
+                    onClick={() => setActiveCardFilter(isActive ? null : `Dir:${c.label}`)}
                     className={`flex items-center gap-1.5 hover:bg-muted/50 rounded px-1 -mx-1 transition-colors cursor-pointer ${isActive ? 'bg-accent/10 font-medium' : ''}`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${c.color} shrink-0`} />
-                    <span className="text-text flex-1 text-left">{c.label}</span>
-                    <span className="text-text-muted tabular-nums">{c.val.count}</span>
-                    <span className="text-text-muted w-6 text-right tabular-nums">{pct}%</span>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${
+                       c.label === "Tecnologia" ? "bg-[#3B82F6]" :
+                       c.label === "Suprimentos" ? "bg-[#F59E0B]" :
+                       "bg-[#10B981]"
+                    }`} />
+                    <span className="text-text flex-1 text-left whitespace-nowrap" title={c.label}>{c.label}</span>
+                    <span className="text-text-muted tabular-nums text-right pr-1 whitespace-nowrap">{fmtBRL(c.value, true)}</span>
+                    <span className="text-text-muted w-6 text-right tabular-nums">{Math.round(c.pct * 100)}%</span>
                   </button>
                 );
               })}
@@ -394,17 +415,23 @@ export function OperationalTable({
             <div className="w-16 h-16 shrink-0 relative">
               <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
                 {(() => {
-                  const total = summary.criticidade.critico.count + summary.criticidade.atencao.count + summary.criticidade.normal.count;
+                  const total = directorateBreakdown.reduce((sum, d) => sum + d.value, 0);
                   if (total === 0) return <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3f3f46" strokeWidth="4" />;
-                  const cPct = (summary.criticidade.critico.count / total) * 100;
-                  const aPct = (summary.criticidade.atencao.count / total) * 100;
-                  const nPct = (summary.criticidade.normal.count / total) * 100;
+                  
+                  const dPct = (label: string) => {
+                    const d = directorateBreakdown.find(x => x.label === label);
+                    return d ? (d.value / total) * 100 : 0;
+                  };
+                  const tPct = dPct("Tecnologia");
+                  const sPct = dPct("Suprimentos");
+                  const cPct = dPct("Contas a Pagar");
+                  
                   let offset = 100;
                   return (
                     <>
-                      {cPct > 0 && <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f87171" strokeWidth="4" strokeDasharray={`${cPct} ${100 - cPct}`} strokeDashoffset={offset} />}
-                      {aPct > 0 && <circle cx="18" cy="18" r="15.915" fill="none" stroke="#fbbf24" strokeWidth="4" strokeDasharray={`${aPct} ${100 - aPct}`} strokeDashoffset={offset - cPct} />}
-                      {nPct > 0 && <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3f3f46" strokeWidth="4" strokeDasharray={`${nPct} ${100 - nPct}`} strokeDashoffset={offset - cPct - aPct} />}
+                      {tPct > 0 && <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3B82F6" strokeWidth="4" strokeDasharray={`${tPct} ${100 - tPct}`} strokeDashoffset={offset} />}
+                      {sPct > 0 && <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F59E0B" strokeWidth="4" strokeDasharray={`${sPct} ${100 - sPct}`} strokeDashoffset={offset - tPct} />}
+                      {cPct > 0 && <circle cx="18" cy="18" r="15.915" fill="none" stroke="#10B981" strokeWidth="4" strokeDasharray={`${cPct} ${100 - cPct}`} strokeDashoffset={offset - tPct - sPct} />}
                     </>
                   );
                 })()}
@@ -433,8 +460,8 @@ export function OperationalTable({
 
       {/* Counters */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        {["E1", "E2", "E3", "E4", "E5", "E6", "E7"].map((s) => {
-          const c = counters.byStage[s];
+        {(Object.keys(stageCounters) as Array<keyof typeof stageCounters>).map((s) => {
+          const c = stageCounters[s];
           if (!c) return null;
           const isSelected = selectedStage === s;
           return (
@@ -447,8 +474,8 @@ export function OperationalTable({
                   : "bg-card border-border hover:border-text-muted text-text"
               }`}
             >
-              <div className="font-bold">{s} · {STAGE_LABELS[s]}</div>
-              <div className="text-text-muted text-[10px]">{fmtNumber(c.count)} • {fmtBRL(c.value)}</div>
+              <div className="font-bold">{DISPLAY_STAGE_LABELS[s]}</div>
+              <div className="text-text-muted text-[10px]">{s === 'A_EMITIR' ? '—' : fmtNumber(c.count)} • {fmtBRL(c.value)}</div>
             </button>
           );
         })}
@@ -477,20 +504,10 @@ export function OperationalTable({
         </label>
       </div>
 
-      <div className="overflow-x-auto overflow-y-visible rounded border border-border pb-32">
-        <table className="w-full table-fixed text-left text-xs text-text border-collapse">
-          <colgroup>
-            <col className="w-[40px]" />
-            <col className="w-[150px]" />
-            <col />
-            <col className="w-[100px]" />
-            <col className="w-[170px]" />
-            <col className="w-[70px]" />
-            <col className="w-[90px]" />
-            <col className="w-[150px]" />
-            <col className="w-[300px]" />
-          </colgroup>
-          <thead className="bg-muted text-text-muted border-b border-border">
+      <div className="overflow-auto max-h-[70vh] rounded border border-border">
+        <table className="w-full table-fixed text-left text-xs text-text border-collapse" style={{ width: OPERATIONAL_TABLE_WIDTH }}>
+          <OperationalColGroup />
+          <thead className="sticky top-0 z-10 bg-card text-text-muted border-b border-border shadow-[0_1px_0_var(--color-border)]">
             <tr>
               <th className="p-2 font-medium text-center">Crit.</th>
               <th className="p-2 font-medium whitespace-nowrap">RC</th>

@@ -51,3 +51,7 @@ Qualquer gestor pode alterar a criticidade de uma RC. Grava no banco junto da de
 
 ## Tabela de RCs
 Larguras fixas por coluna, cabeçalho fixo (sticky), rolagem horizontal nativa, tooltip com o texto completo onde houver corte (sem quebrar linha), criticidade editável.
+
+## Status da Implementação
+- **Fase 7b (Visão Executiva)**: Implementada em 28/09/2026. Todos os requisitos de filtros, comportamento do modo 2027 (card de Execução % padronizado via fonte única de verdade, placeholder no Fluxo de Caixa, selo e números congelados no Ritmo de Execução) e layout (sem rolagem 1280x800) foram atendidos. `142` testes passando.
+- **Fase 7c (Classificação Risco Empenho)**: Implementada. Aba e título renomeados; cards e layout da tabela atualizados com colunas fixas e rolagem horizontal; chips da esteira e donut "Gargalo por diretoria" integrados com a nova lógica; nota do ExecucaoPlanoCard em 2027 removida. Todos os testes passam.

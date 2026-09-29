@@ -21,6 +21,25 @@ export function CommitmentColGroup() {
   );
 }
 
+export const OPERATIONAL_TABLE_WIDTH = 1280;
+
+export function OperationalColGroup() {
+  return (
+    <colgroup>
+      <col className="w-[40px]" />
+      <col className="w-[150px]" />
+      <col className="w-[200px]" />
+      <col className="w-[100px]" />
+      <col className="w-[170px]" />
+      <col className="w-[70px]" />
+      <col className="w-[100px]" />
+      <col className="w-[150px]" />
+      <col className="w-[300px]" />
+    </colgroup>
+  );
+}
+
+
 export function OverflowText({
   text,
   children,
