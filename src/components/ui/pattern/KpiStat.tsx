@@ -4,7 +4,7 @@ interface KpiStatProps {
   icon: ReactNode;
   label: string;
   value: string;
-  context?: string;
+  context?: ReactNode;
   tone?: "neutral" | "info" | "warn" | "crit";
   onClick?: () => void;
 }

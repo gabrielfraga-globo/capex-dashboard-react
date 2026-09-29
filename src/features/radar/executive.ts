@@ -695,3 +695,8 @@ export function buildDeltaCaixa(lista: ProjetoBase[]): number {
   }
   return gov - realizadoTotal;
 }
+
+export function calculatePctExecucao(bgGov: number, executado: number, emitido: number): number {
+  if (bgGov === 0) return 0;
+  return (executado + emitido) / bgGov;
+}

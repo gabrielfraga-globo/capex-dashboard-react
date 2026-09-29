@@ -1,5 +1,5 @@
 import { describe, it, test, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary, buildProgramProgress, aEmitirPorProjeto, buildBgVivo, buildDeltaCaixa } from "./executive";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary, buildProgramProgress, aEmitirPorProjeto, buildBgVivo, buildDeltaCaixa, calculatePctExecucao } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -419,6 +419,14 @@ describe("executive / novas funções iteração 7", () => {
       const p1 = mkProjeto("1", 1000, 300, 50, 0);
       const p2 = mkProjeto("2", 500, 0, 100, 0);
       expect(buildDeltaCaixa([p1, p2])).toBe(1500 - (300 + 50) - 100); // 1500 - 450 = 1050
+    });
+  });
+
+  describe("calculatePctExecucao", () => {
+    it("garante a mesma fonte de verdade para o topo e o card (com BG = 0, e dados 2026/2027)", () => {
+      expect(calculatePctExecucao(100, 30, 20)).toBe(0.5);
+      expect(calculatePctExecucao(0, 10, 10)).toBe(0);
+      expect(calculatePctExecucao(200, 0, 100)).toBe(0.5);
     });
   });
 });

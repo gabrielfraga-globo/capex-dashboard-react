@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { fmtPct, formatCurrencyMillions } from "../lib/format";
-import { usePctExecucaoPlano, useAEmitirAno } from "../hooks/usePortfolioMetrics";
+import { useAEmitirAno } from "../hooks/usePortfolioMetrics";
 import type { ProjetoMetricas } from "../types";
 import { generateRiskSummary } from "../lib/insights";
 import { SegmentedBar } from "./ui/pattern/SegmentedBar";
+import { calculatePctExecucao } from "../features/radar/executive";
 
 const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: string }> = {
   realizado:   { bg: "bg-info", text: "text-white", colorHex: "#3B82F6" },
@@ -12,8 +13,19 @@ const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: str
   naoEmitido:  { bg: "bg-slate-500",   text: "text-slate-900",   colorHex: "#64748b" },
 };
 
-export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoMetricas[]; noGradient?: boolean; bare?: boolean }) {
-  const pctVsPlano = usePctExecucaoPlano(lista);
+export function ExecucaoPlanoCard({ 
+  lista, 
+  noGradient, 
+  bare,
+  ano = 2026,
+  emitidoOverride 
+}: { 
+  lista: ProjetoMetricas[]; 
+  noGradient?: boolean; 
+  bare?: boolean;
+  ano?: 2026 | 2027;
+  emitidoOverride?: number;
+}) {
   const risco = useMemo(() => generateRiskSummary(lista), [lista]);
   const aEmitirAno = useAEmitirAno(lista);
 
@@ -26,8 +38,8 @@ export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoM
     [lista]
   );
   const totalEmitidoBreakdown = useMemo(
-    () => lista.reduce((a, p) => a + (p.compromisso ?? 0), 0),
-    [lista]
+    () => emitidoOverride !== undefined ? emitidoOverride : lista.reduce((a, p) => a + (p.compromisso ?? 0), 0),
+    [lista, emitidoOverride]
   );
   const totalOrcamentoBreakdown = useMemo(
     () => lista.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0),
@@ -43,11 +55,15 @@ export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoM
     return Math.max(restante, 0);
   }, [totalOrcamentoBreakdown, totalRealizadoBreakdown, totalEmPagamentoBreakdown, totalEmitidoBreakdown]);
 
+  const pctVsPlano = useMemo(() => {
+    return calculatePctExecucao(totalOrcamentoBreakdown, totalRealizadoBreakdown + totalEmPagamentoBreakdown, totalEmitidoBreakdown);
+  }, [totalOrcamentoBreakdown, totalRealizadoBreakdown, totalEmPagamentoBreakdown, totalEmitidoBreakdown]);
+
   const breakdownSegments = useMemo(() => {
     const bruto = [
       { key: "realizado", label: "Realizado", valor: Math.max(totalRealizadoBreakdown, 0), ...BREAKDOWN_COLORS.realizado },
       { key: "emPagamento", label: "Em pgto", valor: Math.max(totalEmPagamentoBreakdown, 0), ...BREAKDOWN_COLORS.emPagamento },
-      { key: "emitido", label: "Emitido", valor: Math.max(totalEmitidoBreakdown, 0), ...BREAKDOWN_COLORS.emitido },
+      { key: "emitido", label: ano === 2027 ? "Emitido 27" : "Emitido", valor: Math.max(totalEmitidoBreakdown, 0), ...BREAKDOWN_COLORS.emitido },
       { key: "naoEmitido", label: "Não emitido", valor: totalNaoEmitidoBreakdown, ...BREAKDOWN_COLORS.naoEmitido },
     ] as const;
 
@@ -104,7 +120,7 @@ export function ExecucaoPlanoCard({ lista, noGradient, bare }: { lista: ProjetoM
           <SegmentedBar 
             parts={breakdownSegments.map(seg => ({
               key: seg.key,
-              label: seg.label,
+              label: `${seg.label} (${formatCurrencyMillions(seg.valor)})`,
               pct: seg.pct,
               color: seg.bg
             }))}
