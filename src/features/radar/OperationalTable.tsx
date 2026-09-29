@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { buildOperationalRows, buildPipelineCounters, STAGE_LABELS, suggestClassification, buildClassificationPayload, deliveryFromPayment } from "./operational";
-import { classifyCriticality, buildRadarSummary, buildDeltaCaixa, aEmitirPorProjeto } from "./executive";
+import { effectiveCriticality, buildRadarSummary, buildDeltaCaixa, aEmitirPorProjeto } from "./executive";
 import { buildStageCounters, buildDirectorateBreakdown, displayStage, DISPLAY_STAGE_LABELS, directorateOf } from "./esteira";
 import type { OperationalRow } from "./operational";
 import type { ProjetoBase } from "../../types";
@@ -35,6 +35,16 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
   const [editingAction, setEditingAction] = useState<boolean>(false);
   const [actionVal, setActionVal] = useState(row.nextAction || "");
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [critPopoverOpen, setCritPopoverOpen] = useState(false);
+  const critMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!critPopoverOpen) return;
+    const fechar = (e: MouseEvent) => {
+      if (critMenuRef.current && !critMenuRef.current.parentElement?.contains(e.target as Node)) setCritPopoverOpen(false);
+    };
+    document.addEventListener("mousedown", fechar);
+    return () => document.removeEventListener("mousedown", fechar);
+  }, [critPopoverOpen]);
   const actionInputRef = useRef<HTMLInputElement>(null);
   const deliveryInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +61,17 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
 
   const isConfirmed = !!currentClass;
   const activeClass = currentClass || suggestedClass;
-  const criticality = classifyCriticality(row, new Date(referenceDateStr));
+  const criticality = effectiveCriticality(row, new Date(referenceDateStr));
+  const hasOverride = !!row.effectiveCuration?.criticalityOverride;
+  const updatedBy = row.effectiveCuration?.criticalityUpdatedBy;
+  const updatedAt = row.effectiveCuration?.criticalityUpdatedAt;
+
+  const handleCritChange = async (val: "CRITICO" | "ATENCAO" | "NORMAL" | null) => {
+    try {
+      await salvarRc(row.rc, { criticalityOverride: val, targets, sourceValue: row.value } as unknown as RcCurationUpsertRequest);
+      setCritPopoverOpen(false);
+    } catch (e: any) { alert(e.message); }
+  };
 
   const payment = row.forecastPaymentDate ?? row.suggestedPaymentDate;
   const deliveryDateDisplayed = payment ? deliveryFromPayment(payment) : null;
@@ -140,9 +160,26 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
   return (
     <>
       <tr className="hover:bg-muted/50 transition-colors">
-        <td className="p-2 w-8 text-center align-middle">
-          {criticality === 'CRITICO' && <div className="w-2.5 h-2.5 rounded-full bg-crit mx-auto" title="Crítico" />}
-          {criticality === 'ATENCAO' && <div className="w-2.5 h-2.5 rounded-full bg-warn mx-auto" title="Atenção" />}
+        <td className="p-2 w-8 text-center align-middle relative">
+          <button 
+            className="p-1 rounded hover:bg-muted/50 transition-colors inline-block"
+            onClick={() => setCritPopoverOpen(!critPopoverOpen)}
+            title={hasOverride ? `Ajustada por ${updatedBy || "gestor"} em ${fmtDate(updatedAt)}` : "Sugestão do sistema"}
+          >
+            <div className={`w-2.5 h-2.5 rounded-full mx-auto ${hasOverride ? 'ring-2 ring-offset-2 ring-offset-card ring-text-muted' : ''} ${criticality === 'CRITICO' ? 'bg-crit' : criticality === 'ATENCAO' ? 'bg-warn' : 'bg-muted-foreground'}`} />
+          </button>
+          {critPopoverOpen && (
+            <div ref={critMenuRef} className="absolute left-1 top-full mt-1 z-30 w-36 bg-card border border-border shadow-lg rounded p-1 text-left">
+              <button onClick={() => handleCritChange("CRITICO")} className="block w-full text-left px-2 py-1 text-xs hover:bg-muted rounded text-crit font-medium">Crítico</button>
+              <button onClick={() => handleCritChange("ATENCAO")} className="block w-full text-left px-2 py-1 text-xs hover:bg-muted rounded text-warn font-medium">Atenção</button>
+              <button onClick={() => handleCritChange("NORMAL")} className="block w-full text-left px-2 py-1 text-xs hover:bg-muted rounded text-text font-medium">Normal</button>
+              {hasOverride && (
+                <div className="pt-1 mt-1 border-t border-border">
+                  <button onClick={() => handleCritChange(null)} className="block w-full text-left px-2 py-1 text-[10px] hover:bg-muted rounded text-text-muted">Voltar à sugestão</button>
+                </div>
+              )}
+            </div>
+          )}
         </td>
         <td className="p-2 whitespace-nowrap">
           <div className="flex items-center gap-1 font-semibold">
@@ -308,7 +345,7 @@ export function OperationalTable({
         });
       } else if (activeCardFilter.startsWith('Crit:')) {
         const crit = activeCardFilter.split(':')[1];
-        res = res.filter(r => classifyCriticality(r, dataBase) === crit);
+        res = res.filter(r => effectiveCriticality(r, dataBase) === crit);
       }
     }
 
@@ -316,8 +353,8 @@ export function OperationalTable({
     const dataBase = new Date(referenceDateStr);
     const critWeight = { CRITICO: 3, ATENCAO: 2, NORMAL: 1 };
     res = [...res].sort((a, b) => {
-      const wA = critWeight[classifyCriticality(a, dataBase)] || 1;
-      const wB = critWeight[classifyCriticality(b, dataBase)] || 1;
+      const wA = critWeight[effectiveCriticality(a, dataBase)] || 1;
+      const wB = critWeight[effectiveCriticality(b, dataBase)] || 1;
       if (wA !== wB) return wB - wA;
       return b.value - a.value;
     });

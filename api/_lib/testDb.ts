@@ -36,7 +36,7 @@ export function criarPoolDeTeste(): Pool {
     implementation: (s: string | null, sep: string, n: number) => (s == null ? null : s.split(sep)[n - 1] ?? ""),
   });
 
-  const migrationSql = ["001_radar_curation.sql", "002_derived_po_status.sql", "003_decisao_gestor.sql"]
+  const migrationSql = ["001_radar_curation.sql", "002_derived_po_status.sql", "003_decisao_gestor.sql", "004_criticidade_manual.sql"]
     .map((fileName) => readFileSync(path.join(MIGRATIONS_DIR, fileName), "utf8"))
     .join("\n")
     .replace(

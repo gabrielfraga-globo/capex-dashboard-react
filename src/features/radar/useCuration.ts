@@ -210,6 +210,9 @@ export function useCuration(): UseCurationResult {
             inheritedFromKey: atual?.inheritedFromKey ?? null,
             updatedBy: atual?.updatedBy ?? "local",
             updatedAt: new Date().toISOString(),
+            criticalityOverride: payload.criticalityOverride !== undefined ? payload.criticalityOverride : atual?.criticalityOverride ?? null,
+            criticalityUpdatedBy: payload.criticalityOverride !== undefined ? (payload.criticalityOverride === null ? null : USER_EMAIL) : atual?.criticalityUpdatedBy ?? null,
+            criticalityUpdatedAt: payload.criticalityOverride !== undefined ? (payload.criticalityOverride === null ? null : new Date().toISOString()) : atual?.criticalityUpdatedAt ?? null,
           };
           return next;
         });

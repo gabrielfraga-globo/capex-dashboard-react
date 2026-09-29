@@ -233,6 +233,68 @@ describe("PUT /api/curation/rc/:rc", () => {
     expect(rows[0].next_action).toBe("Acompanhar aprovação");
   });
 
+  it("salvar criticidade não muda classificação e grava updated_by", async () => {
+    await pool.query(
+      `INSERT INTO commitment_curation (commitment_key, estimated_delivery_date, po_status, source_value_at_curation, curation_level, updated_by, updated_at)
+       VALUES ($1, '2026-12-10', 'CONFIRMED', 100, 'RC', 'tester', now())`,
+      ["RC:RC27|OC:OC27|PPM:27"]
+    );
+
+    const req = criarReq({
+      query: { rc: "RC27" },
+      body: { criticalityOverride: "CRITICO", targets: [{ commitmentKey: "RC:RC27|OC:OC27|PPM:27", sourceValue: 100 }] },
+    });
+    const { res, getStatus } = criarRes();
+
+    await handlePutRc(pool, req, res);
+
+    expect(getStatus()).toBe(200);
+    const { rows } = await pool.query(
+      `SELECT po_status, estimated_delivery_date, criticality_override, criticality_updated_by, criticality_updated_at FROM commitment_curation WHERE commitment_key = $1`,
+      ["RC:RC27|OC:OC27|PPM:27"]
+    );
+    expect(rows[0].po_status).toBe("CONFIRMED");
+    expect(rows[0].criticality_override).toBe("CRITICO");
+    expect(rows[0].criticality_updated_by).toBe("gestor@g.globo");
+    expect(new Date(rows[0].estimated_delivery_date).toISOString().slice(0, 10)).toBe("2026-12-10");
+    expect(rows[0].criticality_updated_at).not.toBeNull();
+  });
+
+  it("limpar criticidade com null volta para a sugestão do sistema", async () => {
+    await pool.query(
+      `INSERT INTO commitment_curation (commitment_key, estimated_delivery_date, po_status, source_value_at_curation, curation_level, updated_by, updated_at, criticality_override, criticality_updated_by, criticality_updated_at)
+       VALUES ($1, '2026-12-10', 'CONFIRMED', 100, 'RC', 'tester', now(), 'CRITICO', 'tester', now())`,
+      ["RC:RC28|OC:OC28|PPM:28"]
+    );
+
+    const req = criarReq({
+      query: { rc: "RC28" },
+      body: { criticalityOverride: null, targets: [{ commitmentKey: "RC:RC28|OC:OC28|PPM:28", sourceValue: 100 }] },
+    });
+    const { res, getStatus } = criarRes();
+
+    await handlePutRc(pool, req, res);
+
+    expect(getStatus()).toBe(200);
+    const { rows } = await pool.query(
+      `SELECT criticality_override, criticality_updated_by FROM commitment_curation WHERE commitment_key = $1`,
+      ["RC:RC28|OC:OC28|PPM:28"]
+    );
+    expect(rows[0].criticality_override).toBeNull();
+  });
+
+  it("rejeita valor inválido para criticalityOverride com 400", async () => {
+    const req = criarReq({
+      query: { rc: "RC29" },
+      body: { criticalityOverride: "INVALIDO", targets: [{ commitmentKey: "RC:RC29|OC:OC29|PPM:29", sourceValue: 10 }] },
+    });
+    const { res, getStatus } = criarRes();
+
+    await handlePutRc(pool, req, res);
+
+    expect(getStatus()).toBe(400);
+  });
+
   it("forecastPaymentDate sem exerciseYear retorna 400 em RC", async () => {
     const req = criarReq({
       query: { rc: "RC24" },

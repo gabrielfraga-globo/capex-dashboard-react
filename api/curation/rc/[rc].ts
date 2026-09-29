@@ -40,6 +40,7 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
       paymentMode: body.paymentMode,
       priority: body.priority,
       decisionStage: body.decisionStage,
+      criticalityOverride: body.criticalityOverride,
     });
 
     const targets = body.targets;
@@ -77,7 +78,7 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
           ...(body.notes !== undefined ? { notes: body.notes ?? null } : {}),
         };
 
-        const write = buildCurationWrite(writeBody, exerciseYear ?? 0);
+        const write = buildCurationWrite(writeBody, exerciseYear ?? 0, user.email);
 
         const payload: Record<string, unknown> = {
           ...write.columns,
@@ -85,6 +86,7 @@ export async function handlePutRc(pool: Pool, req: VercelRequest, res: VercelRes
         };
         if (write.mode === "OPERACIONAL" && !Object.prototype.hasOwnProperty.call(payload, "po_status")) {
           payload.po_status = existing.rows[0]?.po_status ?? "NO_VISIBILITY";
+          payload.estimated_delivery_date = existing.rows[0]?.estimated_delivery_date ?? null;
         }
 
         const updateColumns = CURATION_WRITE_COLUMN_WHITELIST.filter(

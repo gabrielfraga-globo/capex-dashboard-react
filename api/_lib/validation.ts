@@ -7,6 +7,7 @@ import {
   BLOCKER_VALUES,
   PAYMENT_MODES,
   PRIORITY_LEVELS,
+  CRITICALITY_LEVELS,
 } from "../../src/features/radar/types.js";
 
 export class ValidationError extends Error {
@@ -80,13 +81,14 @@ type CorpoDeCuradoria = Partial<{
   paymentMode: unknown;
   priority: unknown;
   decisionStage: unknown;
+  criticalityOverride: unknown;
 }>;
 
 /** Regras comuns aos dois endpoints de escrita, antes de qualquer acesso ao banco. */
 export function validarCorpoDeCuradoria(body: CorpoDeCuradoria): { poStatus?: PoStatus; exerciseYear?: number } {
   const hasNewDecisionFields = hasAnyNewDecisionField(body as Record<string, unknown>);
   const hasOperationalFields = Object.keys(body).some((key) =>
-    ["blocker", "nextAction", "physicalArrival", "paymentMode", "priority", "decisionStage"].includes(key)
+    ["blocker", "nextAction", "physicalArrival", "paymentMode", "priority", "decisionStage", "criticalityOverride"].includes(key)
   );
 
   const poStatus = body.poStatus == null ? undefined : validarPoStatus(body.poStatus);
@@ -180,6 +182,13 @@ export function validarCorpoDeCuradoria(body: CorpoDeCuradoria): { poStatus?: Po
   if (body.decisionStage != null) {
     if (typeof body.decisionStage !== "string" || body.decisionStage.length > 255) {
       throw new ValidationError("decisionStage deve ter no máximo 255 caracteres");
+    }
+  }
+
+  if (body.criticalityOverride !== undefined && body.criticalityOverride !== null) {
+    const value = String(body.criticalityOverride);
+    if (!(CRITICALITY_LEVELS as readonly string[]).includes(value)) {
+      throw new ValidationError(`criticalityOverride inválido: ${value}`);
     }
   }
 

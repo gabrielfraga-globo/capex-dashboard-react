@@ -38,6 +38,7 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
       paymentMode: body.paymentMode,
       priority: body.priority,
       decisionStage: body.decisionStage,
+      criticalityOverride: body.criticalityOverride,
     });
     const sourceValue = validarSourceValue(body.sourceValue, "sourceValue");
 
@@ -61,7 +62,7 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
         sourceValue,
       };
 
-      write = buildCurationWrite(writeBody, exerciseYear ?? 0);
+      write = buildCurationWrite(writeBody, exerciseYear ?? 0, user.email);
 
       const payload: Record<string, unknown> = {
         ...write.columns,
@@ -69,6 +70,7 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
       };
       if (write.mode === "OPERACIONAL" && !Object.prototype.hasOwnProperty.call(payload, "po_status")) {
         payload.po_status = existing.rows[0]?.po_status ?? "NO_VISIBILITY";
+        payload.estimated_delivery_date = existing.rows[0]?.estimated_delivery_date ?? null;
       }
 
       const updateColumns = CURATION_WRITE_COLUMN_WHITELIST.filter(
@@ -155,6 +157,9 @@ export async function handlePutKey(pool: Pool, req: VercelRequest, res: VercelRe
       priority: responsePayload.priority,
       decision_stage: responsePayload.decision_stage,
       decision_updated_at: responsePayload.decision_updated_at,
+      criticality_override: responsePayload.criticality_override,
+      criticality_updated_by: responsePayload.criticality_updated_by,
+      criticality_updated_at: responsePayload.criticality_updated_at,
     });
     res.status(inserted ? 201 : 200).json(curation);
   } catch (err) {

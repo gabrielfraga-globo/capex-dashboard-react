@@ -532,6 +532,12 @@ export function classifyCriticality(row: OperationalRow, dataBase: Date): Critic
   return 'NORMAL';
 }
 
+export function effectiveCriticality(row: OperationalRow, dataBase: Date): Criticality {
+  const override = row.effectiveCuration?.criticalityOverride;
+  if (override) return override;
+  return classifyCriticality(row, dataBase);
+}
+
 export interface RadarSummary {
   impacto: { value: number; pctBg: number; provRisco: number; prov27: number };
   rcs: { emRisco: number; caixa27: number; confirmadas: number };
@@ -561,7 +567,7 @@ export function buildRadarSummary(opRows: OperationalRow[], bg: number, dataBase
     if (r.classification === 'CAIXA_27') rcs.caixa27++;
     if (r.isClassificationConfirmed) rcs.confirmadas++;
 
-    const c = classifyCriticality(r, dataBase);
+    const c = effectiveCriticality(r, dataBase);
     if (c === 'CRITICO') {
       crit.critico.count++;
       crit.critico.value += r.value;

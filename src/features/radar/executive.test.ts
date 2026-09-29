@@ -1,5 +1,5 @@
 import { describe, it, test, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary, buildProgramProgress, aEmitirPorProjeto, buildBgVivo, buildDeltaCaixa, calculatePctExecucao } from "./executive";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, effectiveCriticality, buildRadarSummary, buildProgramProgress, aEmitirPorProjeto, buildBgVivo, buildDeltaCaixa, calculatePctExecucao } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -427,6 +427,29 @@ describe("executive / novas funções iteração 7", () => {
       expect(calculatePctExecucao(100, 30, 20)).toBe(0.5);
       expect(calculatePctExecucao(0, 10, 10)).toBe(0);
       expect(calculatePctExecucao(200, 0, 100)).toBe(0.5);
+    });
+  });
+
+  describe("effectiveCriticality", () => {
+    const dataBase = new Date("2026-09-27T00:00:00Z");
+    it("returns override when present", () => {
+      const row = {
+        stage: "E1",
+        classification: "EM_RISCO",
+        value: 1000,
+        effectiveCuration: { criticalityOverride: "NORMAL" }
+      } as unknown as OperationalRow;
+      expect(effectiveCriticality(row, dataBase)).toBe("NORMAL");
+    });
+
+    it("falls back to classifyCriticality when override is null", () => {
+      const row = {
+        stage: "E1",
+        classification: "EM_RISCO",
+        value: 2_000_000,
+        effectiveCuration: { criticalityOverride: null }
+      } as unknown as OperationalRow;
+      expect(effectiveCriticality(row, dataBase)).toBe("CRITICO");
     });
   });
 });

@@ -22,6 +22,7 @@ export const NON_OCCURRENCE_REASONS = ['CANCELAR', 'REDUZIR', 'TROCAR_FORNECEDOR
 export const BLOCKER_VALUES = ['APROVACAO', 'COTACAO_LICITACAO', 'CONTRATO', 'PROPOSTA_FORNECEDOR', 'PRAZO_FORNECEDOR', 'IMPORTACAO', 'ENTREGA_PARCIAL', 'RECEBIMENTO', 'NF', 'ORCAMENTO', 'SEM_BLOQUEIO'] as const;
 export const PAYMENT_MODES = ['NORMAL', 'ANTECIPADO', 'MEDICAO_MENSAL'] as const;
 export const PRIORITY_LEVELS = ['ALTA', 'MEDIA', 'BAIXA'] as const;
+export const CRITICALITY_LEVELS = ['CRITICO', 'ATENCAO', 'NORMAL'] as const;
 
 export type CashBucket =
   | 'CONFIRMED_IN_YEAR'
@@ -179,6 +180,9 @@ export interface CommitmentCuration {
   priority?: PriorityLevel | null;
   decisionStage?: string | null;
   decisionUpdatedAt?: string | null;      // ISO timestamp
+  criticalityOverride?: "CRITICO" | "ATENCAO" | "NORMAL" | null;
+  criticalityUpdatedBy?: string | null;
+  criticalityUpdatedAt?: string | null;   // ISO timestamp
 }
 
 export type CurationMap = Record<string, CommitmentCuration>;
@@ -244,6 +248,7 @@ export interface CurationUpsertRequest {
   paymentMode?: PaymentMode | null;
   priority?: PriorityLevel | null;
   decisionStage?: string | null;
+  criticalityOverride?: "CRITICO" | "ATENCAO" | "NORMAL" | null;
 }
 
 /** Corpo de requisição para curar uma RC e propagar para suas chaves filhas. */

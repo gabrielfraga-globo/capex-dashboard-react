@@ -51,6 +51,7 @@ export interface OperationalRow {
   isResidual: boolean;
   classification: "CAIXA_26" | "EM_RISCO" | "CAIXA_27" | "NAO_OCORRE";
   isClassificationConfirmed: boolean;
+  effectiveCuration?: CurationMap[string] | null;
 }
 
 export interface PipelineCounters {
@@ -272,6 +273,7 @@ export function buildOperationalRows(
       isResidual: dominantStage === "RESIDUAL",
       classification: "CAIXA_26",
       isClassificationConfirmed: false,
+      effectiveCuration: curation,
     };
 
     const fromDec = classificationFromDecision(decision, bundle.exerciseYear);

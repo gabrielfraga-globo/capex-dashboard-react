@@ -28,6 +28,7 @@ const OPERATIONAL_FIELDS = [
   "paymentMode",
   "physicalArrival",
   "decisionStage",
+  "criticalityOverride",
 ] as const;
 
 export const CURATION_WRITE_COLUMN_WHITELIST = [
@@ -50,6 +51,9 @@ export const CURATION_WRITE_COLUMN_WHITELIST = [
   "priority",
   "decision_stage",
   "decision_updated_at",
+  "criticality_override",
+  "criticality_updated_by",
+  "criticality_updated_at",
 ] as const;
 
 function paraDataIso(value: unknown): string | null {
@@ -108,7 +112,8 @@ function inferMode(body: Record<string, unknown>): CurationWriteMode {
 
 export function buildCurationWrite(
   body: Record<string, unknown>,
-  exerciseYear: number
+  exerciseYear: number,
+  userEmail?: string
 ): { mode: CurationWriteMode; columns: Record<string, unknown> } {
   const mode = inferMode(body);
   const columns: Record<string, unknown> = {};
@@ -143,6 +148,14 @@ export function buildCurationWrite(
       }
       if (field === "decisionStage") {
         set("decision_stage", value == null ? null : normalizeText(value, 255));
+        continue;
+      }
+      if (field === "criticalityOverride") {
+        set("criticality_override", value == null ? null : String(value));
+        if (value !== undefined && userEmail) {
+          set("criticality_updated_by", userEmail);
+          set("criticality_updated_at", new Date().toISOString());
+        }
       }
     }
   };
@@ -279,6 +292,9 @@ export function rowToCuration(row: Record<string, unknown>): CommitmentCuration 
       row.priority == null ? null : (String(row.priority) as PriorityLevel),
     decisionStage: row.decision_stage == null ? null : String(row.decision_stage),
     decisionUpdatedAt: row.decision_updated_at == null ? null : paraTimestampIso(row.decision_updated_at),
+    criticalityOverride: row.criticality_override == null ? null : (String(row.criticality_override) as CommitmentCuration["criticalityOverride"]),
+    criticalityUpdatedBy: row.criticality_updated_by == null ? null : String(row.criticality_updated_by),
+    criticalityUpdatedAt: row.criticality_updated_at == null ? null : paraTimestampIso(row.criticality_updated_at),
   };
 
   return curation;
