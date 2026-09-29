@@ -1,5 +1,5 @@
 import { describe, it, test, expect } from "vitest";
-import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary, buildProgramProgress } from "./executive";
+import { buildProjectBalances, summarizeBalances, buildCurationConsistency, buildProjectsAtRisk, sumProvisioned, buildBottleneck, buildInsights, buildBridge, monthsWindow, buildPlatformComposition, buildFlowSummary, classifyCriticality, buildRadarSummary, buildProgramProgress, aEmitirPorProjeto, buildBgVivo, buildDeltaCaixa } from "./executive";
 import type { ProjetoBase } from "../../types/index";
 import type { OperationalRow } from "./operational";
 
@@ -347,5 +347,78 @@ describe("executive / buildProgramProgress", () => {
     expect(total.orcamento).toBe(350);
     expect(total.executado).toBe(180);
     expect(total.risco).toBe(20);
+  });
+});
+
+describe("executive / novas funções iteração 7", () => {
+  const mkProjeto = (id: string, orc26: number, real26: number, emPag: number, comp: number, orc27: number = 0): ProjetoBase => ({
+    id, nome: `Projeto ${id}`, n4: "", n4Curta: "",
+    orcamentoPlurianual: 0, orcamento2026: orc26, orcamento2027: orc27, h1_2026: 0, h2_2026: 0,
+    realizado2026: real26, emPagamento2026: emPag, realizado2027: 0, emPagamento2027: 0,
+    compromisso: comp,
+    origemOrcamento: true, origemRealizado: true,
+    gestor: null, gestorEmail: null, aprovador: null, meses2026: null, meses2027: null,
+    aEmitirFonte: null, deltaCaixaFonte: null, executadoMensal2026: null
+  });
+
+  const mkOpRow = (proj: string, stage: string, classif: string, val: number): OperationalRow => ({
+    rc: "123", projectName: `Projeto ${proj}`, n4: "", platformManager: null, supplier: "", priority: null,
+    stage, value: val, lineCount: 1, ocCount: 0, daysInStage: null, subState: "", owner: "", ownerArea: "",
+    tooltip: { statusRc: "", statusCompromisso: "", oc: "", comprador: "", dataPrometida: "" },
+    forecast: null, forecastPaymentDate: null, suggestedPaymentDate: null, isEarlyException: false,
+    confidence: null, nextAction: null, isResidual: false, classification: classif as any, isClassificationConfirmed: false
+  });
+
+  describe("aEmitirPorProjeto", () => {
+    it("calcula para 2026 ignorando projetos negativos", () => {
+      const p1 = mkProjeto("1", 100, 20, 10, 50); // a emitir = 20
+      const p2 = mkProjeto("2", 100, 50, 50, 50); // negativo (-50), vira 0
+      expect(aEmitirPorProjeto([p1, p2], [], 2026)).toBe(20);
+    });
+
+    it("calcula para 2027 extraindo compromissos CAIXA_27", () => {
+      const p1 = mkProjeto("1", 0, 0, 0, 100, 200); // 2027 bg: 200
+      const r1 = mkOpRow("1", "E2", "CAIXA_27", 80);
+      const r2 = mkOpRow("1", "E3", "CAIXA_27", 30);
+      const r3 = mkOpRow("1", "E4", "EM_RISCO", 50); // ignorado (não é CAIXA_27)
+      expect(aEmitirPorProjeto([p1], [r1, r2, r3], 2027)).toBe(90); // 200 - 110 = 90
+    });
+  });
+
+  describe("buildBgVivo", () => {
+    it("monta o BG Vivo 2026 separando emRisco (incluído no vivo)", () => {
+      const p1 = mkProjeto("1", 1000, 200, 50, 300); // BG 1000, real 200, empag 50. a emitir = 450
+      const r1 = mkOpRow("1", "E2", "CAIXA_26", 200);
+      const r2 = mkOpRow("1", "E3", "EM_RISCO", 100); // em risco conta como emitido 2026
+
+      const vivo = buildBgVivo([p1], [r1, r2], 2026);
+      expect(vivo.bgGov).toBe(1000);
+      expect(vivo.realizado).toBe(200);
+      expect(vivo.emPagamento).toBe(50);
+      expect(vivo.emitido).toBe(300); // 200 + 100
+      expect(vivo.emRisco).toBe(100);
+      expect(vivo.aEmitir).toBe(450); // 1000 - 200 - 50 - 300 = 450
+      expect(vivo.bgVivo).toBe(200 + 50 + 300 + 450); // 1000
+    });
+
+    it("monta o BG Vivo 2027 com aEmitir nao ficando negativo", () => {
+      const p1 = mkProjeto("1", 0, 0, 0, 0, 500); // BG 500
+      const r1 = mkOpRow("1", "E2", "CAIXA_27", 600); // Estourou 2027 em 100
+      
+      const vivo = buildBgVivo([p1], [r1], 2027);
+      expect(vivo.bgGov).toBe(500);
+      expect(vivo.emitido).toBe(600);
+      expect(vivo.aEmitir).toBe(0);
+      expect(vivo.bgVivo).toBe(600); // bgVivo com projeto acima do BG
+      expect(vivo.diferencaVsGov).toBe(100);
+    });
+  });
+
+  describe("buildDeltaCaixa", () => {
+    it("calcula bg - (realizado + em pagamento)", () => {
+      const p1 = mkProjeto("1", 1000, 300, 50, 0);
+      const p2 = mkProjeto("2", 500, 0, 100, 0);
+      expect(buildDeltaCaixa([p1, p2])).toBe(1500 - (300 + 50) - 100); // 1500 - 450 = 1050
+    });
   });
 });

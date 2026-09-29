@@ -591,3 +591,107 @@ export function buildRadarSummary(opRows: OperationalRow[], bg: number, dataBase
     criticidade: crit
   };
 }
+
+// ────────────────────────────────────────────────────────────
+// Novas Funções (Iteração 7)
+// ────────────────────────────────────────────────────────────
+
+export function aEmitirPorProjeto(lista: ProjetoBase[], opRows: OperationalRow[], ano: 2026 | 2027): number {
+  let aEmitir = 0;
+  if (ano === 2026) {
+    for (const p of lista) {
+      const o = p.orcamento2026 ?? 0;
+      const r = p.realizado2026 ?? 0;
+      const e = p.emPagamento2026 ?? 0;
+      const c = p.compromisso ?? 0;
+      aEmitir += Math.max(0, o - r - e - c);
+    }
+  } else {
+    const compromisso27PorProjeto = new Map<string, number>();
+    for (const r of opRows) {
+      if (r.stage !== 'DESCONHECIDA' && r.stage !== 'RESIDUAL' && r.classification === 'CAIXA_27') {
+        const pName = r.projectName ? r.projectName.trim().toLowerCase() : "sem projeto";
+        compromisso27PorProjeto.set(pName, (compromisso27PorProjeto.get(pName) ?? 0) + r.value);
+      }
+    }
+    for (const p of lista) {
+      const o = p.orcamento2027 ?? 0;
+      const pName = p.nome ? p.nome.trim().toLowerCase() : "sem projeto";
+      const c27 = compromisso27PorProjeto.get(pName) ?? 0;
+      aEmitir += Math.max(0, o - c27);
+    }
+  }
+  return aEmitir;
+}
+
+export interface BgVivoSummary {
+  bgGov: number;
+  realizado: number;
+  emPagamento: number;
+  emitido: number;
+  emRisco: number;
+  aEmitir: number;
+  bgVivo: number;
+  diferencaVsGov: number;
+}
+
+export function buildBgVivo(lista: ProjetoBase[], opRows: OperationalRow[], ano: 2026 | 2027): BgVivoSummary {
+  const bgGov = lista.reduce((sum, p) => sum + ((ano === 2026 ? p.orcamento2026 : p.orcamento2027) ?? 0), 0);
+  const aEmitir = aEmitirPorProjeto(lista, opRows, ano);
+  
+  if (ano === 2026) {
+    const realizado = lista.reduce((sum, p) => sum + (p.realizado2026 ?? 0), 0);
+    const emPagamento = lista.reduce((sum, p) => sum + (p.emPagamento2026 ?? 0), 0);
+    
+    let emitido26 = 0;
+    let emRisco = 0;
+    for (const r of opRows) {
+      if (r.stage !== 'DESCONHECIDA' && r.stage !== 'RESIDUAL') {
+        if (r.classification === 'CAIXA_26') emitido26 += r.value;
+        if (r.classification === 'EM_RISCO') {
+          emitido26 += r.value;
+          emRisco += r.value;
+        }
+      }
+    }
+    const bgVivo = realizado + emPagamento + emitido26 + aEmitir;
+    return {
+      bgGov,
+      realizado,
+      emPagamento,
+      emitido: emitido26,
+      emRisco,
+      aEmitir,
+      bgVivo,
+      diferencaVsGov: bgVivo - bgGov
+    };
+  } else {
+    let emitido27 = 0;
+    for (const r of opRows) {
+      if (r.stage !== 'DESCONHECIDA' && r.stage !== 'RESIDUAL' && r.classification === 'CAIXA_27') {
+        emitido27 += r.value;
+      }
+    }
+    const bgVivo = emitido27 + aEmitir;
+    return {
+      bgGov,
+      realizado: 0,
+      emPagamento: 0,
+      emitido: emitido27,
+      emRisco: 0,
+      aEmitir,
+      bgVivo,
+      diferencaVsGov: bgVivo - bgGov
+    };
+  }
+}
+
+export function buildDeltaCaixa(lista: ProjetoBase[]): number {
+  let gov = 0;
+  let realizadoTotal = 0;
+  for (const p of lista) {
+    gov += (p.orcamento2026 ?? 0);
+    realizadoTotal += (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0);
+  }
+  return gov - realizadoTotal;
+}
