@@ -68,7 +68,8 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
 
   const handleCritChange = async (val: "CRITICO" | "ATENCAO" | "NORMAL" | null) => {
     try {
-      await salvarRc(row.rc, { criticalityOverride: val, targets, sourceValue: row.value } as unknown as RcCurationUpsertRequest);
+      const ok = await salvarRc(row.rc, { criticalityOverride: val, targets, sourceValue: row.value } as unknown as RcCurationUpsertRequest);
+      if (!ok) { alert("Não foi possível salvar a criticidade. Tente de novo."); return; }
       setCritPopoverOpen(false);
     } catch (e: any) { alert(e.message); }
   };

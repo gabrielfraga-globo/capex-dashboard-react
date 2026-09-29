@@ -28,7 +28,8 @@ export async function handleGetCuration(pool: Pool, req: VercelRequest, res: Ver
             payment_date_adjusted, payment_exception_reason, confidence,
             non_occurrence_reason, blocker, next_action, next_action_updated_at,
             physical_arrival, payment_mode, priority, decision_stage,
-            decision_updated_at
+            decision_updated_at,
+            criticality_override, criticality_updated_by, criticality_updated_at
        FROM commitment_curation`
   );
 
