@@ -22,14 +22,14 @@ function formatGeradoEm(iso: string): string {
   return `${dd}/${mm} ${hh}:${mi}`;
 }
 
-export function RadarPage() {
+export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curadoria" | "operacional" } = {}) {
   const { isLoading, error, bundle, views, rcViews, resumo, isSaving, erroDe, salvarChave, salvarRc, curationMap } = useCuration();
   const { parsed } = usePortfolioData();
   const [plataformaFiltro, setPlataformaFiltro] = useState<string | null>(null);
   const [gestorFiltro, setGestorFiltro] = useState<string | null>(null);
   const [aprovadorFiltro, setAprovadorFiltro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [activeTab, setActiveTab] = useState<"curadoria" | "operacional">("operacional");
+  const [activeTab, setActiveTab] = useState<"curadoria" | "operacional">(initialTab);
 
   const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
 
@@ -84,7 +84,7 @@ export function RadarPage() {
           >
             <ArrowLeft size={15} /> Voltar
           </button>
-          <h1 className="text-lg font-bold text-text">Classificação Risco Empenho</h1>
+          <h1 className="text-lg font-bold text-text">{activeTab === "curadoria" ? "Curadoria de Dados" : "Classificação Risco Empenho"}</h1>
         </div>
         {bundle && <div className="text-[11px] text-text-faint">Dados BI: {formatGeradoEm(bundle.generatedAt)}</div>}
       </div>

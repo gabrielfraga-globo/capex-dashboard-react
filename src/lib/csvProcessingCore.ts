@@ -182,14 +182,15 @@ function buildProjetos(
   type Agg = { n4: string; nomeLB: string; aprovador: string | null;
     orcamento2026: number; realizado2026: number; emPagamento2026: number;
     orcamento2027: number; realizado2027: number; emPagamento2027: number;
-    compromissos: number[]; aEmitirValues: number[]; deltaCaixaValues: number[] };
+    // somas por ano: com a granularidade por Rubrica há várias linhas por projeto/ano
+    compromissos: Record<string, number>; aEmitirValues: Record<string, number>; deltaCaixaValues: Record<string, number> };
   const realMap = new Map<string, Agg>();
   for (const linha of realizado) {
     const key = `${normalizeKey(linha.n4)}|${normalizeKey(linha.nomeLB)}`;
     const agg: Agg = realMap.get(key) ?? { n4: linha.n4, nomeLB: linha.nomeLB, aprovador: linha.aprovador,
       orcamento2026: 0, realizado2026: 0, emPagamento2026: 0,
       orcamento2027: 0, realizado2027: 0, emPagamento2027: 0,
-      compromissos: [], aEmitirValues: [], deltaCaixaValues: [] };
+      compromissos: {}, aEmitirValues: {}, deltaCaixaValues: {} };
     if (linha.ano === "2026") {
       agg.orcamento2026 += linha.orcamento; agg.realizado2026 += linha.realizado;
       agg.emPagamento2026 += linha.emPagamento;
@@ -197,9 +198,9 @@ function buildProjetos(
       agg.orcamento2027 += linha.orcamento; agg.realizado2027 += linha.realizado;
       agg.emPagamento2027 += linha.emPagamento;
     }
-    agg.compromissos.push(linha.compromisso);
-    agg.aEmitirValues.push(linha.aEmitir);
-    agg.deltaCaixaValues.push(linha.deltaCaixa);
+    agg.compromissos[linha.ano] = (agg.compromissos[linha.ano] ?? 0) + linha.compromisso;
+    agg.aEmitirValues[linha.ano] = (agg.aEmitirValues[linha.ano] ?? 0) + linha.aEmitir;
+    agg.deltaCaixaValues[linha.ano] = (agg.deltaCaixaValues[linha.ano] ?? 0) + linha.deltaCaixa;
     if (!agg.aprovador && linha.aprovador) agg.aprovador = linha.aprovador;
     realMap.set(key, agg);
   }
@@ -215,9 +216,11 @@ function buildProjetos(
     const n4 = orc?.n4 ?? real?.n4 ?? "";
     const nome = orc?.nomeLB ?? real?.nomeLB ?? "";
     const gestor = gestorPorN4.get(normalizeKey(n4));
-    const compromisso = real?.compromissos.length ? Math.max(...real.compromissos) : null;
-    const aEmitirFonte = real?.aEmitirValues.length ? Math.max(...real.aEmitirValues) : null;
-    const deltaCaixaFonte = real?.deltaCaixaValues.length ? Math.max(...real.deltaCaixaValues) : null;
+    // o valor vem repetido nas linhas de 2026 e 2027: soma as rubricas dentro do ano e pega o maior ano
+    const maxPorAno = (m?: Record<string, number>) => (m && Object.keys(m).length ? Math.max(...Object.values(m)) : null);
+    const compromisso = maxPorAno(real?.compromissos);
+    const aEmitirFonte = maxPorAno(real?.aEmitirValues);
+    const deltaCaixaFonte = maxPorAno(real?.deltaCaixaValues);
 
     // CORREÇÃO CENTRAL: BG_Q3 é a fonte primária do orçamento do dashboard.
     const orcamento2026 = orc ? orc.total2026 : 0;

@@ -6,6 +6,7 @@ VAR Resultado =
         dProjetos[NomeLB],
         dCalendarioCaixa[Ano],
         dCalendarioCaixa[Mês],
+        dRubricas[Rubrica],
 
         // Escopo organizacional
         FILTER(

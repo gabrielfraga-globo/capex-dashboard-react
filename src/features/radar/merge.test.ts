@@ -262,7 +262,7 @@ describe("mergearRadar — herança, staleness e RC mista", () => {
 
   it("soma no carryover as três RCs de referência", () => {
     const sourceBundle = JSON.parse(
-      readFileSync(new URL("../../../public/data/radar-bundle.json", import.meta.url), "utf-8")
+      readFileSync(new URL("./__fixtures__/radar-bundle-2026-09-26.json", import.meta.url), "utf-8")
     ) as CommitmentSourceBundle;
     const datesByRc: Record<string, string> = {
       RCGSP10058458: "2026-12-31",

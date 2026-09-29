@@ -120,8 +120,9 @@ export default function App() {
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
   const handleClosePanel = useCallback(() => setSelected(null), []);
 
-  if (pathname === "/radar") {
-    return <RadarRiscoCaixaPage />;
+  // /curadoria abre direto a coleta (aba Curadoria); /radar abre a Classificação Risco Empenho
+  if (pathname === "/radar" || pathname === "/curadoria") {
+    return <RadarRiscoCaixaPage key={pathname} initialTab={pathname === "/curadoria" ? "curadoria" : "operacional"} />;
   }
 
   if (loadError) {
@@ -190,16 +191,7 @@ export default function App() {
               Classificação Risco Empenho
             </button>
             <button
-              onClick={() => setViewMode("auditoria")}
-              aria-pressed={viewMode === "auditoria"}
-              className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
-                viewMode === "auditoria" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
-              }`}
-            >
-              Auditoria
-            </button>
-            <button
-              onClick={() => navigate("/radar")} // fallback to radar or curadoria route
+              onClick={() => navigate("/curadoria")}
               className="pb-1 text-[13px] font-semibold transition-colors text-text-muted hover:text-text border-b-2 border-transparent focus-visible:outline-none"
             >
               Curadoria

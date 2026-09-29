@@ -6,7 +6,7 @@ const paymentFixture = readFileSync(new URL("./__fixtures__/realizado-detalhado-
 const bundleFixture = JSON.parse(
   readFileSync(new URL("./__fixtures__/radar-bundle-2026-09-25T16-51-32Z.json", import.meta.url), "utf8")
 ) as { commitments: Array<{ rc: string; sourceValue: number; systemStatus: string; oc: string; projectId: string }> };
-const aggregateFixture = readFileSync(new URL("../../../public/data/Realizado.csv", import.meta.url), "utf8");
+const aggregateFixture = readFileSync(new URL("./__fixtures__/realizado-agregado-2026-09-26.csv", import.meta.url), "utf8");
 
 describe("paymentReport", () => {
   it("oráculo do Realizado_Detalhado.csv em 2026", () => {

@@ -6,6 +6,7 @@ VAR Resultado =
         dProjetos[1º Aprovador],
         dProjetos[NomeLB],
         dCalendarioCaixa[Ano],
+        dRubricas[Rubrica],
 
         // Cenário selecionado no BI
         TREATAS(
