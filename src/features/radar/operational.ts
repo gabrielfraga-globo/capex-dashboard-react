@@ -21,6 +21,7 @@ export const STAGE_LABELS: Record<string, string> = {
 
 export interface OperationalRow {
   rc: string;
+  rubricas: string[];
   projectName: string;
   n4: string;
   platformManager: string | null;
@@ -187,8 +188,10 @@ export function buildOperationalRows(
     const valueByProject: Record<string, number> = {};
     let lineCount = 0;
     const ocs = new Set<string>();
+    const rubricas = new Set<string>();
 
     for (const c of rcCommitments) {
+      if (c.rubrica) rubricas.add(c.rubrica);
       for (const line of c.details) {
         lineCount++;
         totalValue += line.valorCompromisso ?? 0;
@@ -248,6 +251,7 @@ export function buildOperationalRows(
 
     const row: OperationalRow = {
       rc: group.rc,
+      rubricas: Array.from(rubricas),
       projectName: [...new Set(rcCommitments.map((c) => c.projectName).filter(Boolean))].join(", "),
       n4: [...new Set(rcCommitments.map((c) => c.n4).filter(Boolean))].join(", "),
       platformManager: [...new Set(rcCommitments.map((c) => c.platformManager).filter(Boolean))].join(", "),

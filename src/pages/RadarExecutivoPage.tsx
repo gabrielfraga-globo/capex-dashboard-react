@@ -4,6 +4,8 @@ import {
 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
+import { aplicarFiltroRubrica, rubricasDisponiveis } from "../lib/rubrica";
+import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
 import { navigate } from "../lib/simpleRouter";
 import { useCuration } from "../features/radar/useCuration";
 import {
@@ -68,7 +70,7 @@ export function RadarExecutivoPage({
   
   const [ano, setAno] = useState<2026 | 2027>(2026);
   const [filtroPrograma, setFiltroPrograma] = useState<string | null>(null);
-  const [filtroRubrica, setFiltroRubrica] = useState<string | null>(null);
+  const [filtroRubrica, setFiltroRubrica] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   const programasOptions = useMemo(() => {
@@ -76,12 +78,19 @@ export function RadarExecutivoPage({
     return Array.from(set).sort().map(p => ({ value: p, label: p }));
   }, [lista]);
 
+  const rubricasOptions = useMemo(() => rubricasDisponiveis(lista), [lista]);
+
   const computed = useMemo(() => {
     if (!bundle) return null;
     const dbDate = parseDateBR(dataBase) || new Date();
     const referenceDateStr = dbDate.toISOString().slice(0, 10);
 
-    const listaFiltradaBase = lista.filter(p => !filtroPrograma || p.n4Curta === filtroPrograma);
+    let listaFiltradaBase = lista.filter(p => !filtroPrograma || p.n4Curta === filtroPrograma);
+    
+    if (filtroRubrica.length > 0) {
+      // os campos de métrica (acumulados, status, ritmo) vêm calculados de cima: recalcula sobre os valores da rubrica
+      listaFiltradaBase = withParticipacaoRisco(aplicarFiltroRubrica(listaFiltradaBase, filtroRubrica).map((p) => computeMetricas(p, p.periodo)));
+    }
     
     // Lista adaptada para o ano selecionado, garantindo que métricas do período batam
     const listaAno = listaFiltradaBase.map(p => ({
@@ -106,9 +115,8 @@ export function RadarExecutivoPage({
       return commitments.some((c: any) => validKeys.has(`${normalizeKey(c.n4)}|${normalizeKey(c.projectName)}`));
     });
 
-    // Se a rubrica estivesse disponível, filtraríamos opRows aqui
-    if (filtroRubrica) {
-      // opRows = opRows.filter(...) - indisponível na base atual
+    if (filtroRubrica.length > 0) {
+      opRows = opRows.filter(r => r.rubricas?.some(rub => filtroRubrica.includes(rub)));
     }
 
     const projectBalances = buildProjectBalances(listaAno, bundle.projectActivity, dbDate);
@@ -205,9 +213,9 @@ export function RadarExecutivoPage({
             className={`flex items-center gap-2 text-xs font-semibold text-text border border-border bg-card-alt px-3 py-1.5 rounded-md hover:border-accent transition-colors ${showFilters ? "border-accent" : ""}`}
           >
             <Filter size={14} /> Filtros ▾
-            {(filtroPrograma || filtroRubrica) && (
+            {(filtroPrograma || filtroRubrica.length > 0) && (
               <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] text-white">
-                {(filtroPrograma ? 1 : 0) + (filtroRubrica ? 1 : 0)}
+                {(filtroPrograma ? 1 : 0) + (filtroRubrica.length > 0 ? 1 : 0)}
               </span>
             )}
           </button>
@@ -219,11 +227,23 @@ export function RadarExecutivoPage({
                 <Select value={filtroPrograma} onValueChange={setFiltroPrograma} options={programasOptions} placeholder="Todos os programas" className="w-full" />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-text-muted mb-1 block flex items-center justify-between">
-                  <span>Rubrica</span>
-                  <span className="text-[9px] text-warn">Indisponível</span>
-                </label>
-                <Select value={filtroRubrica} onValueChange={setFiltroRubrica} options={[]} placeholder="Não disponível na base" className="w-full opacity-60 pointer-events-none" />
+                <label className="text-[11px] font-semibold text-text-muted mb-1 block">Rubricas</label>
+                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                  {rubricasOptions.map(r => (
+                    <label key={r} className="flex items-center gap-2 text-xs cursor-pointer text-text hover:bg-bg p-1 rounded transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={filtroRubrica.includes(r)}
+                        onChange={(e) => {
+                          if (e.target.checked) setFiltroRubrica([...filtroRubrica, r]);
+                          else setFiltroRubrica(filtroRubrica.filter(x => x !== r));
+                        }}
+                        className="rounded border-border text-accent focus:ring-accent w-3 h-3"
+                      />
+                      <span className="truncate">{r}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -231,11 +251,7 @@ export function RadarExecutivoPage({
       </div>
 
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
-      {filtroRubrica && (
-         <div className="text-[11px] text-warn bg-warn/10 border border-warn/20 rounded p-1.5 shrink-0">
-           ⚠️ BG não filtrável por rubrica. Os valores de orçamento representam o total.
-         </div>
-      )}
+
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
         <KpiStat icon={<FolderKanban size={16} />} label={`BG Gov ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.bgGov, true)} context="orçamento aprovado" />
         

@@ -119,13 +119,14 @@ import type { CommitmentSourceBundle } from "./types";
 export function buildPaymentRows(bundle: CommitmentSourceBundle): OperationalRow[] {
   if (!bundle.payments?.inPayment) return [];
 
-  const rcGroups = new Map<string, { pending: number; maxPaymentDate: string | null; projectName: string; n4: string; nfs: Set<string> }>();
+  const rcGroups = new Map<string, { pending: number; maxPaymentDate: string | null; projectName: string; n4: string; nfs: Set<string>; rubricas: Set<string> }>();
 
   for (const p of bundle.payments.inPayment) {
     if (p.withoutRc || !p.rc) continue;
     const rc = p.rc;
-    const current = rcGroups.get(rc) ?? { pending: 0, maxPaymentDate: null, projectName: "", n4: "", nfs: new Set<string>() };
+    const current = rcGroups.get(rc) ?? { pending: 0, maxPaymentDate: null, projectName: "", n4: "", nfs: new Set<string>(), rubricas: new Set<string>() };
     if (p.nf) current.nfs.add(p.nf);
+    if (p.rubrica) current.rubricas.add(p.rubrica);
     current.pending += p.pending;
     if (p.paymentDate) {
       if (!current.maxPaymentDate || p.paymentDate > current.maxPaymentDate) {
@@ -146,6 +147,7 @@ export function buildPaymentRows(bundle: CommitmentSourceBundle): OperationalRow
 
     rows.push({
       rc,
+      rubricas: Array.from(group.rubricas),
       projectName: group.projectName || (commitment?.projectName || (rcDef ? rcDef.projectIds.join(", ") : "")),
       n4: group.n4 || (commitment?.n4 ?? ""),
       platformManager: commitment?.platformManager ?? "",

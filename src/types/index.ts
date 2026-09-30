@@ -40,6 +40,7 @@ export interface OrcamentoAnual {
   meses2027: number[]; // jan..mar
   total2027: number;
   totalGeral: number; // orçamento plurianual
+  rubrica: string;
 }
 
 /** Linha bruta de um projeto na aba "Realizado", por ano (2026 e/ou 2027). */
@@ -54,6 +55,7 @@ export interface RealizadoAnual {
   deltaCaixa: number;
   compromisso: number; // valor TOTAL do projeto, repetido em cada ano — não fracionado
   aEmitir: number;
+  rubrica: string;
 }
 
 /** Projeto consolidado (join de Orçamento + Realizado + Hierarquia), pronto para métricas. */
@@ -86,6 +88,19 @@ export interface ProjetoBase {
 
   origemOrcamento: boolean; // existe na aba Orçamento?
   origemRealizado: boolean; // existe na aba Realizado?
+
+  porRubrica: Record<string, {
+    orcamento2026: number;
+    orcamento2027: number;
+    realizado2026: number;
+    emPagamento2026: number;
+    realizado2027: number;
+    emPagamento2027: number;
+    compromisso: number;
+    meses2026: number[];
+    meses2027: number[];
+    executadoMensal2026: number[];
+  }>;
 }
 
 /** Métricas calculadas para um projeto, já resolvidas para um período específico. */

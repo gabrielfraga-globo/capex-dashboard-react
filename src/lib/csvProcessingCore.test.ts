@@ -40,3 +40,28 @@ describe("n4Curta", () => {
     expect(n4Curta("OUTRA")).toBe("OUTRA");
   });
 });
+
+describe("porRubrica", () => {
+  it("a soma de porRubrica é igual ao total do projeto", () => {
+    const { projetos } = parseCsvCarteira({ orcamentoCsv: ORC, realizadoCsv: REAL, fluxoMensalCsv: FLUXO });
+    expect(projetos).toHaveLength(1);
+    const p = projetos[0];
+    
+    let sumOrc26 = 0;
+    let sumReal26 = 0;
+    let sumEmPag26 = 0;
+    let sumComp = 0;
+    
+    for (const rub of Object.values(p.porRubrica)) {
+      sumOrc26 += rub.orcamento2026;
+      sumReal26 += rub.realizado2026;
+      sumEmPag26 += rub.emPagamento2026;
+      sumComp += rub.compromisso;
+    }
+
+    expect(sumOrc26).toBe(p.orcamento2026);
+    expect(sumReal26).toBe(p.realizado2026);
+    expect(sumEmPag26).toBe(p.emPagamento2026);
+    expect(sumComp).toBe(p.compromisso);
+  });
+});

@@ -13,7 +13,8 @@ describe("executive.ts", () => {
     compromisso: comp,
     origemOrcamento: true, origemRealizado: true,
     gestor: null, gestorEmail: null, aprovador: null, meses2026: null, meses2027: null,
-    aEmitirFonte: null, deltaCaixaFonte: null, executadoMensal2026: null
+    aEmitirFonte: null, deltaCaixaFonte: null, executadoMensal2026: null,
+    porRubrica: {}
   });
 
   describe("buildProjectBalances", () => {
@@ -112,7 +113,7 @@ describe("executive.ts", () => {
   describe("buildBottleneck", () => {
     it("groups and orders by value", () => {
       const mkCustom = (val: number, classif: string, stage: string, owner: string): OperationalRow => ({
-        rc: "rc", projectName: "p", n4: "n4", platformManager: owner, supplier: "s", priority: null,
+        rc: "rc", rubricas: [], projectName: "p", n4: "n4", platformManager: owner, supplier: "s", priority: null,
         stage, value: val, lineCount: 1, ocCount: 1, daysInStage: null, subState: "", owner, ownerArea: owner, tooltip: { statusRc: "", statusCompromisso: "", oc: "", comprador: "", dataPrometida: "" },
         forecast: null, forecastPaymentDate: null, suggestedPaymentDate: null, isEarlyException: false, confidence: null, nextAction: null, isResidual: false,
         classification: classif as any, isClassificationConfirmed: false
@@ -358,11 +359,12 @@ describe("executive / novas funções iteração 7", () => {
     compromisso: comp,
     origemOrcamento: true, origemRealizado: true,
     gestor: null, gestorEmail: null, aprovador: null, meses2026: null, meses2027: null,
-    aEmitirFonte: null, deltaCaixaFonte: null, executadoMensal2026: null
+    aEmitirFonte: null, deltaCaixaFonte: null, executadoMensal2026: null,
+    porRubrica: {}
   });
 
   const mkOpRow = (proj: string, stage: string, classif: string, val: number): OperationalRow => ({
-    rc: "123", projectName: `Projeto ${proj}`, n4: "", platformManager: null, supplier: "", priority: null,
+    rc: "123", rubricas: [], projectName: `Projeto ${proj}`, n4: "", platformManager: null, supplier: "", priority: null,
     stage, value: val, lineCount: 1, ocCount: 0, daysInStage: null, subState: "", owner: "", ownerArea: "",
     tooltip: { statusRc: "", statusCompromisso: "", oc: "", comprador: "", dataPrometida: "" },
     forecast: null, forecastPaymentDate: null, suggestedPaymentDate: null, isEarlyException: false,
