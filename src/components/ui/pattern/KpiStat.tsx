@@ -7,9 +7,11 @@ interface KpiStatProps {
   context?: ReactNode;
   tone?: "neutral" | "info" | "warn" | "crit";
   onClick?: () => void;
+  /** tooltip nativo do cartão */
+  title?: string;
 }
 
-export function KpiStat({ icon, label, value, context, tone = "neutral", onClick }: KpiStatProps) {
+export function KpiStat({ icon, label, value, context, tone = "neutral", onClick, title }: KpiStatProps) {
   const isClickable = !!onClick;
   
   const colors = {
@@ -24,7 +26,8 @@ export function KpiStat({ icon, label, value, context, tone = "neutral", onClick
       type="button"
       onClick={onClick}
       disabled={!isClickable}
-      className={`flex-1 flex flex-col justify-start gap-1 px-4 py-3 rounded-card border border-border bg-card text-left transition-colors h-full ${isClickable ? "hover:border-accent/60 cursor-pointer" : "cursor-default"}`}
+      title={title}
+      className={`flex-1 min-w-0 flex flex-col justify-start gap-1 px-4 py-3 rounded-card border border-border bg-card text-left transition-colors h-full ${isClickable ? "hover:border-accent/60 cursor-pointer" : "cursor-default"}`}
     >
       <div className="flex items-center gap-2">
         <span className={`shrink-0 ${colors.icon}`}>{icon}</span>

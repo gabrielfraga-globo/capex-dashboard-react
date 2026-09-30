@@ -306,7 +306,7 @@ export function OperationalTable({
 
   const deltaCaixa = useMemo(() => buildDeltaCaixa(lista), [lista]);
   const bgTotal = useMemo(() => lista.reduce((a, p) => a + (p.orcamento2026 ?? 0), 0), [lista]);
-  const aEmitir2026 = useMemo(() => aEmitirPorProjeto(lista, filteredRows, 2026), [lista, filteredRows]);
+  const aEmitir2026 = useMemo(() => aEmitirPorProjeto(lista, filteredRows, 2026).aEmitir, [lista, filteredRows]);
 
   const stageCounters = useMemo(() => {
     return buildStageCounters(filteredRows, aEmitir2026, counters.byStage.E7);

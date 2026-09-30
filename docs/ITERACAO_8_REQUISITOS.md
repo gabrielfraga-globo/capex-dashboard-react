@@ -24,7 +24,7 @@ BG Vivo = o que a carteira vai consumir no ano se tudo o que já foi emitido aco
 Mudança em relação à 7: o A emitir usa **Compromisso 26 do projeto** (hoje usa `p.compromisso`, que inclui 2027 e residual).
 
 Por que o BG Vivo fica ACIMA do BG Gov: projeto que já consumiu mais que seu BG (estouro) não tem "a emitir" negativo para compensar, então o estouro soma.
-Export 29/09 (sem curadoria): 91 projetos com realizado+pgto+compromisso > BG, estouro total R$ 13,5M (26 deles sem BG 2026, R$ 3,7M). Maiores: Core IP BH R$ 3,3M; Produção Central Multisites R$ 2,6M; Estações Design (33) R$ 2,1M.
+Export 29/09 (sem curadoria, regra da 8a): BG Vivo R$ 156,6M = Gov R$ 145,5M + estouro R$ 11,1M em 47 projetos (Core IP BH R$ 3,3M; Produção Central Multisites R$ 2,6M; Estações Design (33) R$ 2,1M). 2027: estouro R$ 4,0M em 7 projetos. RC que atende vários projetos é repartida via `OperationalRow.valueByProject`.
 Identidade (vira teste): como r + e + c26 + max(0, o − r − e − c26) − o = max(0, r + e + c26 − o), vale
 `bgVivo − bgGov = Σ_p max(0, r + e + c26 − o) + compromisso 26 sem projeto casado na carteira`.
 Ou seja: a diferença para o BG Gov é exatamente a soma dos estouros — nunca pode ser negativa.

@@ -28,6 +28,8 @@ export interface OperationalRow {
   priority: "ALTA" | "MEDIA" | "BAIXA" | null;
   stage: string;
   value: number;
+  /** valor da RC repartido por projeto (uma RC pode atender mais de um projeto) */
+  valueByProject?: Record<string, number>;
   lineCount: number;
   ocCount: number;
   daysInStage: number | null;
@@ -182,6 +184,7 @@ export function buildOperationalRows(
     let dominantLineDetails: any = null;
     let dominantCommitment: any = null;
     let totalValue = 0;
+    const valueByProject: Record<string, number> = {};
     let lineCount = 0;
     const ocs = new Set<string>();
 
@@ -189,6 +192,7 @@ export function buildOperationalRows(
       for (const line of c.details) {
         lineCount++;
         totalValue += line.valorCompromisso ?? 0;
+        if (c.projectName) valueByProject[c.projectName] = (valueByProject[c.projectName] ?? 0) + (line.valorCompromisso ?? 0);
         if (line.ordemCompra && line.ordemCompra !== "PENDING") {
           ocs.add(line.ordemCompra);
         }
@@ -251,6 +255,7 @@ export function buildOperationalRows(
       priority: hasHighPriority ? "ALTA" : curation?.priority ?? null,
       stage: dominantStage,
       value: totalValue,
+      valueByProject,
       lineCount,
       ocCount: ocs.size,
       daysInStage,

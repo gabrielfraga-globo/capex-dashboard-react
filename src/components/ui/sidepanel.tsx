@@ -7,18 +7,20 @@ export function SidePanel({
   onOpenChange,
   title,
   children,
+  className,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   title: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 bg-black/60 z-40 animate-in fade-in" />
         <DialogPrimitive.Content
-          className="fixed right-0 top-0 z-50 h-full w-full max-w-xl overflow-y-auto border-l border-border bg-bg-sidebar bg-bg p-6 shadow-2xl focus:outline-none"
+          className={`fixed right-0 top-0 z-50 h-full w-full max-w-xl overflow-y-auto border-l border-border bg-bg-sidebar bg-bg p-6 shadow-2xl focus:outline-none ${className || ""}`}
         >
           <div className="flex items-center justify-between mb-4">
             <DialogPrimitive.Title className="text-lg font-bold text-text">{title}</DialogPrimitive.Title>

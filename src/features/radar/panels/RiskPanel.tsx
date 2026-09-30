@@ -1,6 +1,7 @@
 /** Painel lateral: Projetos em risco de caixa (EM_RISCO). */
 import { SidePanel } from "../../../components/ui/sidepanel";
 import { fmtBRL } from "../../../lib/format";
+import { n4Curta } from "../../../lib/csvProcessingCore";
 import { navigate } from "../../../lib/simpleRouter";
 import type { buildProjectsAtRisk } from "../executive";
 
@@ -16,27 +17,27 @@ export function RiskPanel({
   risk: RiskData;
 }) {
   return (
-    <SidePanel open={open} onOpenChange={onClose} title="Projetos em risco">
+    <SidePanel open={open} onOpenChange={onClose} title="Projetos em risco" className="!max-w-[min(1100px,92vw)]">
       <div className="p-4 flex flex-col h-full">
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm text-left">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <table className="w-full text-sm text-left whitespace-nowrap">
             <thead>
               <tr className="border-b border-border text-text-muted">
-                <th className="py-2">Projeto</th>
-                <th className="py-2">Plataforma (n4)</th>
-                <th className="py-2">Gestor</th>
-                <th className="py-2 text-right">RCs em risco</th>
-                <th className="py-2 text-right">Valor em risco</th>
+                <th className="py-3">Projeto</th>
+                <th className="py-3">Plataforma</th>
+                <th className="py-3">Gestor</th>
+                <th className="py-3 text-right">RCs</th>
+                <th className="py-3 text-right">Valor</th>
               </tr>
             </thead>
             <tbody>
               {risk.projects.map((p) => (
                 <tr key={p.projectName} className="border-b border-border/50">
-                  <td className="py-2 truncate max-w-[150px]" title={p.projectName}>{p.projectName}</td>
-                  <td className="py-2 truncate max-w-[120px]" title={p.n4}>{p.n4}</td>
-                  <td className="py-2 truncate max-w-[120px]">{p.platformManager || "—"}</td>
-                  <td className="py-2 text-right">{p.rcCount}</td>
-                  <td className="py-2 text-right">{fmtBRL(p.value)}</td>
+                  <td className="py-3 pr-4 max-w-[260px]" title={p.projectName}><div className="line-clamp-2 break-words whitespace-normal">{p.projectName}</div></td>
+                  <td className="py-3 truncate max-w-[160px]" title={p.n4}>{n4Curta(p.n4)}</td>
+                  <td className="py-3 truncate max-w-[120px]">{p.platformManager || "—"}</td>
+                  <td className="py-3 text-right tabular-nums">{p.rcCount}</td>
+                  <td className="py-3 text-right tabular-nums">{fmtBRL(p.value)}</td>
                 </tr>
               ))}
             </tbody>

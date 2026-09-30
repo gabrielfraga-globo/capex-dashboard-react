@@ -371,9 +371,10 @@ describe("executive / novas funções iteração 7", () => {
 
   describe("aEmitirPorProjeto", () => {
     it("calcula para 2026 ignorando projetos negativos", () => {
-      const p1 = mkProjeto("1", 100, 20, 10, 50); // a emitir = 20
-      const p2 = mkProjeto("2", 100, 50, 50, 50); // negativo (-50), vira 0
-      expect(aEmitirPorProjeto([p1, p2], [], 2026)).toBe(20);
+      // iteração 8: o a emitir desconta o Compromisso 26 vindo das RCs (opRows), não p.compromisso
+      const p1 = mkProjeto("1", 100, 20, 10, 50); // sem RCs: a emitir = 100 − 20 − 10 = 70
+      const p2 = mkProjeto("2", 100, 50, 50, 50); // 100 − 50 − 50 = 0
+      expect(aEmitirPorProjeto([p1, p2], [], 2026).aEmitir).toBe(70);
     });
 
     it("calcula para 2027 extraindo compromissos CAIXA_27", () => {
@@ -381,7 +382,7 @@ describe("executive / novas funções iteração 7", () => {
       const r1 = mkOpRow("1", "E2", "CAIXA_27", 80);
       const r2 = mkOpRow("1", "E3", "CAIXA_27", 30);
       const r3 = mkOpRow("1", "E4", "EM_RISCO", 50); // ignorado (não é CAIXA_27)
-      expect(aEmitirPorProjeto([p1], [r1, r2, r3], 2027)).toBe(90); // 200 - 110 = 90
+      expect(aEmitirPorProjeto([p1], [r1, r2, r3], 2027).aEmitir).toBe(90); // 200 - 110 = 90
     });
   });
 
@@ -451,5 +452,42 @@ describe("executive / novas funções iteração 7", () => {
       } as unknown as OperationalRow;
       expect(effectiveCriticality(row, dataBase)).toBe("CRITICO");
     });
+  });
+
+  describe("Identidade BG Vivo", () => {
+    it("bgVivo − bgGov = Σ max(0, r+e+c26−o) + compromisso 26 sem projeto; e nunca negativo", () => {
+      const p1 = mkProjeto("1", 100, 20, 10, 0); // o=100, r=20, e=10
+      const p2 = mkProjeto("2", 100, 50, 50, 0); // o=100, r=50, e=50
+      
+      const r1 = mkOpRow("1", "E2", "CAIXA_26", 50); // c26=50
+      const r2 = mkOpRow("2", "E3", "CAIXA_26", 10); // c26=10 (estourou 10, total 110)
+      const r3 = mkOpRow("", "E4", "EM_RISCO", 30); // sem projeto, c26=30
+      
+      const res = buildBgVivo([p1, p2], [r1, r2, r3], 2026);
+      
+      const max_p1 = Math.max(0, 20 + 10 + 50 - 100); // 0
+      const max_p2 = Math.max(0, 50 + 50 + 10 - 100); // 10
+      const expectedDiff = max_p1 + max_p2 + 30; // 40
+      
+      expect(res.bgVivo - res.bgGov).toBe(expectedDiff);
+      expect(res.bgVivo - res.bgGov).toBe(res.diferencaVsGov);
+      expect(res.diferencaVsGov).toBeGreaterThanOrEqual(0);
+      expect(res.estouro.value).toBe(10);
+      expect(res.compromissoSemProjeto).toBe(30);
+    });
+  });
+});
+
+describe("aEmitirPorProjeto — RC que atende mais de um projeto (iteração 8)", () => {
+  it("reparte o compromisso da RC entre os projetos em vez de jogar em 'sem projeto'", () => {
+    const proj = (nome: string, o: number) => ({ id: nome, nome, n4: "", n4Curta: "", gestor: null, orcamento2026: o, realizado2026: 0, emPagamento2026: 0, compromisso: 0 }) as unknown as ProjetoBase;
+    const row = {
+      rc: "RCX", projectName: "Projeto A, Projeto B", stage: "E4", classification: "CAIXA_26", value: 100,
+      valueByProject: { "Projeto A": 70, "Projeto B": 30 },
+    } as unknown as OperationalRow;
+    const res = aEmitirPorProjeto([proj("Projeto A", 50), proj("Projeto B", 100)], [row], 2026);
+    expect(res.compromissoSemProjeto).toBe(0);
+    expect(res.estouroTotal).toBe(20); // A: 70 > 50
+    expect(res.aEmitir).toBe(70);      // B: 100 − 30
   });
 });

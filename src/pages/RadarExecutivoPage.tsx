@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import {
-  FolderKanban, Wallet, AlertTriangle, ShieldAlert, Gauge, Filter
+  FolderKanban, Wallet, ShieldAlert, Gauge, Filter
 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
@@ -16,14 +16,14 @@ import {
   buildBottleneck,
   buildInsights,
   buildFlowSummary,
-  buildBgVivo,
-  calculatePctExecucao
+  buildBgVivo
 } from "../features/radar/executive";
 import { buildOperationalRows } from "../features/radar/operational";
 import { normalizeKey } from "../lib/csvProcessingCore";
 import { ExecucaoPlanoCard } from "../components/ExecucaoPlanoCard";
 import { FluxoCaixaChart } from "../components/FluxoCaixaChart";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
+import { EstouroPanel } from "../features/radar/panels/EstouroPanel";
 import { BalancesPanel } from "../features/radar/panels/BalancesPanel";
 import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
@@ -54,7 +54,7 @@ interface Props {
   dataBase?: string | null;
 }
 
-type Panel = "risk" | "balances" | "bridge" | null;
+type Panel = "risk" | "balances" | "bridge" | "estouro" | null;
 
 export function RadarExecutivoPage({
   lista,
@@ -149,22 +149,10 @@ export function RadarExecutivoPage({
 
     const flow = buildFlowSummary(listaAno);
 
-    const nRequerAcao = listaAno26.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização").length;
-
-    // KPI Execução (mesma conta do ExecucaoPlanoCard)
-    const orcamentoTotalBreakdown = bgVivoSum.bgGov;
-    const emitidoBreakdown = ano === 2027 ? bgVivoSum.emitido : listaAno.reduce((a, p) => a + (p.compromisso ?? 0), 0);
-    // executado do ANO selecionado (em 2027 não pode usar realizado/em pgto de 2026)
-    const executadoAno = ano === 2027
-      ? listaAno.reduce((a, p) => a + (p.realizado2027 ?? 0) + (p.emPagamento2027 ?? 0), 0)
-      : totalRealizado + totalEmPagamento;
-    const pctExecucao = calculatePctExecucao(orcamentoTotalBreakdown, executadoAno, emitidoBreakdown);
-    
     return {
       bgSistemico, totalRealizado, totalEmPagamento, prov26, provRisco, prov27,
       balanceSummary, projectBalances, risk, bridge, bottleneck,
-      flow, nRequerAcao, pctExecucao,
-      listaAno, listaAno26, bgVivoSum
+      flow, listaAno, listaAno26, bgVivoSum
     };
   }, [bundle, curationMap, lista, dataBase, ano, filtroPrograma, filtroRubrica]);
 
@@ -187,8 +175,8 @@ export function RadarExecutivoPage({
 
   const {
     balanceSummary, risk, bridge, flow,
-    nRequerAcao, projectBalances,
-    pctExecucao, listaAno, listaAno26, bgVivoSum
+    projectBalances,
+    listaAno, listaAno26, bgVivoSum
   } = computed;
 
   return (
@@ -250,25 +238,24 @@ export function RadarExecutivoPage({
       )}
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
         <KpiStat icon={<FolderKanban size={16} />} label={`BG Gov ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.bgGov, true)} context="orçamento aprovado" />
-        <KpiStat 
-          icon={<Wallet size={16} />} 
-          label={`BG Vivo ${ano === 2027 ? "27" : "26"}`} 
-          value={fmtBRL(bgVivoSum.bgVivo, true)} 
+        
+        <KpiStat
+          icon={<Wallet size={16} />}
+          label={`BG Vivo ${ano === 2027 ? "27" : "26"}`}
+          value={fmtBRL(bgVivoSum.bgVivo, true)}
+          title={`BG Vivo = Realizado + Em pagamento + Compromisso ${ano === 2027 ? "27" : "26"} + A emitir (por projeto). Fica acima do BG Gov pelo estouro dos projetos que já passaram do próprio BG.`}
+          onClick={bgVivoSum.estouro.count > 0 ? () => setPanel("estouro") : undefined}
           context={
-            <div className="flex flex-col gap-0.5">
-              <span>{bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}{fmtBRL(bgVivoSum.diferencaVsGov, true)} vs BG Gov</span>
-              {ano === 2026 && <span className="text-warn">{fmtBRL(bgVivoSum.emRisco, true)} em risco</span>}
-            </div>
+            <span className={`block truncate ${bgVivoSum.estouro.count > 0 ? "text-info" : ""}`}>
+              {bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}{fmtBRL(bgVivoSum.diferencaVsGov, true)} vs BG Gov{bgVivoSum.estouro.count > 0 ? ` · estouro em ${bgVivoSum.estouro.count} projetos` : ""}
+            </span>
           }
         />
-        <KpiStat icon={<Gauge size={16} />} label="Execução do plano" value={fmtPct(pctExecucao)} context={`${fmtBRL(bgVivoSum.realizado + bgVivoSum.emPagamento, true)} executado`} />
-        <KpiStat icon={<AlertTriangle size={16} />} label="Ritmo dos projetos" value={nRequerAcao.toString()} tone="crit" context="requerem ação" />
         
-        {ano === 2026 ? (
-          <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value={fmtBRL(risk.totalValue, true)} tone="warn" context={`${risk.count} projetos`} onClick={() => setPanel("risk")} />
-        ) : (
-          <KpiStat icon={<ShieldAlert size={16} />} label="Caixa 27" value={fmtBRL(bgVivoSum.emitido, true)} tone="warn" context="valor emitido 2027" />
-        )}
+        <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={ano === 2026 ? fmtBRL(bgVivoSum.emPagamento, true) : "—"} context={ano === 2026 ? "etapa E7" : "—"} />
+        <KpiStat icon={<Wallet size={16} />} label={`Compromisso ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.emitido, true)} context="emitido na carteira" />
+        <KpiStat icon={<Wallet size={16} />} label="A emitir" value={fmtBRL(bgVivoSum.aEmitir, true)} context="saldo a contratar" />
+        <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value={ano === 2026 ? fmtBRL(risk.totalValue, true) : "—"} tone={ano === 2026 ? "warn" : "neutral"} context={ano === 2026 ? `${risk.count} projetos` : "—"} onClick={ano === 2026 ? () => setPanel("risk") : undefined} />
       </div>
 
       {/* ── Layout ─────────────────────────────────────────── */}
@@ -333,7 +320,7 @@ export function RadarExecutivoPage({
         </div>
 
         {/* Coluna Direita: Ritmo */}
-        <div className="flex flex-col min-w-0 h-full relative">
+        <div className="flex flex-col min-w-0 h-full relative [&>*]:flex-1">
           <AnaliseRiscoPanel 
              lista={listaAno26} 
              kpisEstrategicos={kpisEstrategicos} 
@@ -351,6 +338,7 @@ export function RadarExecutivoPage({
 
       {/* ── Painéis laterais ──────────────────────────────────── */}
       <RiskPanel open={panel === "risk"} onClose={() => setPanel(null)} risk={risk} />
+      <EstouroPanel open={panel === "estouro"} onClose={() => setPanel(null)} estouro={bgVivoSum.estouro} />
       <BalancesPanel
         open={panel === "balances"}
         onClose={() => setPanel(null)}

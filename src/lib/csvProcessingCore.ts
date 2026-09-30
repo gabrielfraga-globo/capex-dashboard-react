@@ -164,6 +164,13 @@ const PLATAFORMA_CURTA: Record<string, string> = {
   "Plat. De Metadados E Mídias": "Metadados e Mídias",
   "Plataforma De Pré-Produção": "Pré-Produção",
 };
+const PLATAFORMA_CURTA_NORM = new Map(Object.entries(PLATAFORMA_CURTA).map(([k, v]) => [normalizeKey(k), v]));
+
+/** Nome curto da plataforma (N4). A base vem em MAIÚSCULAS; compara normalizado. */
+export function n4Curta(n4: string | null | undefined): string {
+  if (!n4) return "";
+  return n4.split(", ").map((x) => PLATAFORMA_CURTA_NORM.get(normalizeKey(x)) ?? x).join(", ");
+}
 
 function buildProjetos(
   orcamento: OrcamentoAnual[], realizado: RealizadoAnual[], gestores: Gestor[],
@@ -227,7 +234,7 @@ function buildProjetos(
     const orcamento2027 = orc ? orc.total2027 : 0;
     const orcamentoPlurianual = orc ? orc.totalGeral : 0;
 
-    projetos.push({ id: key, nome, n4, n4Curta: PLATAFORMA_CURTA[n4] ?? n4,
+    projetos.push({ id: key, nome, n4, n4Curta: n4Curta(n4),
       gestor: gestor?.nome ?? null, gestorEmail: gestor?.email ?? null,
       aprovador: real?.aprovador ?? null, orcamentoPlurianual, orcamento2026, orcamento2027,
       h1_2026: orc ? orc.meses2026.slice(0, 6).reduce<number>((a, b) => a + b, 0) : null,

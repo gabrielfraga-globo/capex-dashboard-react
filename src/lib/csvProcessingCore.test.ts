@@ -31,3 +31,12 @@ describe("parseCsvCarteira — granularidade por Rubrica", () => {
     expect(p.deltaCaixaFonte).toBe(265);
   });
 });
+
+describe("n4Curta", () => {
+  it("encurta o N4 que vem em maiúsculas da base", async () => {
+    const { n4Curta } = await import("./csvProcessingCore");
+    expect(n4Curta("PLAT. DE CAPTAÇÃO E PRODUÇÃO")).toBe("Captação e Produção");
+    expect(n4Curta("PLAT. DE PÓS-PROD. E DESIGN, PLAT. DE METADADOS E MÍDIAS")).toBe("Pós-Produção e Design, Metadados e Mídias");
+    expect(n4Curta("OUTRA")).toBe("OUTRA");
+  });
+});

@@ -602,32 +602,96 @@ export function buildRadarSummary(opRows: OperationalRow[], bg: number, dataBase
 // Novas Funções (Iteração 7)
 // ────────────────────────────────────────────────────────────
 
-export function aEmitirPorProjeto(lista: ProjetoBase[], opRows: OperationalRow[], ano: 2026 | 2027): number {
+export interface EstouroProjeto {
+  projectName: string;
+  n4Curta: string;
+  gestor: string | null;
+  bg: number;
+  realizado: number;
+  emPagamento: number;
+  compromisso: number;
+  estouro: number;
+}
+
+/** Valor da linha por projeto: usa a repartição da RC quando existe (RC com vários projetos). */
+function partesPorProjeto(r: OperationalRow): Array<[string, number]> {
+  if (r.valueByProject && Object.keys(r.valueByProject).length) return Object.entries(r.valueByProject);
+  return [[r.projectName ?? "", r.value]];
+}
+
+export function aEmitirPorProjeto(lista: ProjetoBase[], opRows: OperationalRow[], ano: 2026 | 2027) {
   let aEmitir = 0;
+  const estouros: EstouroProjeto[] = [];
+  let estouroTotal = 0;
+
   if (ano === 2026) {
+    const c26PorProjeto = new Map<string, number>();
+    let c26SemProjeto = 0;
+    const projNames = new Set(lista.map(p => p.nome ? p.nome.trim().toLowerCase() : ""));
+    for (const r of opRows) {
+      if (r.stage !== 'DESCONHECIDA' && r.stage !== 'RESIDUAL') {
+        if (r.classification === 'CAIXA_26' || r.classification === 'EM_RISCO') {
+          for (const [nome, v] of partesPorProjeto(r)) {
+            const pName = nome.trim().toLowerCase();
+            if (pName && projNames.has(pName)) {
+              c26PorProjeto.set(pName, (c26PorProjeto.get(pName) ?? 0) + v);
+            } else {
+              c26SemProjeto += v;
+            }
+          }
+        }
+      }
+    }
+
     for (const p of lista) {
+      const pName = p.nome ? p.nome.trim().toLowerCase() : "";
       const o = p.orcamento2026 ?? 0;
       const r = p.realizado2026 ?? 0;
       const e = p.emPagamento2026 ?? 0;
-      const c = p.compromisso ?? 0;
-      aEmitir += Math.max(0, o - r - e - c);
+      const c26 = c26PorProjeto.get(pName) ?? 0;
+      const val = o - r - e - c26;
+      if (val < 0) {
+        const estouro = -val;
+        estouros.push({ projectName: p.nome || p.id, n4Curta: p.n4Curta || "", gestor: p.gestor, bg: o, realizado: r, emPagamento: e, compromisso: c26, estouro });
+        estouroTotal += estouro;
+      } else {
+        aEmitir += val;
+      }
     }
+    estouros.sort((a, b) => b.estouro - a.estouro);
+    return { aEmitir, estouros, estouroTotal, compromissoSemProjeto: c26SemProjeto };
   } else {
     const compromisso27PorProjeto = new Map<string, number>();
+    let c27SemProjeto = 0;
+    const projNames = new Set(lista.map(p => p.nome ? p.nome.trim().toLowerCase() : ""));
     for (const r of opRows) {
       if (r.stage !== 'DESCONHECIDA' && r.stage !== 'RESIDUAL' && r.classification === 'CAIXA_27') {
-        const pName = r.projectName ? r.projectName.trim().toLowerCase() : "sem projeto";
-        compromisso27PorProjeto.set(pName, (compromisso27PorProjeto.get(pName) ?? 0) + r.value);
+        for (const [nome, v] of partesPorProjeto(r)) {
+          const pName = nome.trim().toLowerCase();
+          if (pName && projNames.has(pName)) {
+            compromisso27PorProjeto.set(pName, (compromisso27PorProjeto.get(pName) ?? 0) + v);
+          } else {
+            c27SemProjeto += v;
+          }
+        }
       }
     }
     for (const p of lista) {
+      const pName = p.nome ? p.nome.trim().toLowerCase() : "";
       const o = p.orcamento2027 ?? 0;
-      const pName = p.nome ? p.nome.trim().toLowerCase() : "sem projeto";
       const c27 = compromisso27PorProjeto.get(pName) ?? 0;
-      aEmitir += Math.max(0, o - c27);
+      const val = o - c27;
+      if (val < 0) {
+        const estouro = -val;
+        estouros.push({ projectName: p.nome || p.id, n4Curta: p.n4Curta || "", gestor: p.gestor, bg: o, realizado: 0, emPagamento: 0, compromisso: c27, estouro });
+        estouroTotal += estouro;
+      } else {
+        aEmitir += val;
+      }
     }
+    estouros.sort((a, b) => b.estouro - a.estouro);
+    return { aEmitir, estouros, estouroTotal, compromissoSemProjeto: c27SemProjeto };
   }
-  return aEmitir;
 }
 
 export interface BgVivoSummary {
@@ -639,11 +703,17 @@ export interface BgVivoSummary {
   aEmitir: number;
   bgVivo: number;
   diferencaVsGov: number;
+  compromissoSemProjeto: number;
+  estouro: {
+    count: number;
+    value: number;
+    projetos: EstouroProjeto[];
+  };
 }
 
 export function buildBgVivo(lista: ProjetoBase[], opRows: OperationalRow[], ano: 2026 | 2027): BgVivoSummary {
   const bgGov = lista.reduce((sum, p) => sum + ((ano === 2026 ? p.orcamento2026 : p.orcamento2027) ?? 0), 0);
-  const aEmitir = aEmitirPorProjeto(lista, opRows, ano);
+  const info = aEmitirPorProjeto(lista, opRows, ano);
   
   if (ano === 2026) {
     const realizado = lista.reduce((sum, p) => sum + (p.realizado2026 ?? 0), 0);
@@ -653,23 +723,28 @@ export function buildBgVivo(lista: ProjetoBase[], opRows: OperationalRow[], ano:
     let emRisco = 0;
     for (const r of opRows) {
       if (r.stage !== 'DESCONHECIDA' && r.stage !== 'RESIDUAL') {
-        if (r.classification === 'CAIXA_26') emitido26 += r.value;
-        if (r.classification === 'EM_RISCO') {
+        if (r.classification === 'CAIXA_26' || r.classification === 'EM_RISCO') {
           emitido26 += r.value;
-          emRisco += r.value;
+          if (r.classification === 'EM_RISCO') emRisco += r.value;
         }
       }
     }
-    const bgVivo = realizado + emPagamento + emitido26 + aEmitir;
+    const bgVivo = realizado + emPagamento + emitido26 + info.aEmitir;
     return {
       bgGov,
       realizado,
       emPagamento,
       emitido: emitido26,
       emRisco,
-      aEmitir,
+      aEmitir: info.aEmitir,
       bgVivo,
-      diferencaVsGov: bgVivo - bgGov
+      diferencaVsGov: bgVivo - bgGov,
+      compromissoSemProjeto: info.compromissoSemProjeto,
+      estouro: {
+        count: info.estouros.length,
+        value: info.estouroTotal,
+        projetos: info.estouros
+      }
     };
   } else {
     let emitido27 = 0;
@@ -678,16 +753,22 @@ export function buildBgVivo(lista: ProjetoBase[], opRows: OperationalRow[], ano:
         emitido27 += r.value;
       }
     }
-    const bgVivo = emitido27 + aEmitir;
+    const bgVivo = emitido27 + info.aEmitir;
     return {
       bgGov,
       realizado: 0,
       emPagamento: 0,
       emitido: emitido27,
       emRisco: 0,
-      aEmitir,
+      aEmitir: info.aEmitir,
       bgVivo,
-      diferencaVsGov: bgVivo - bgGov
+      diferencaVsGov: bgVivo - bgGov,
+      compromissoSemProjeto: info.compromissoSemProjeto,
+      estouro: {
+        count: info.estouros.length,
+        value: info.estouroTotal,
+        projetos: info.estouros
+      }
     };
   }
 }
