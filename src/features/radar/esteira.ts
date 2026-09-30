@@ -113,3 +113,71 @@ export function buildDirectorateBreakdown(
     pct: total > 0 ? sums[dir] / total : 0
   }));
 }
+
+import type { CommitmentSourceBundle } from "./types";
+
+export function buildPaymentRows(bundle: CommitmentSourceBundle): OperationalRow[] {
+  if (!bundle.payments?.inPayment) return [];
+
+  const rcGroups = new Map<string, { pending: number; maxPaymentDate: string | null; projectName: string; n4: string; nfs: Set<string> }>();
+
+  for (const p of bundle.payments.inPayment) {
+    if (p.withoutRc || !p.rc) continue;
+    const rc = p.rc;
+    const current = rcGroups.get(rc) ?? { pending: 0, maxPaymentDate: null, projectName: "", n4: "", nfs: new Set<string>() };
+    if (p.nf) current.nfs.add(p.nf);
+    current.pending += p.pending;
+    if (p.paymentDate) {
+      if (!current.maxPaymentDate || p.paymentDate > current.maxPaymentDate) {
+        current.maxPaymentDate = p.paymentDate;
+      }
+    }
+    if (p.projectName && !current.projectName) current.projectName = p.projectName;
+    if (p.n4 && !current.n4) current.n4 = p.n4;
+    rcGroups.set(rc, current);
+  }
+
+  const rows: OperationalRow[] = [];
+  for (const [rc, group] of rcGroups.entries()) {
+    const rcDef = bundle.rcGroups.find(g => g.rc === rc);
+    const commitment = bundle.commitments.find(c => c.rc === rc);
+    const nfs = [...group.nfs];
+    const supplier = rcDef?.suppliers.length ? rcDef.suppliers.join(", ") : nfs.length ? `NF ${nfs.slice(0, 3).join(", ")}${nfs.length > 3 ? ` +${nfs.length - 3}` : ""}` : "";
+
+    rows.push({
+      rc,
+      projectName: group.projectName || (commitment?.projectName || (rcDef ? rcDef.projectIds.join(", ") : "")),
+      n4: group.n4 || (commitment?.n4 ?? ""),
+      platformManager: commitment?.platformManager ?? "",
+      supplier,
+      priority: null,
+      stage: "E7",
+      value: group.pending,
+      lineCount: 1,
+      ocCount: rcDef ? rcDef.ocs.length : 0,
+      daysInStage: null,
+      subState: "",
+      owner: "Contas a Pagar",
+      ownerArea: "Contas a Pagar",
+      tooltip: {
+        statusRc: "EM PAGAMENTO",
+        statusCompromisso: "",
+        oc: rcDef ? rcDef.ocs.join(", ") : "",
+        comprador: "",
+        dataPrometida: group.maxPaymentDate ?? ""
+      },
+      forecast: null,
+      forecastPaymentDate: group.maxPaymentDate,
+      suggestedPaymentDate: null,
+      isEarlyException: false,
+      confidence: null,
+      nextAction: null,
+      isResidual: false,
+      classification: "CAIXA_26",
+      isClassificationConfirmed: true,
+      effectiveCuration: null
+    });
+  }
+
+  return rows;
+}

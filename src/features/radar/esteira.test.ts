@@ -85,3 +85,44 @@ describe("em pagamento vem de fora das linhas operacionais", () => {
     expect(d.find(x => x.label === "Tecnologia")?.value).toBe(100);
   });
 });
+
+import { readFileSync } from "fs";
+import { join } from "path";
+import type { CommitmentSourceBundle } from "./types";
+
+describe("buildPaymentRows", () => {
+  it("creates one row per RC in payment, matching expected totals from 26/09 fixture", async () => {
+    const { buildPaymentRows } = await import("./esteira");
+    const jsonPath = join(__dirname, "__fixtures__", "radar-bundle-2026-09-26.json");
+    const bundle: CommitmentSourceBundle = JSON.parse(readFileSync(jsonPath, "utf-8"));
+    
+    const rows = buildPaymentRows(bundle);
+    // There should be 130 RCs (withoutRc rows are ignored by buildPaymentRows)
+    expect(rows.length).toBe(130);
+
+    // Summing value
+    const totalValue = rows.reduce((sum, r) => sum + r.value, 0);
+    // As per the 26/09 fixture, the total is 8210831.15
+    expect(Math.abs(totalValue - 8210831.15)).toBeLessThan(0.01);
+  });
+});
+
+describe("buildPaymentRows — data de pagamento e NF (iteração 8)", () => {
+  it("usa a maior data de pagamento da RC e mostra as NFs quando a RC não tem fornecedor no compromisso", async () => {
+    const { buildPaymentRows } = await import("./esteira");
+    const bundle = {
+      commitments: [], rcGroups: [],
+      payments: { inPayment: [
+        { rc: "RC9", nf: "111", paymentDate: "2026-10-05", pending: 10, projectName: "P", n4: "N", withoutRc: false },
+        { rc: "RC9", nf: "222", paymentDate: "2026-10-20", pending: 5, projectName: "P", n4: "N", withoutRc: false },
+        { rc: "", nf: "333", paymentDate: "2026-10-01", pending: 99, projectName: "P", n4: "N", withoutRc: true },
+      ] },
+    } as unknown as CommitmentSourceBundle;
+    const rows = buildPaymentRows(bundle);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].value).toBe(15);
+    expect(rows[0].forecastPaymentDate).toBe("2026-10-20");
+    expect(rows[0].supplier).toBe("NF 111, 222");
+    expect(rows[0].stage).toBe("E7");
+  });
+});

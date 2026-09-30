@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { buildOperationalRows, buildPipelineCounters, STAGE_LABELS, suggestClassification, buildClassificationPayload, deliveryFromPayment } from "./operational";
 import { effectiveCriticality, buildRadarSummary, buildDeltaCaixa, aEmitirPorProjeto } from "./executive";
-import { buildStageCounters, buildDirectorateBreakdown, displayStage, DISPLAY_STAGE_LABELS, directorateOf } from "./esteira";
+import { buildStageCounters, buildDirectorateBreakdown, displayStage, DISPLAY_STAGE_LABELS, directorateOf, buildPaymentRows } from "./esteira";
 import type { OperationalRow } from "./operational";
 import type { ProjetoBase } from "../../types";
 import { OPERATIONAL_TABLE_WIDTH, OperationalColGroup } from "./tableLayout";
@@ -15,6 +15,8 @@ interface Props {
   curationMap: CurationMap;
   referenceDateStr: string;
   allowedRcs: Set<string>;
+  /** RCs em pagamento que passam nos filtros da página (muitas não têm compromisso aberto, então não estão em allowedRcs) */
+  allowedPaymentRcs?: Set<string>;
   salvarRc: (rc: string, payload: RcCurationUpsertRequest) => Promise<RcCurationUpsertResponse | null>;
   erroDe: (chave: string) => string | null;
   lista: ProjetoBase[];
@@ -28,6 +30,29 @@ function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const [y, m, d] = iso.slice(0, 10).split("-");
   return d && m && y ? `${d}/${m}/${y.slice(2)}` : iso;
+}
+
+/** Linha "Em pagamento" (NF a pagar): somente leitura, sem classificação nem criticidade. */
+function PaymentRowReadOnly({ row }: { row: OperationalRow }) {
+  return (
+    <tr className="bg-card-alt/40">
+      <td className="p-2 w-8 text-center align-middle"><div className="w-2.5 h-2.5 rounded-full mx-auto bg-muted-foreground/40" title="Em pagamento: sem criticidade" /></td>
+      <td className="p-2 whitespace-nowrap font-semibold">{row.rc}</td>
+      <td className="p-2 min-w-0">
+        <div className="font-medium text-text truncate" title={row.projectName}>{row.projectName || "-"}</div>
+        <div className="text-text-muted text-[11px] truncate" title={row.supplier}>{row.supplier || "-"}</div>
+      </td>
+      <td className="p-2 text-right font-medium whitespace-nowrap">{fmtBRL(row.value)}</td>
+      <td className="p-2">
+        <div className="block max-w-full truncate whitespace-nowrap font-medium px-2 py-0.5 rounded bg-ok/15 text-ok">{DISPLAY_STAGE_LABELS.EM_PAGAMENTO}</div>
+        <div className="mt-0.5 text-[11px] text-text-muted truncate">Contas a Pagar</div>
+      </td>
+      <td className="p-2 text-right whitespace-nowrap">—</td>
+      <td className="p-2 whitespace-nowrap text-xs" title="Data de pagamento da NF">{row.forecastPaymentDate ? `${fmtDate(row.forecastPaymentDate)} · pgto` : "—"}</td>
+      <td className="p-2 text-text-muted">—</td>
+      <td className="p-2 text-[11px] text-text-muted">Caixa 26 · NF lançada</td>
+    </tr>
+  );
 }
 
 function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarRc, erroDe }: { row: OperationalRow, exerciseYear: number, bundle: CommitmentSourceBundle, referenceDateStr: string, salvarRc: Props["salvarRc"], erroDe: Props["erroDe"] }) {
@@ -286,13 +311,19 @@ export function OperationalTable({
   curationMap,
   referenceDateStr,
   allowedRcs,
+  allowedPaymentRcs,
   salvarRc,
   erroDe,
   lista,
 }: Props) {
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [showResidual, setShowResidual] = useState(false);
+  const [showEmPagamento, setShowEmPagamento] = useState(true);
   const [activeCardFilter, setActiveCardFilter] = useState<string | null>(null);
+
+  const paymentRows = useMemo(() => {
+    return buildPaymentRows(bundle).filter(r => (allowedPaymentRcs ?? allowedRcs).has(r.rc));
+  }, [bundle, allowedRcs, allowedPaymentRcs]);
 
   const allRows = useMemo(() => {
     return buildOperationalRows(bundle, curationMap, referenceDateStr);
@@ -308,18 +339,24 @@ export function OperationalTable({
   const bgTotal = useMemo(() => lista.reduce((a, p) => a + (p.orcamento2026 ?? 0), 0), [lista]);
   const aEmitir2026 = useMemo(() => aEmitirPorProjeto(lista, filteredRows, 2026).aEmitir, [lista, filteredRows]);
 
+  // Em pagamento acompanha os filtros da página (antes vinha do total da carteira)
+  const emPagamentoFiltrado = useMemo(() => ({ count: paymentRows.length, value: paymentRows.reduce((a, r) => a + r.value, 0) }), [paymentRows]);
+
   const stageCounters = useMemo(() => {
-    return buildStageCounters(filteredRows, aEmitir2026, counters.byStage.E7);
-  }, [filteredRows, aEmitir2026, counters.byStage.E7]);
+    return buildStageCounters(filteredRows, aEmitir2026, emPagamentoFiltrado);
+  }, [filteredRows, aEmitir2026, emPagamentoFiltrado]);
 
   const directorateBreakdown = useMemo(() => {
-    return buildDirectorateBreakdown(filteredRows, aEmitir2026, counters.byStage.E7);
-  }, [filteredRows, aEmitir2026, counters.byStage.E7]);
+    return buildDirectorateBreakdown(filteredRows, aEmitir2026, emPagamentoFiltrado);
+  }, [filteredRows, aEmitir2026, emPagamentoFiltrado]);
 
   const summary = useMemo(() => buildRadarSummary(filteredRows, 145_500_000, new Date(referenceDateStr)), [filteredRows, referenceDateStr]);
 
   const displayRows = useMemo(() => {
     let res = filteredRows;
+    if (showEmPagamento) {
+      res = [...res, ...paymentRows];
+    }
     if (!showResidual) {
       res = res.filter((r) => !r.isResidual);
     }
@@ -499,6 +536,7 @@ export function OperationalTable({
       {/* Counters */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         {(Object.keys(stageCounters) as Array<keyof typeof stageCounters>).map((s) => {
+          if (s === 'A_EMITIR') return null;
           const c = stageCounters[s];
           if (!c) return null;
           const isSelected = selectedStage === s;
@@ -513,7 +551,7 @@ export function OperationalTable({
               }`}
             >
               <div className="font-bold">{DISPLAY_STAGE_LABELS[s]}</div>
-              <div className="text-text-muted text-[10px]">{s === 'A_EMITIR' ? '—' : fmtNumber(c.count)} • {fmtBRL(c.value)}</div>
+              <div className="text-text-muted text-[10px]">{fmtNumber(c.count)} • {fmtBRL(c.value)}</div>
             </button>
           );
         })}
@@ -532,6 +570,16 @@ export function OperationalTable({
         </button>
 
         <label className="ml-auto flex items-center gap-2 text-xs text-text cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showEmPagamento}
+            onChange={(e) => setShowEmPagamento(e.target.checked)}
+            className="rounded border-border"
+          />
+          Mostrar em pagamento
+        </label>
+        
+        <label className="flex items-center gap-2 text-xs text-text cursor-pointer">
           <input
             type="checkbox"
             checked={showResidual}
@@ -560,7 +608,9 @@ export function OperationalTable({
           </thead>
           <tbody className="divide-y divide-border">
             {displayRows.map((row) => (
-              <RcRowOperational key={row.rc} row={row} exerciseYear={bundle.exerciseYear} bundle={bundle} referenceDateStr={referenceDateStr} salvarRc={salvarRc} erroDe={erroDe} />
+              row.stage === "E7"
+                ? <PaymentRowReadOnly key={`pg:${row.rc}`} row={row} />
+                : <RcRowOperational key={row.rc} row={row} exerciseYear={bundle.exerciseYear} bundle={bundle} referenceDateStr={referenceDateStr} salvarRc={salvarRc} erroDe={erroDe} />
             ))}
             {displayRows.length === 0 && (
               <tr>

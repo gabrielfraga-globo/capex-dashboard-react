@@ -73,6 +73,30 @@ export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curado
 
   const rcsFiltradas = useMemo(() => new Set(rcViewsFiltradas.map((rc) => rc.rc)), [rcViewsFiltradas]);
 
+  // Projetos com os mesmos filtros de plataforma/gestor/aprovador: o A emitir e o delta caixa da aba Operacional usam o BG deles
+  const projetosFiltrados = useMemo(() => (parsed?.projetos ?? []).filter((p) =>
+    (!plataformaFiltro || p.n4Curta === plataformaFiltro) &&
+    (!gestorFiltro || p.gestor === gestorFiltro) &&
+    (!aprovadorFiltro || p.aprovador === aprovadorFiltro)
+  ), [parsed, plataformaFiltro, gestorFiltro, aprovadorFiltro]);
+
+  // RCs em pagamento (NF lançada): a maioria já não tem compromisso aberto, então filtra pelos dados do pagamento
+  const rcsPagamentoFiltradas = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
+    const porRc = new Map<string, boolean>();
+    for (const p of bundle?.payments?.inPayment ?? []) {
+      if (p.withoutRc || !p.rc) continue;
+      const projeto = projetoPorNome.get(p.projectName ?? "");
+      let ok = true;
+      if (plataformaFiltro && projeto?.n4Curta !== plataformaFiltro) ok = false;
+      if (gestorFiltro && projeto?.gestor !== gestorFiltro) ok = false;
+      if (aprovadorFiltro && projeto?.aprovador !== aprovadorFiltro && p.approver !== aprovadorFiltro) ok = false;
+      if (termo && ![p.rc, p.nf, p.projectName].some((t) => (t ?? "").toLocaleLowerCase("pt-BR").includes(termo))) ok = false;
+      porRc.set(p.rc, (porRc.get(p.rc) ?? false) || ok);
+    }
+    return new Set([...porRc].filter(([, ok]) => ok).map(([rc]) => rc));
+  }, [bundle, projetoPorNome, plataformaFiltro, gestorFiltro, aprovadorFiltro, busca]);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-3 space-y-3">
       <div className="flex items-center justify-between">
@@ -175,9 +199,10 @@ export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curado
               curationMap={curationMap}
               referenceDateStr={bundle!.generatedAt}
               allowedRcs={rcsFiltradas}
+              allowedPaymentRcs={rcsPagamentoFiltradas}
               salvarRc={salvarRc}
               erroDe={erroDe}
-              lista={parsed?.projetos ?? []}
+              lista={projetosFiltrados}
             />
           )}
         </>
