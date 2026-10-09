@@ -10,6 +10,7 @@
     "process-data": "tsx scripts/preprocessCsv.mjs",
     "check-orphan-curation": "tsx scripts/checkOrphanCuration.ts",
     "validate-data": "node scripts/validateMetrics.mjs",
+    "update-bi": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/atualizar-dados-bi.ps1",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",

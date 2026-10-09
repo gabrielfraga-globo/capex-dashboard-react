@@ -148,10 +148,15 @@ if (Math.abs(emPagamento2026 - csvPend2026) > TOLERANCE_MONEY) {
   fail(`EmPagamento JSON (${emPagamento2026.toFixed(2)}) != CSV (${csvPend2026.toFixed(2)})`);
 }
 
-// 5. Duplicates in expected grain (N4 + NomeLB + Ano) in Realizado.csv
+// 5. Duplicates in expected grain in Realizado.csv
+// Realizado.dax agrupa também por dRubricas[Rubrica]; quando a coluna existe ela faz parte do grão
+// (N4 + NomeLB + Ano + Rubrica). Sem ela, o grão volta a ser N4 + NomeLB + Ano.
+const realizadoTemRubrica = realizadoRows.length > 0 && "Rubrica" in realizadoRows[0];
 const realizadoKeys = new Set();
 for (const r of realizadoRows) {
-  const key = `${r.N4}|${r.NomeLB}|${r.Ano}`;
+  const key = realizadoTemRubrica
+    ? `${r.N4}|${r.NomeLB}|${r.Ano}|${r.Rubrica}`
+    : `${r.N4}|${r.NomeLB}|${r.Ano}`;
   if (realizadoKeys.has(key)) {
     fail(`Duplicata em Realizado.csv: ${key}`);
   }

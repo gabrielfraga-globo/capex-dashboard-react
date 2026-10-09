@@ -25,3 +25,6 @@ dist-ssr
 
 .vercel
 .env*
+
+# Atualizacao de dados a partir do Power BI (logs, backups, cliente ADOMD)
+.atualizacao-bi/
