@@ -76,9 +76,10 @@ $Consultas = @(
     @{ Dax = 'fluxo_mensal.dax'; Csv = 'Fluxo_Mensal.csv' }
     @{ Dax = 'Realizado_Detalhado.dax'; Csv = 'Realizado_Detalhado.csv' }
     @{ Dax = 'compromissos_detalhados.dax'; Csv = 'compromissos_detalhados.csv' }
+    @{ Dax = 'saldo_projetos.dax'; Csv = 'Saldo_Projetos.csv' }
 )
 # Saídas geradas pelo "npm run process-data"
-$Gerados = @('carteira-processed.json', 'radar-bundle.json')
+$Gerados = @('carteira-processed.json', 'radar-bundle.json', 'saldo-projetos.json')
 
 # Arquivos do próprio processo de atualização: entram no commit junto com os dados
 # quando tiverem alteração (exceto com -SomenteDados)
@@ -93,6 +94,7 @@ $ArquivosProcesso = @(
     'public/data/fluxo_mensal.dax'
     'public/data/Realizado_Detalhado.dax'
     'public/data/compromissos_detalhados.dax'
+    'public/data/saldo_projetos.dax'
     '.gitignore'
     'package.json'
 )

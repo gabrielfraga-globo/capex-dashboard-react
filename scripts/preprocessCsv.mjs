@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseCsvCarteira, csvObjects } from "../src/lib/csvProcessingCore.ts";
+import { buildSaldoProjetosSection } from "../src/lib/saldoProjetosCore.ts";
 import { attachPaymentsSection } from "../src/features/radar/payment.ts";
 import { consolidarCompromissos } from "../process-data/consolidateCommitments.ts";
 
@@ -107,5 +108,38 @@ async function main() {
   bundle.projectActivity = Array.from(projectActivityMap.values());
   writeFileSync(RADAR_OUTPUT, `${JSON.stringify(bundle)}\n`, "utf-8");
   console.log(`[preprocessCsv] Radar OK: ${bundle.totals.keys} chaves, ${bundle.totals.rcs} RCs em ${(performance.now() - start).toFixed(1)}ms`);
+
+  // ── Saldo de projetos (opcional, aditivo) ──
+  const saldoCsv = resolve(DATA, "Saldo_Projetos.csv");
+  const saldoJson = resolve(DATA, "saldo-projetos.json");
+  if (!existsSync(saldoCsv)) {
+    if (existsSync(saldoJson)) unlinkSync(saldoJson);
+    console.info("[saldo-projetos] CSV ausente — etapa ignorada.");
+  } else {
+    try {
+      const section = buildSaldoProjetosSection({
+        csv: readFileSync(saldoCsv, "utf8"),
+        projetos: parsed.projetos,
+        generatedAt: new Date().toISOString(),
+      });
+      writeFileSync(saldoJson, JSON.stringify(section));
+      const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+      console.log(
+        `[saldo-projetos] OK: ${section.linhas.length} linhas, exercício ${section.exerciseYear}, referência ${section.dataReferencia}, potencial ${brl.format(section.totals.saldoPotencial)}, disponível ${brl.format(section.totals.saldoDisponivel)}`
+      );
+      if (!section.reconciliation.ok) {
+        for (const check of [...section.reconciliation.checks, ...section.reconciliation.warnings]) {
+          console.warn(`[saldo-projetos] reconciliação ${check.label}: saldo ${check.saldo}, carteira ${check.carteira}, delta ${check.delta}`);
+        }
+        console.warn("[saldo-projetos] yearGuard:", JSON.stringify(section.reconciliation.yearGuard));
+        for (const err of section.reconciliation.identityErrors.slice(0, 5)) {
+          console.warn("[saldo-projetos] identityError:", JSON.stringify(err));
+        }
+      }
+    } catch (e) {
+      if (existsSync(saldoJson)) unlinkSync(saldoJson);
+      console.warn("[saldo-projetos] ignorado:", e instanceof Error ? e.message : e);
+    }
+  }
 }
 main().catch((error) => { console.error("[preprocessCsv] Falha", error); process.exit(1); });
