@@ -265,3 +265,103 @@ export interface RcCurationUpsertResponse {
   written: string[];
   preserved: string[];   // filhas com curadoria própria, não sobrescritas
 }
+
+// ─────────────────────────────────────────────────────────────
+// Saldo de projetos — fonte DAX "9-Saldo Projetos", arquivo próprio
+// (public/data/saldo-projetos.json). Não altera nenhum contrato acima.
+// ─────────────────────────────────────────────────────────────
+
+/** Linha de Saldo_Projetos.csv normalizada. Grão N4×Aprovador×NomeLB×Rubrica, exercício único. */
+export interface SaldoProjetoLinha {
+  /** normalizeKey(n4)|normalizeKey(nomeLB) — igual a ProjetoBase.id */
+  projectKey: string;
+  n4: string;
+  aprovador: string | null;
+  nomeLB: string;
+  rubrica: string;
+  ano: number;
+  orcamento: number;              // Orcamento_Cenarios (BGQ3)
+  caixa: number;                  // Realizado_Conecta_Ano (pago + pendente)
+  deltaCaixa: number;             // DeltaCaixa_2026
+  compromissoTotal: number;       // Compromisso_Conecta
+  compromissoValido: number;      // Compromisso valido (RC aprovada no exercício)
+  saldoDisponivel: number;        // A emitir valido
+  ultimaDataCompromisso: string | null; // ISO yyyy-mm-dd
+  flagSaldo: boolean;             // Saldo Projeto = "✔️ Saldo"
+  saldoPotencial: number;         // Valor Saldo (0 quando BLANK)
+}
+
+/** Totais de um recorte (carteira, projeto ou rubrica). Somas simples das linhas. */
+export interface SaldoTotals {
+  orcamento: number;
+  caixa: number;
+  deltaCaixa: number;
+  compromissoTotal: number;
+  compromissoValido: number;
+  /** compromissoTotal − compromissoValido: RC aprovada antes do exercício, não abate o saldo */
+  compromissoLegado: number;
+  saldoDisponivel: number;
+  saldoPotencial: number;
+  projetos: number;               // projectKeys distintos
+  projetosComSaldo: number;       // projectKeys distintos com saldoPotencial > 0
+}
+
+/** Verificação contra a carteira oficial. */
+export interface SaldoReconcileCheck {
+  label: "orcamento" | "caixa" | "compromisso";
+  saldo: number;
+  carteira: number;
+  delta: number;
+  ok: boolean;
+}
+
+/** Linha em que o valor do BI não bate com a própria definição da medida. */
+export interface SaldoIdentityError {
+  projectKey: string;
+  rubrica: string;
+  rule: "A_EMITIR_VALIDO" | "VALOR_SALDO";
+  expected: number;
+  actual: number;
+}
+
+/** Payload completo de public/data/saldo-projetos.json. */
+export interface SaldoProjetosSection {
+  schemaVersion: 1;
+  generatedFrom: "Saldo_Projetos.csv";
+  generatedAt: string;            // ISO, run do prebuild
+  exerciseYear: number;           // Ano único da fonte
+  dataReferencia: string;         // ISO, TODAY() do modelo na extração
+  linhas: SaldoProjetoLinha[];
+  totals: SaldoTotals;
+  reconciliation: {
+    /** checks.ok && identityErrors vazio && yearGuard.ok */
+    ok: boolean;
+    checks: SaldoReconcileCheck[];          // orcamento, caixa (bloqueiam)
+    warnings: SaldoReconcileCheck[];        // compromisso (informativo)
+    identityErrors: SaldoIdentityError[];   // no máximo 20, ordenados por |expected − actual|
+    yearGuard: { ok: boolean; anosNaFonte: number[]; anoReferencia: number };
+    orphanProjects: { count: number; saldoDisponivel: number; keys: string[] };
+  };
+  discardedLines: number;
+}
+
+/** Sinal executivo por recorte (V1, determinístico, derivado só de valores do BI). */
+export type SaldoSignal =
+  | "ESTOURO_CAIXA"        // caixa do ano já passou do orçamento
+  | "SEM_ORCAMENTO"        // orçamento 0 (Filtro Saldo Projeto do BI = 0)
+  | "COMPROMETIDO_ACIMA"   // caixa + compromisso válido > orçamento
+  | "SALDO_PARADO"         // saldo potencial > 0 (regra do BI: 6 meses + R$ 50 mil)
+  | "SALDO_RESIDUAL"       // flag de saldo do BI, mas abaixo de R$ 50 mil
+  | "EM_EXECUCAO";
+
+/** Visão agregada em memória para a tela e o widget. */
+export interface SaldoRecorteView extends SaldoTotals {
+  key: string;                    // projectKey ou rubrica
+  label: string;
+  aprovador: string | null;       // só no recorte por projeto
+  ultimaDataCompromisso: string | null; // maior data entre as linhas
+  linhasComFlag: number;
+  pctCaixa: number | null;        // caixa / orcamento
+  pctSaldo: number | null;        // saldoDisponivel / orcamento
+  signal: SaldoSignal;
+}
