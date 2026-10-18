@@ -123,15 +123,78 @@ export function aggregateSaldoBy(linhas: readonly SaldoProjetoLinha[], dim: "pro
   return views.sort((a, b) => b.saldoPotencial - a.saldoPotencial || b.saldoDisponivel - a.saldoDisponivel);
 }
 
-export function buildSaldoBridge(t: SaldoTotals): SaldoBridgeStep[] {
-  return [
+/** Saldo com compromisso TOTAL (decisão D1): orçamento − caixa − compromisso total. */
+export function saldoTotalDe(t: Pick<SaldoTotals, "orcamento" | "caixa" | "compromissoTotal">): number {
+  return t.orcamento - t.caixa - t.compromissoTotal;
+}
+
+export interface PressaoFolga {
+  pressao: number;
+  projetosPressao: number;
+  maiorRubricaPressao: string | null;
+  folgaParada: number;
+  projetosParados: number;
+  cobertura: number | null;
+}
+
+export function splitPressaoFolga(
+  porProjeto: readonly SaldoRecorteView[],
+  porRubrica: readonly SaldoRecorteView[],
+): PressaoFolga {
+  const tol = SALDO_SIGNAL_TOLERANCE;
+  let pressao = 0;
+  let projetosPressao = 0;
+  let folgaParada = 0;
+  let projetosParados = 0;
+
+  for (const v of porProjeto) {
+    const total = saldoTotalDe(v);
+    if (total < -tol) {
+      pressao += -total;
+      projetosPressao += 1;
+    }
+    folgaParada += v.saldoPotencial;
+    if (v.saldoPotencial > 0) projetosParados += 1;
+  }
+
+  let maiorRubricaPressao: string | null = null;
+  let piorTotal = -tol;
+  for (const v of porRubrica) {
+    const total = saldoTotalDe(v);
+    if (total < piorTotal) {
+      piorTotal = total;
+      maiorRubricaPressao = v.key;
+    }
+  }
+
+  return {
+    pressao,
+    projetosPressao,
+    maiorRubricaPressao,
+    folgaParada,
+    projetosParados,
+    cobertura: pressao > 0 ? folgaParada / pressao : null,
+  };
+}
+
+export function buildSaldoBridge(t: SaldoTotals, opts?: { incluirLegado?: boolean }): SaldoBridgeStep[] {
+  const passos: SaldoBridgeStep[] = [
     { label: "Orçamento", value: t.orcamento, kind: "base" },
     { label: "Caixa do exercício", value: t.caixa, kind: "minus" },
     { label: "Delta de caixa", value: t.deltaCaixa, kind: "result" },
     { label: "Compromisso válido", value: t.compromissoValido, kind: "minus" },
-    { label: "Saldo disponível", value: t.saldoDisponivel, kind: "result" },
-    { label: "Saldo potencial (parado 6m+)", value: t.saldoPotencial, kind: "sub" },
+    { label: opts?.incluirLegado ? "Saldo disponível (BI)" : "Saldo disponível", value: t.saldoDisponivel, kind: "result" },
   ];
+
+  if (opts?.incluirLegado) {
+    passos.push(
+      { label: "Compromisso legado (premissa)", value: t.compromissoLegado, kind: "minus" },
+      { label: "Saldo com compromisso total", value: saldoTotalDe(t), kind: "result" },
+    );
+  }
+
+  passos.push({ label: "Saldo potencial (parado 6m+)", value: t.saldoPotencial, kind: "sub" });
+  return passos;
 }
 
 function parseYmd(iso: string): [number, number, number] {

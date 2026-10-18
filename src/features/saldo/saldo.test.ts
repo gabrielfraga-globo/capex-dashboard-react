@@ -6,6 +6,8 @@ import {
   buildSaldoBridge,
   classifySaldo,
   mesesDesde,
+  saldoTotalDe,
+  splitPressaoFolga,
   summarizeSaldo,
 } from "./saldo";
 
@@ -115,5 +117,69 @@ describe("saldo.ts", () => {
     expect(mesesDesde(null, "2026-10-17")).toBeNull();
     expect(mesesDesde("2026-01-17", "2026-10-17")).toBe(9);
     expect(mesesDesde("2026-01-18", "2026-10-17")).toBe(8);
+  });
+
+  it("saldoTotalDe = saldoDisponivel − compromissoLegado (identidade)", () => {
+    const t = summarizeSaldo([
+      mkLinha({ orcamento: 500_000, caixa: 120_000, deltaCaixa: 380_000, compromissoTotal: 150_000, compromissoValido: 90_000, saldoDisponivel: 290_000, saldoPotencial: 60_000 }),
+    ]);
+
+    expect(Math.abs(saldoTotalDe(t) - (t.saldoDisponivel - t.compromissoLegado))).toBeLessThanOrEqual(0.01);
+    expect(saldoTotalDe(t)).toBe(230_000);
+  });
+
+  it("splitPressaoFolga soma a pressão só acima da tolerância e separa a folga parada", () => {
+    const linhas = [
+      mkLinha({ projectKey: "a|a", nomeLB: "A", rubrica: "R1", orcamento: 100_000, deltaCaixa: 100_000, compromissoTotal: 105_000, compromissoValido: 0, saldoDisponivel: 100_000 }),
+      mkLinha({ projectKey: "b|b", nomeLB: "B", rubrica: "R2", orcamento: 100_000, deltaCaixa: 100_000, compromissoTotal: 100_500, compromissoValido: 0, saldoDisponivel: 100_000 }),
+      mkLinha({ projectKey: "c|c", nomeLB: "C", rubrica: "R3", orcamento: 110_000, deltaCaixa: 110_000, compromissoTotal: 100_000, compromissoValido: 0, saldoDisponivel: 110_000, saldoPotencial: 20_000 }),
+    ];
+    const r = splitPressaoFolga(aggregateSaldoBy(linhas, "projeto"), aggregateSaldoBy(linhas, "rubrica"));
+
+    expect(r.pressao).toBe(5_000);
+    expect(r.projetosPressao).toBe(1);
+    expect(r.folgaParada).toBe(20_000);
+    expect(r.projetosParados).toBe(1);
+  });
+
+  it("cobertura é null quando não há pressão e folga/pressao caso contrário", () => {
+    const semPressao = aggregateSaldoBy([
+      mkLinha({ projectKey: "c|c", orcamento: 110_000, deltaCaixa: 110_000, compromissoTotal: 100_000, saldoDisponivel: 110_000, saldoPotencial: 20_000 }),
+    ], "projeto");
+    expect(splitPressaoFolga(semPressao, []).cobertura).toBeNull();
+
+    const comPressao = aggregateSaldoBy([
+      mkLinha({ projectKey: "a|a", nomeLB: "A", orcamento: 100_000, deltaCaixa: 100_000, compromissoTotal: 110_000, saldoDisponivel: 100_000 }),
+      mkLinha({ projectKey: "c|c", nomeLB: "C", orcamento: 100_000, deltaCaixa: 100_000, compromissoTotal: 100_000, saldoDisponivel: 100_000, saldoPotencial: 30_000 }),
+    ], "projeto");
+    const r = splitPressaoFolga(comPressao, []);
+    expect(r.pressao).toBe(10_000);
+    expect(r.cobertura).toBe(r.folgaParada / r.pressao);
+    expect(r.cobertura).toBe(3);
+  });
+
+  it("maiorRubricaPressao escolhe a rubrica com saldo total mais negativo", () => {
+    const linhas = [
+      mkLinha({ projectKey: "x|x", rubrica: "Rubrica X", orcamento: 100_000, deltaCaixa: 100_000, compromissoTotal: 103_000, saldoDisponivel: 100_000 }),
+      mkLinha({ projectKey: "y|y", rubrica: "Rubrica Y", orcamento: 100_000, deltaCaixa: 100_000, compromissoTotal: 107_000, saldoDisponivel: 100_000 }),
+    ];
+    const r = splitPressaoFolga([], aggregateSaldoBy(linhas, "rubrica"));
+
+    expect(r.maiorRubricaPressao).toBe("Rubrica Y");
+    expect(splitPressaoFolga([], []).maiorRubricaPressao).toBeNull();
+  });
+
+  it("buildSaldoBridge com incluirLegado fecha em saldo com compromisso total e termina em sub", () => {
+    const t = summarizeSaldo([
+      mkLinha({ orcamento: 500_000, caixa: 120_000, deltaCaixa: 380_000, compromissoTotal: 150_000, compromissoValido: 90_000, saldoDisponivel: 290_000, saldoPotencial: 60_000 }),
+    ]);
+    const passos = buildSaldoBridge(t, { incluirLegado: true });
+    const results = passos.filter((s) => s.kind === "result");
+
+    expect(results.at(-1)?.value).toBe(saldoTotalDe(t));
+    expect(results.at(-1)?.label).toBe("Saldo com compromisso total");
+    expect(results.at(-2)?.label).toBe("Saldo disponível (BI)");
+    expect(passos.at(-1)?.kind).toBe("sub");
+    expect(buildSaldoBridge(t).find((s) => s.kind === "result" && s.label.startsWith("Saldo disponível"))?.label).toBe("Saldo disponível");
   });
 });
