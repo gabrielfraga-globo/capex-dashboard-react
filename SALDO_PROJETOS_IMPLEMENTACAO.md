@@ -7,7 +7,7 @@
 > compromisso legado desconsiderado de propósito, saldo parado da home passa ao critério do BI.
 
 Mantenha este arquivo na raiz do repositório e referencie-o com `#file:SALDO_PROJETOS_IMPLEMENTACAO.md`
-em todos os prompts do GitHub Copilot (seção 8). A consulta de extração está em `saldo projetos/saldo_projetos.dax`.
+em todos os prompts do GitHub Copilot (seção 8). A consulta de extração está em `public/data/saldo_projetos.dax`.
 
 ---
 
@@ -87,7 +87,7 @@ Pasta `9-Saldo Projetos` do modelo, já resolvida em termos de outras medidas:
 
 ### 3.1 Fonte: `public/data/Saldo_Projetos.csv`
 
-Saída de `saldo projetos/saldo_projetos.dax`, no mesmo formato dos CSVs atuais (`;`, decimal pt-BR, BOM opcional).
+Saída de `public/data/saldo_projetos.dax`, no mesmo formato dos CSVs atuais (`;`, decimal pt-BR, BOM opcional).
 
 ```
 N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;DeltaCaixa_2026;
@@ -259,7 +259,7 @@ export interface SaldoRecorteView extends SaldoTotals {
 ## 4. Ponto de acoplamento no pipeline
 
 ```
-BI ── saldo projetos/saldo_projetos.dax ──► public/data/Saldo_Projetos.csv   (novo, opcional)
+BI ── public/data/saldo_projetos.dax ──► public/data/Saldo_Projetos.csv   (novo, opcional)
 
 scripts/preprocessCsv.mjs (process-data / prebuild)
   1. parseCsvCarteira(...)        ──► carteira-processed.json  (inalterado)
@@ -276,7 +276,7 @@ scripts/preprocessCsv.mjs (process-data / prebuild)
 3. Erro de parse (coluna faltando, `Data_Referencia` vazia): loga `warn`, remove o JSON antigo e segue. Exit 0.
 4. `reconciliation.ok = false`: grava o JSON assim mesmo e loga `warn` com checks, `yearGuard` e as 5 primeiras divergências de identidade.
 5. Nenhuma linha existente do script muda. Entram só imports novos e o bloco novo.
-6. **Extração:** adicionar `saldo projetos/saldo_projetos.dax` → `public/data/Saldo_Projetos.csv` à lista de consultas de `scripts/atualizar-dados-bi.ps1`. É uma entrada nova; as existentes não mudam.
+6. **Extração:** adicionar `public/data/saldo_projetos.dax` → `public/data/Saldo_Projetos.csv` à lista de consultas de `scripts/atualizar-dados-bi.ps1`. É uma entrada nova; as existentes não mudam.
 
 **Módulo de processamento: `src/lib/saldoProjetosCore.ts`** (função pura)
 
@@ -302,7 +302,7 @@ export function buildSaldoProjetosSection(input: {
 ### 5.1 Arquivos novos
 
 ```
-saldo projetos/saldo_projetos.dax      consulta de extração (entregue junto deste documento)
+public/data/saldo_projetos.dax      consulta de extração (entregue junto deste documento)
 src/features/saldo/
 ├── saldoConfig.ts                      seção 3.2
 ├── saldo.ts                            agregação, sinal, ponte
@@ -592,7 +592,7 @@ Um prompt por sessão de chat. Faça um commit depois de cada gate verde, para c
 **Pré-requisitos (manual, antes do 1a)**
 
 1. Crie a branch `feat/saldo-projetos`.
-2. Copie `SALDO_PROJETOS_IMPLEMENTACAO.md` para a raiz do repo e `saldo_projetos.dax` para `saldo projetos/saldo_projetos.dax`.
+2. Copie `SALDO_PROJETOS_IMPLEMENTACAO.md` para a raiz do repo e `saldo_projetos.dax` para `public/data/saldo_projetos.dax`.
 3. Rode `saldo_projetos.dax` no DAX Studio (Results → File, separador `;`) e salve como `public/data/Saldo_Projetos.csv`.
 4. Confira no CSV: Σ `Valor_Saldo` = total do visual "Saldo Projetos" do BI. Se não bater, pare e me envie a diferença.
 5. Salve o baseline da carteira, ainda sem nenhuma alteração de código:
@@ -677,7 +677,7 @@ Adicione a etapa "saldo de projetos" ao FINAL de scripts/preprocessCsv.mjs, conf
      se !section.reconciliation.ok → console.warn com checks, yearGuard e as 5 primeiras identityErrors.
      catch: remove o JSON se existir e console.warn("[saldo-projetos] ignorado:", e.message).
    - nunca chama process.exit nem relança.
-4. Em scripts/atualizar-dados-bi.ps1, adicione "saldo projetos/saldo_projetos.dax" → "public/data/Saldo_Projetos.csv"
+4. Em scripts/atualizar-dados-bi.ps1, adicione "public/data/saldo_projetos.dax" → "public/data/Saldo_Projetos.csv"
    à lista de consultas, seguindo exatamente o formato das entradas existentes.
 
 Restrições: nenhuma linha existente alterada fora dos imports e da lista do .ps1. Ordem das etapas atuais preservada.
