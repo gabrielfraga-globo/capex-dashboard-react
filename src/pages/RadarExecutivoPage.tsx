@@ -23,6 +23,7 @@ import {
 import { buildOperationalRows } from "../features/radar/operational";
 import { normalizeKey } from "../lib/csvProcessingCore";
 import { ExecucaoPlanoCard } from "../components/ExecucaoPlanoCard";
+import { SaldoPotencialCard } from "../features/saldo/SaldoPotencialCard";
 import { FluxoCaixaChart } from "../components/FluxoCaixaChart";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { EstouroPanel } from "../features/radar/panels/EstouroPanel";
@@ -72,6 +73,12 @@ export function RadarExecutivoPage({
   const [filtroPrograma, setFiltroPrograma] = useState<string | null>(null);
   const [filtroRubrica, setFiltroRubrica] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+
+  const listaSaldo = useMemo(() => {
+    const base = lista.filter(p => !filtroPrograma || p.n4Curta === filtroPrograma);
+    return filtroRubrica.length ? aplicarFiltroRubrica(base, filtroRubrica) : base;
+  }, [lista, filtroPrograma, filtroRubrica]);
+  const saldoProjectKeys = useMemo(() => new Set(listaSaldo.map(p => p.id)), [listaSaldo]);
 
   const programasOptions = useMemo(() => {
     const set = new Set(lista.map(p => p.n4Curta).filter(Boolean));
@@ -273,6 +280,15 @@ export function RadarExecutivoPage({
         <KpiStat icon={<Wallet size={16} />} label="A emitir" value={fmtBRL(bgVivoSum.aEmitir, true)} context="saldo a contratar" />
         <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value={ano === 2026 ? fmtBRL(risk.totalValue, true) : "—"} tone={ano === 2026 ? "warn" : "neutral"} context={ano === 2026 ? `${risk.count} projetos` : "—"} onClick={ano === 2026 ? () => setPanel("risk") : undefined} />
       </div>
+
+      {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" && (
+        <SaldoPotencialCard
+          variant="compact"
+          projectKeys={saldoProjectKeys}
+          rubricas={filtroRubrica}
+          anoSelecionado={ano}
+        />
+      )}
 
       {/* ── Layout ─────────────────────────────────────────── */}
       <div className="grid grid-cols-[1fr_minmax(300px,360px)] gap-3 items-stretch min-h-0 flex-1">
