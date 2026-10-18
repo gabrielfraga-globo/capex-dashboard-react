@@ -1,0 +1,94 @@
+// ============================================================================
+// saldo_projetos.dax — Extração da pasta "9-Saldo Projetos" para Saldo_Projetos.csv
+// Grão: N4 × 1º Aprovador × NomeLB × Ano × Rubrica  (exercício único)
+//
+// Bloco de filtros COPIADO de Realizado.dax, mais o exercício fixo.
+// Motivo: Orcamento_Cenarios e Realizado_Conecta_Ano precisam bater por construção
+// com Realizado.csv (Orcamento_Cenarios / Realizado_Pago + Realizado_Pendente).
+//
+// ATENÇÃO — dependências de relógio no modelo:
+//   [Realizado_Conecta_Ano] e [Compromisso valido] usam YEAR(TODAY()).
+//   O ano fixado abaixo TEM de ser igual ao ano da extração; senão o realizado
+//   sai em branco. O process-data confere isso via Data_Referencia (yearGuard).
+//
+// ATENÇÃO — [Ultima Data Compromisso] e [Compromisso valido] usam
+//   USERELATIONSHIP(dCalendarioCaixa[Data_id], dRCs[DT_REQ_APROV]): o filtro de
+//   Ano abaixo passa a filtrar a DATA DE APROVAÇÃO DA RC. Com Ano = 2026, um
+//   projeto cuja última RC foi aprovada em 2025 tem Ultima Data em branco e é
+//   tratado como "Saldo". Confirmado em 18/10/2026: a página "Saldo Projetos"
+//   do BI usa slicer Ano = 2026, então este é o mesmo contexto do visual.
+// ============================================================================
+
+EVALUATE
+
+VAR vExercicio = 2026
+
+VAR Resultado =
+    SUMMARIZECOLUMNS(
+        dN4[N4],
+        dProjetos[1º Aprovador],
+        dProjetos[NomeLB],
+        dCalendarioCaixa[Ano],
+        dRubricas[Rubrica],
+
+        // Cenário
+        TREATAS( { "BGQ3" }, dCenarios[Cenários] ),
+
+        // Exercício único (não incluir 2027: Realizado_Conecta_Ano fica em branco
+        // e Compromisso valido passaria a contar RCs aprovadas em 2027)
+        FILTER(
+            ALL( dCalendarioCaixa[Ano] ),
+            dCalendarioCaixa[Ano] = vExercicio
+        ),
+
+        // Mesmo recorte de Realizado.dax
+        TREATAS( { "Plataformas De Produção" }, dN4[N3 - Copiar] ),
+        TREATAS( { "CAPEX" }, dNatureza[Natureza] ),
+        FILTER(
+            KEEPFILTERS( VALUES( fCompromisso[NovoStatus] ) ),
+            NOT( fCompromisso[NovoStatus] IN { "CANCELED", "INCOMPLETE" } )
+        ),
+        FILTER(
+            KEEPFILTERS( VALUES( dRubricas[Rubrica] ) ),
+            NOT ISBLANK( dRubricas[Rubrica] )
+        ),
+        FILTER(
+            KEEPFILTERS( VALUES( dN4[N3] ) ),
+            NOT ISBLANK( dN4[N3] )
+        ),
+        FILTER(
+            KEEPFILTERS( VALUES( dRCs[REQ_COMPRA] ) ),
+            dRCs[REQ_COMPRA] <> "RCGRJ10523844"
+        ),
+
+        // ── Medidas (nomes de coluna = SALDO_COLUMNS em saldoConfig.ts) ──
+        "Orcamento_Cenarios",      [Orcamento_Cenarios],
+        "Realizado_Conecta_Ano",   [Realizado_Conecta_Ano],
+        "DeltaCaixa_2026",         [DeltaCaixa_2026],
+        "Compromisso_Conecta",     [Compromisso_Conecta],
+        "Compromisso_Valido",      [Compromisso valido],
+        "A_Emitir_Valido",         [A emitir valido],
+        "Ultima_Data_Compromisso", [Ultima Data Compromisso],
+        "Saldo_Projeto",           [Saldo Projeto],
+        "Valor_Saldo",             [Valor Saldo]
+    )
+
+RETURN
+    ADDCOLUMNS(
+        FILTER(
+            Resultado,
+            NOT(
+                ISBLANK( [Orcamento_Cenarios] ) &&
+                ISBLANK( [Realizado_Conecta_Ano] ) &&
+                ISBLANK( [Compromisso_Conecta] ) &&
+                ISBLANK( [Compromisso_Valido] )
+            )
+        ),
+        // Data em que TODAY() foi avaliado no modelo (janela de 6 meses e ano corrente)
+        "Data_Referencia", TODAY()
+    )
+
+ORDER BY
+    dN4[N4],
+    dProjetos[NomeLB],
+    dRubricas[Rubrica]
