@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { AlertTriangle, ArrowRight } from "lucide-react";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { AlertTriangle, ArrowRight, Info } from "lucide-react";
 import { Button, Card } from "../../components/ui/primitives";
 import { fmtBRL, fmtPct } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
@@ -35,6 +36,10 @@ function textoUltimoCompromisso(meses: number | null, exercicio: number): string
   if (meses === null) return `sem compromisso aprovado em ${exercicio}`;
   return `último compromisso há ${meses} ${meses === 1 ? "mês" : "meses"}`;
 }
+
+const CRITERIO_BI_SALDO =
+  "Critério do BI (Saldo Projetos): orçamento BG Gov (BGQ3) − caixa do exercício − compromissos de RCs aprovadas no exercício. " +
+  "Difere do KPI 'A emitir', que usa BG Vivo e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
 
 /** Negativo que arredonda para zero viraria "R$ 0"; mostra "-R$ 1" para não ocultar o sinal. */
 function fmtSaldo(v: number): string {
@@ -166,7 +171,8 @@ export function SaldoPotencialCard({
   }
 
   const pctOrcamento = totals.orcamento !== 0 ? fmtPct(totals.saldoPotencial / totals.orcamento) : null;
-  const subtexto = `${pctOrcamento ? `${pctOrcamento} do orçamento · ` : ""}${totals.projetosComSaldo} projetos sem compromisso aprovado há 6+ meses`;
+  const nProjetos = totals.projetosComSaldo;
+  const subtexto = `${pctOrcamento ? `${pctOrcamento} do orçamento · ` : ""}${nProjetos} ${nProjetos === 1 ? "projeto" : "projetos"} sem compromisso aprovado há 6+ meses`;
 
   if (variant === "compact") {
     const acima = totals.saldoDisponivel < 0;
@@ -180,15 +186,35 @@ export function SaldoPotencialCard({
               <span className="text-xs text-text-faint">{subtexto}</span>
             </div>
           </div>
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-text-muted">
-            <span>Caixa {fmtBRL(totals.caixa, true)}</span>
-            <span aria-hidden="true">·</span>
-            <span>Comp. válido {fmtBRL(totals.compromissoValido, true)}</span>
-            <span aria-hidden="true">·</span>
-            <span className={acima ? "font-semibold text-risk-critico" : undefined}>
-              Saldo disponível {fmtSaldo(totals.saldoDisponivel)}{acima ? " (acima do orçamento)" : ""}
-            </span>
-          </div>
+          <TooltipPrimitive.Provider delayDuration={150}>
+            <TooltipPrimitive.Root>
+              <TooltipPrimitive.Trigger asChild>
+                <div
+                  tabIndex={0}
+                  className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 rounded-sm"
+                >
+                  <span>Caixa {fmtBRL(totals.caixa, true)}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Comp. válido {fmtBRL(totals.compromissoValido, true)}</span>
+                  <span aria-hidden="true">·</span>
+                  <span className={acima ? "font-semibold text-risk-critico" : undefined}>
+                    Saldo disponível (BG Gov)
+                    <Info size={12} aria-hidden="true" className="ml-1 inline-block align-[-2px] text-text-faint" />
+                    {" "}{fmtSaldo(totals.saldoDisponivel)}{acima ? " (acima do orçamento)" : ""}
+                  </span>
+                </div>
+              </TooltipPrimitive.Trigger>
+              <TooltipPrimitive.Portal>
+                <TooltipPrimitive.Content
+                  sideOffset={6}
+                  className="max-w-xs rounded-md border border-border bg-card-alt px-3 py-2 text-xs text-text shadow-card z-50"
+                >
+                  {CRITERIO_BI_SALDO}
+                  <TooltipPrimitive.Arrow className="fill-card-alt" />
+                </TooltipPrimitive.Content>
+              </TooltipPrimitive.Portal>
+            </TooltipPrimitive.Root>
+          </TooltipPrimitive.Provider>
           <Button type="button" variant="ghost" onClick={onOpenDetail} className="whitespace-nowrap">
             Ver risco de caixa →
           </Button>
