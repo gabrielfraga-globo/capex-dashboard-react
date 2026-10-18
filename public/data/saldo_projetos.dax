@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // saldo_projetos.dax — Extração da pasta "9-Saldo Projetos" para Saldo_Projetos.csv
 // Grão: N4 × 1º Aprovador × NomeLB × Ano × Rubrica  (exercício único)
 //
@@ -21,7 +21,7 @@
 
 EVALUATE
 
-VAR vExercicio = 2026
+VAR vExercicio = YEAR( TODAY() )
 
 VAR Resultado =
     SUMMARIZECOLUMNS(
