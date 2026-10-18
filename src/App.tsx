@@ -15,12 +15,16 @@ import { RadarExecutivoPage } from "./pages/RadarExecutivoPage";
 import { RadarPage as RadarRiscoCaixaPage } from "./features/radar/RadarPage";
 import { useCurrentPath, navigate } from "./lib/simpleRouter";
 import { AlertTriangle } from "lucide-react";
-import { SkeletonRadar } from "./components/ui/SkeletonCard";
+import { SkeletonList, SkeletonRadar } from "./components/ui/SkeletonCard";
 import { Analytics } from "@vercel/analytics/react";
 
 // Lazy: o bundle da Auditoria só é baixado quando o usuário navega para essa aba
 const AuditoriaCarteiraPage = lazy(() =>
   import("./pages/AuditoriaCarteiraPage").then((m) => ({ default: m.AuditoriaCarteiraPage }))
+);
+
+const RiscoCaixaPage = lazy(() =>
+  import("./features/saldo/RiscoCaixaPage").then((m) => ({ default: m.RiscoCaixaPage }))
 );
 
 type ViewMode = "radar" | "auditoria";
@@ -120,6 +124,14 @@ export default function App() {
   const handleSelectFromRadar = useCallback((p: ProjetoMetricas) => setSelected(p), []);
   const handleClosePanel = useCallback(() => setSelected(null), []);
 
+  if (pathname === "/risco-caixa") {
+    return (
+      <Suspense fallback={<SkeletonList />}>
+        <RiscoCaixaPage />
+      </Suspense>
+    );
+  }
+
   // /curadoria abre direto a coleta (aba Curadoria); /radar abre a Classificação Risco Empenho
   if (pathname === "/radar" || pathname === "/curadoria") {
     return <RadarRiscoCaixaPage key={pathname} initialTab={pathname === "/curadoria" ? "curadoria" : "operacional"} />;
@@ -196,6 +208,17 @@ export default function App() {
             >
               Curadoria
             </button>
+            {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" && (
+              <button
+                onClick={() => navigate("/risco-caixa")}
+                aria-current={pathname === "/risco-caixa" ? "page" : undefined}
+                className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
+                  pathname === "/risco-caixa" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
+                }`}
+              >
+                Risco de Caixa
+              </button>
+            )}
           </nav>
           <ThemeToggle />
         </div>

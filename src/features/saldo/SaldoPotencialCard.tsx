@@ -25,6 +25,8 @@ export interface SaldoPotencialCardProps {
   variant?: "compact" | "full";
   topN?: number;
   onOpenDetail?: () => void;
+  /** true = não renderiza o CTA "Ver risco de caixa →" (uso na própria página de detalhe) */
+  hideCta?: boolean;
 }
 
 function formatDiaMes(iso: string): string {
@@ -97,6 +99,7 @@ export function SaldoPotencialCard({
   variant = "compact",
   topN = 5,
   onOpenDetail = () => navigate("/risco-caixa"),
+  hideCta = false,
 }: SaldoPotencialCardProps) {
   const state = useSaldoProjetos();
   const cardClass = variant === "full" ? "mb-4" : "";
@@ -215,9 +218,11 @@ export function SaldoPotencialCard({
               </TooltipPrimitive.Portal>
             </TooltipPrimitive.Root>
           </TooltipPrimitive.Provider>
-          <Button type="button" variant="ghost" onClick={onOpenDetail} className="whitespace-nowrap">
-            Ver risco de caixa →
-          </Button>
+          {!hideCta && (
+            <Button type="button" variant="ghost" onClick={onOpenDetail} className="whitespace-nowrap">
+              Ver risco de caixa →
+            </Button>
+          )}
         </div>
       </Card>
     );
@@ -265,11 +270,13 @@ export function SaldoPotencialCard({
             </ul>
           )}
 
-          <div className="mt-3 flex justify-end">
-            <Button type="button" variant="ghost" onClick={onOpenDetail}>
-              Ver risco de caixa →
-            </Button>
-          </div>
+          {!hideCta && (
+            <div className="mt-3 flex justify-end">
+              <Button type="button" variant="ghost" onClick={onOpenDetail}>
+                Ver risco de caixa →
+              </Button>
+            </div>
+          )}
         </>
       )}
     </Card>
