@@ -1,5 +1,6 @@
 import type { ProjetoBase } from "../../types";
 import { fmtBRL } from "../../lib/format";
+import { LIMIAR_MATERIALIDADE } from "../../lib/metrics";
 import type { SaldoRecorteView, SaldoTotals } from "../radar/types";
 import { classifySaldo } from "./saldo";
 import { SALDO_SIGNAL_TOLERANCE } from "./saldoConfig";
@@ -186,9 +187,8 @@ export function buildPlurianualViews(projetos: readonly ProjetoBase[], opts: Plu
 }
 
 export function nivelEstouro(v: Pick<SaldoRecorteView, "orcamento" | "caixa" | "compromissoTotal">): NivelEstouro {
-  const tol = SALDO_SIGNAL_TOLERANCE;
-  if (v.caixa - v.orcamento > tol) return "ESTOURO_CAIXA";
-  if (v.caixa + v.compromissoTotal - v.orcamento > tol) return "COMPROMETIDO_ACIMA";
+  if (v.caixa - v.orcamento > LIMIAR_MATERIALIDADE) return "ESTOURO_CAIXA";
+  if (v.caixa + v.compromissoTotal - v.orcamento > SALDO_SIGNAL_TOLERANCE) return "COMPROMETIDO_ACIMA";
   return "OK";
 }
 

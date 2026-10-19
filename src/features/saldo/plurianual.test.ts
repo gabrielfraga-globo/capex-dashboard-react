@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProjetoBase } from "../../types";
+import { LIMIAR_MATERIALIDADE } from "../../lib/metrics";
 import type { SaldoRecorteView } from "../radar/types";
 import { SALDO_SIGNAL_TOLERANCE } from "./saldoConfig";
 import {
@@ -86,14 +87,21 @@ const TOL = SALDO_SIGNAL_TOLERANCE;
 
 describe("nivelEstouro", () => {
   it("classifica estouro de caixa, comprometido acima e OK", () => {
-    expect(nivelEstouro({ orcamento: 100_000, caixa: 150_000, compromissoTotal: 0 })).toBe("ESTOURO_CAIXA");
+    expect(nivelEstouro({ orcamento: 100_000, caixa: 250_000, compromissoTotal: 0 })).toBe("ESTOURO_CAIXA");
     expect(nivelEstouro({ orcamento: 100_000, caixa: 60_000, compromissoTotal: 60_000 })).toBe("COMPROMETIDO_ACIMA");
     expect(nivelEstouro({ orcamento: 100_000, caixa: 60_000, compromissoTotal: 20_000 })).toBe("OK");
   });
 
-  it("respeita a fronteira da tolerância (estrita: > tol)", () => {
-    expect(nivelEstouro({ orcamento: 100_000, caixa: 100_000 + TOL, compromissoTotal: 0 })).toBe("OK");
-    expect(nivelEstouro({ orcamento: 100_000, caixa: 100_000 + TOL + 1, compromissoTotal: 0 })).toBe("ESTOURO_CAIXA");
+  it("caixa 50 mil acima do orçamento é COMPROMETIDO_ACIMA, não ESTOURO_CAIXA", () => {
+    expect(nivelEstouro({ orcamento: 100_000, caixa: 150_000, compromissoTotal: 0 })).toBe("COMPROMETIDO_ACIMA");
+  });
+
+  it("estouro de caixa usa materialidade de R$ 100 mil (estrita: > limiar)", () => {
+    expect(nivelEstouro({ orcamento: 100_000, caixa: 100_000 + LIMIAR_MATERIALIDADE, compromissoTotal: 0 })).toBe("COMPROMETIDO_ACIMA");
+    expect(nivelEstouro({ orcamento: 100_000, caixa: 100_000 + LIMIAR_MATERIALIDADE + 1, compromissoTotal: 0 })).toBe("ESTOURO_CAIXA");
+  });
+
+  it("comprometido acima respeita a tolerância de sinal (estrita: > tol)", () => {
     expect(nivelEstouro({ orcamento: 100_000, caixa: 50_000, compromissoTotal: 50_000 + TOL })).toBe("OK");
     expect(nivelEstouro({ orcamento: 100_000, caixa: 50_000, compromissoTotal: 50_000 + TOL + 1 })).toBe("COMPROMETIDO_ACIMA");
   });
@@ -203,12 +211,12 @@ describe("buildPlurianualViews", () => {
 describe("resumoPlurianual e invariante do Estouro", () => {
   it("separa estouro de caixa e comprometido acima e soma a folga parada", () => {
     const views = [
-      mkView({ key: "e", orcamento: 100_000, caixa: 150_000, compromissoTotal: 0, saldoPotencial: 0 }),
+      mkView({ key: "e", orcamento: 100_000, caixa: 250_000, compromissoTotal: 0, saldoPotencial: 0 }),
       mkView({ key: "c", orcamento: 100_000, caixa: 60_000, compromissoTotal: 60_000, saldoPotencial: 10_000 }),
       mkView({ key: "o", orcamento: 100_000, caixa: 10_000, compromissoTotal: 10_000, saldoPotencial: 30_000 }),
     ];
     expect(resumoPlurianual(views)).toEqual({
-      estouroCaixa: 50_000,
+      estouroCaixa: 150_000,
       nEstouro: 1,
       comprometidoAcima: 20_000,
       nComprometido: 1,
@@ -217,23 +225,23 @@ describe("resumoPlurianual e invariante do Estouro", () => {
     });
   });
 
-  it("nEstouro == nº de projetos com (realizado+emPgto 2026+2027) − orcamentoPlurianual > tol", () => {
+  it("nEstouro == nº de projetos com (realizado+emPgto 2026+2027) − orcamentoPlurianual > R$ 100 mil", () => {
     const projetos = [
-      mkProjeto({ id: "p1|x", orcamentoPlurianual: 100_000, realizado2026: 100_000 + TOL + 1 }),
-      mkProjeto({ id: "p2|x", orcamentoPlurianual: 100_000, realizado2026: 100_000 + TOL }),
-      mkProjeto({ id: "p3|x", orcamentoPlurianual: 50_000, realizado2027: 30_000, emPagamento2027: 40_000 }),
+      mkProjeto({ id: "p1|x", orcamentoPlurianual: 100_000, realizado2026: 100_000 + LIMIAR_MATERIALIDADE + 1 }),
+      mkProjeto({ id: "p2|x", orcamentoPlurianual: 100_000, realizado2026: 100_000 + LIMIAR_MATERIALIDADE }),
+      mkProjeto({ id: "p3|x", orcamentoPlurianual: 50_000, realizado2027: 30_000, emPagamento2027: 140_000 }),
       mkProjeto({ id: "p4|x", orcamentoPlurianual: 10_000, emPagamento2026: 5_000, compromisso: 500_000 }),
       mkProjeto({ id: "p5|x", orcamentoPlurianual: 200_000, realizado2026: 20_000, emPagamento2027: 180_000 }),
+      mkProjeto({ id: "p6|x", orcamentoPlurianual: 100_000, realizado2026: 150_000 }),
     ];
     const esperado = projetos.filter((p) => {
       const exec = (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0) + (p.realizado2027 ?? 0) + (p.emPagamento2027 ?? 0);
-      return exec - (p.orcamentoPlurianual ?? 0) > TOL;
+      return exec - (p.orcamentoPlurianual ?? 0) > LIMIAR_MATERIALIDADE;
     }).length;
     const { porProjeto } = buildPlurianualViews(projetos);
     const r = resumoPlurianual(porProjeto);
-    expect(r.nEstouro).toBe(esperado);
     expect(esperado).toBe(2);
-    expect(r.nEstouro).toBe(2);
+    expect(r.nEstouro).toBe(esperado);
   });
 });
 
