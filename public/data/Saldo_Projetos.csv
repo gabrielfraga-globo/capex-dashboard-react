@@ -4,7 +4,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Aquisição Kit diretor pro Entretenimento";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Aquisição Kit diretor pro Entretenimento";2026;"MDO";114885;80161,48000000001;34723,52;27854,28;27854,28;6869,2399999999907;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Aquisição Kit diretor pro Entretenimento";2026;"RESERVA";38295;38295,28;-0,28;;;-0,27999999999883585;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Aquisição Kit diretor pro Entretenimento";2026;"SOLUÇÃO";697820,2;525086,08000000019;172734,12;159374,49000000002;159374,49000000002;13359,629999999743;2026-10-15 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Aquisição Kit diretor pro Entretenimento";2026;"SOLUÇÃO";697820,2;525086,08000000007;172734,12;159374,49000000002;159374,49000000002;13359,629999999859;2026-10-15 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Automação Hoists MG2 - Obs. Crítica e Mesa de Iluminação EST-3 SP";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Automação Hoists MG2 - Obs. Crítica e Mesa de Iluminação EST-3 SP";2026;"MDO";92704,23000000001;76748,88;15955,35;15955,35;;15955,350000000006;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Automação Hoists MG2 - Obs. Crítica e Mesa de Iluminação EST-3 SP";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -62,7 +62,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Comunicação Operacional - Obs. crítica BH, BSA e REC";2026;"INSTALAÇÃO";0;;0;62,97;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Comunicação Operacional - Obs. crítica BH, BSA e REC";2026;"MDO";77388,56;34119,47;43269,09;41026;;43269,09;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Comunicação Operacional - Obs. crítica BH, BSA e REC";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Comunicação Operacional - Obs. crítica BH, BSA e REC";2026;"SOLUÇÃO";1017674,2;765431,57;252242,63;214360,61;205500,96;46741,670000000013;2026-10-08 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Comunicação Operacional - Obs. crítica BH, BSA e REC";2026;"SOLUÇÃO";1017674,2;773653,77;244020,43;205500,96;205500,96;38519,469999999943;2026-10-08 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"(vazio)";"Comunicação Operacional (ÍON, BSA, REC)";2026;"SOLUÇÃO";;;;0;;;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Consolidação Controles 2 E 5 Jb";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Consolidação Controles 2 E 5 Jb";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -71,7 +71,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Controles JB Obsolescência – Mixer Controle 3 JB";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Controles JB Obsolescência – Mixer Controle 3 JB";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Controles JB Obsolescência – Mixer Controle 3 JB";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Controles JB Obsolescência – Mixer Controle 3 JB";2026;"SOLUÇÃO";4260703,68;4109885,3300000019;150818,35;99336,579999999987;33913,11;116905,23999999776;2026-08-04 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Controles JB Obsolescência – Mixer Controle 3 JB";2026;"SOLUÇÃO";4260703,68;4109885,3300000015;150818,35;99336,579999999987;33913,11;116905,23999999823;2026-08-04 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"";"Controles JB Obsolescência 2023";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"";"Controles JB Obsolescência 2023";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"";"Controles JB Obsolescência 2023";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -83,10 +83,10 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP BH";2026;"INSTALAÇÃO";391660;319660;72000;;;72000;;"✔️ Saldo";72000;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP BH";2026;"MDO";486841,27;321398,2;165443,07;728380,9;728380,9;-562937,83000000007;2026-09-28 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP BH";2026;"RESERVA";468007,29;379839,83;88167,46;79330,040000000008;79330,040000000008;8837,4199999999546;2026-06-22 00:00:00,000;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP BH";2026;"SOLUÇÃO";7288091,9;7717732,18;-429640,28;2144667,2300000014;2144667,2300000014;-2574307,5100000007;2026-09-28 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP BH";2026;"SOLUÇÃO";7288091,9;7717732,1800000006;-429640,28;2144667,2300000014;2144667,2300000014;-2574307,5100000016;2026-09-28 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 1 (50% Parque JB)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 1 (50% Parque JB)";2026;"MDO";209859,13;188687,37;21171,76;33469,96;;21171,760000000009;;"✔️ Saldo";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 1 (50% Parque JB)";2026;"RESERVA";9460;9459,9999999999982;0;;;1,8189894035458565E-12;;"✔️ Saldo";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 1 (50% Parque JB)";2026;"RESERVA";9460;9460;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 1 (50% Parque JB)";2026;"SOLUÇÃO";2557529,09;2795966,56;-238437,47;232210,34000000003;70582,96;-309020,43000000023;2026-09-08 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 2 de 3";2026;"INSTALAÇÃO";638330;304965,11;333364,89;333364,89;333364,89;0;2026-09-29 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Core IP JB - Fase 2 de 3";2026;"MDO";949422;861264,41999999993;88157,58;1185134,58;1185134,58;-1096977;2026-10-09 00:00:00,000;"";;2026-10-19 00:00:00,000
@@ -111,7 +111,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"daniel.vicentin@g.globo";"Fundação Roberto Marinho: Projeto GET Audiovisual";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"daniel.vicentin@g.globo";"Fundação Roberto Marinho: Projeto GET Audiovisual";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"daniel.vicentin@g.globo";"Fundação Roberto Marinho: Projeto GET Audiovisual";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"daniel.vicentin@g.globo";"Fundação Roberto Marinho: Projeto GET Audiovisual";2026;"SOLUÇÃO";0;494992,15999999992;-494992,16;;;-494992,15999999992;;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"daniel.vicentin@g.globo";"Fundação Roberto Marinho: Projeto GET Audiovisual";2026;"SOLUÇÃO";0;494992,16;-494992,16;;;-494992,16;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Georreferenciamento para o site ÍON";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Georreferenciamento para o site ÍON";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Georreferenciamento para o site ÍON";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -145,7 +145,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Inovação em C&P";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Inovação em C&P";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Inovação em C&P";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Inovação em C&P";2026;"SOLUÇÃO";1701844,25;318989,00999999995;1382855,24;665016,4800000001;644260,28;738594,96;2026-10-15 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Inovação em C&P";2026;"SOLUÇÃO";1701844,25;318989,00999999989;1382855,24;696259,2300000001;675503,03;707352,2100000002;2026-10-15 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Kit de externa internacional";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Kit de externa internacional";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Kit de externa internacional";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -167,7 +167,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Monitor Wall G5, Multiviewer CTL2 SP, COT CPP EG e Monitoração de Audio JB";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Monitor Wall G5, Multiviewer CTL2 SP, COT CPP EG e Monitoração de Audio JB";2026;"MDO";27068,84;20256,88;6811,96;6811,96;;6811,9599999999991;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Monitor Wall G5, Multiviewer CTL2 SP, COT CPP EG e Monitoração de Audio JB";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Monitor Wall G5, Multiviewer CTL2 SP, COT CPP EG e Monitoração de Audio JB";2026;"SOLUÇÃO";1229818,3599999999;1311428,4099999997;-81610,05;1794388,6700000002;1760943,8000000003;-1842553,85;2026-10-06 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Monitor Wall G5, Multiviewer CTL2 SP, COT CPP EG e Monitoração de Audio JB";2026;"SOLUÇÃO";1229818,3599999999;1311428,4099999997;-81610,05;1794388,6700000004;1760943,8000000005;-1842553,8500000003;2026-10-06 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Monitor Wall EG";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Monitor Wall EG";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Monitor Wall EG";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -187,7 +187,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BH";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BH";2026;"MDO";36085;11053,8;25031,2;;;25031,2;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BH";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BH";2026;"SOLUÇÃO";111048;;111048;123895,76999999999;123895,76999999999;-12847,76999999999;2026-10-16 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BH";2026;"SOLUÇÃO";111048;;111048;123895,77;123895,77;-12847,770000000004;2026-10-16 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BSA";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BSA";2026;"MDO";36085;36085;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Monitoração e Contribuição G5 - Skype BSA";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -213,7 +213,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.octavio@g.globo";"MVP da Orquestração do Produção Central";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.octavio@g.globo";"MVP da Orquestração do Produção Central";2026;"SOLUÇÃO";724314,25;419338,10000000003;304976,15;371583,74;355571,43000000005;-50595,280000000086;2026-10-05 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Novo Cenário BDBR";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Novo Cenário BDBR";2026;"MDO";102240,00000000001;77840,510000000009;24399,49;24399,49;24399,49;3,637978807091713E-12;2026-04-23 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Novo Cenário BDBR";2026;"MDO";102240,00000000001;77840,51;24399,49;24399,49;24399,49;1,8189894035458565E-11;2026-04-23 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Novo Cenário BDBR";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Novo Cenário BDBR";2026;"SOLUÇÃO";520360,79000000004;627606,31;-107245,52;2100;2100;-109345,52000000002;2026-03-11 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obs Comunicação Operacional - BH";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -227,22 +227,22 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obs Comunicação Operacional - SP";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obs Comunicação Operacional - SP";2026;"MDO";76583;76583;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obs Comunicação Operacional - SP";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obs Comunicação Operacional - SP";2026;"SOLUÇÃO";1202928;;1202928;1116454,29;1116454,29;86473,709999999963;2026-10-07 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obs Comunicação Operacional - SP";2026;"SOLUÇÃO";1202928;;1202928;1116454,2900000003;1116454,2900000003;86473,70999999973;2026-10-07 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BH -  Fase 2";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BH -  Fase 2";2026;"MDO";95004;;95004;46543,7;46543,7;48460,3;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BH -  Fase 2";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BH -  Fase 2";2026;"SOLUÇÃO";432795,61;185141,49000000002;247654,12;160785,89;160785,89;86868,229999999952;2026-10-09 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BH -  Fase 2";2026;"SOLUÇÃO";432795,61;185141,49;247654,12;209359,21000000002;209359,21000000002;38294,909999999974;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BSA - Fase 2";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BSA - Fase 2";2026;"MDO";95004;27036,520000000004;67967,48;67967,48;67967,48;0;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BSA - Fase 2";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BSA - Fase 2";2026;"SOLUÇÃO";432795,67;360821,93999999994;71973,73;47325,89;47325,89;24647,84000000004;2026-10-08 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras de Externa BSA - Fase 2";2026;"SOLUÇÃO";432795,67;360821,94;71973,73;47325,89;47325,89;24647,839999999982;2026-10-08 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"";"Obs. Crítica Câmeras Ion - CAMBOX Estúdio A";2026;"SOLUÇÃO";;;;68529,93;68529,93;-68529,93;2026-10-01 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras Ion - CAMBOX Estúdio C";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras Ion - CAMBOX Estúdio C";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras Ion - CAMBOX Estúdio C";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras Ion - CAMBOX Estúdio C";2026;"SOLUÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Câmeras PTZs";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Câmeras PTZs";2026;"MDO";274050;230503,53;43546,47;45087,02;45087,02;-1540,5499999999956;2026-09-29 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Câmeras PTZs";2026;"MDO";274050;230503,53000000003;43546,47;45087,02;45087,02;-1540,5500000000247;2026-09-29 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Câmeras PTZs";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Câmeras PTZs";2026;"SOLUÇÃO";1665999,77;577241,63000000024;1088758,14;1206782,87;1206782,87;-118024,73000000045;2026-09-22 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Câmeras Super Slow";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -284,7 +284,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Robôs ION";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Robôs ION";2026;"MDO";156600;154336,08000000002;2263,92;2263,92;2263,92;-1,6370904631912708E-11;2026-04-23 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Robôs ION";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Robôs ION";2026;"SOLUÇÃO";713400;14472,79;698927,21;;;698927,21;;"✔️ Saldo";698927,21;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Robôs ION";2026;"SOLUÇÃO";713400;14472,79;698927,21;335477,82;335477,82;363449,38999999996;2026-09-30 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Sistema de Trânsito REC";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Sistema de Trânsito REC";2026;"MDO";20880;20879,4;0,6;;;0,59999999999854481;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica Sistema de Trânsito REC";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -299,14 +299,14 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obs. Crítica TP BH";2026;"SOLUÇÃO";95120;37029,15;58090,85;;;58090,85;;"✔️ Saldo";58090,85;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Tripes EG";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Tripes EG";2026;"MDO";383580;250001,91999999998;133578,08;222892,71;222892,71;-89314,629999999976;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Tripes EG";2026;"RESERVA";0;39517,719999999987;-39517,72;;;-39517,719999999987;;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Tripes EG";2026;"RESERVA";0;39517,72;-39517,72;;;-39517,72;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obs. Crítica Tripes EG";2026;"SOLUÇÃO";1747420;60014,28;1687405,72;1616756,8099999998;1616756,8099999998;70648,910000000149;2026-10-09 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Audio Mixer - Linha de Show";2026;"MDO";;;;0;;;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Audio Mixer - Linha de Show";2026;"SOLUÇÃO";;;;0;;;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Microfone Sem fio e Paineis de Comunicação";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Microfone Sem fio e Paineis de Comunicação";2026;"MDO";7272,91;3766,4;3506,51;3506,51;;3506,5099999999998;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Microfone Sem fio e Paineis de Comunicação";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Microfone Sem fio e Paineis de Comunicação";2026;"SOLUÇÃO";2202349,83;1223632,6200000003;978717,21;881699,02;874898,99000000011;103818,21999999962;2026-10-13 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência - Microfone Sem fio e Paineis de Comunicação";2026;"SOLUÇÃO";2202349,83;1223632,6200000003;978717,21;881699,02;874898,99;103818,21999999974;2026-10-13 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescencia - Mixer Fantastico";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescencia - Mixer Fantastico";2026;"MDO";103000,5;70700,86;32299,64;121400,14;121400,14;-89100,5;2026-04-30 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescencia - Mixer Fantastico";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -329,7 +329,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Crítica Sist. Áudio - JB, SP e MG-2";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Crítica Sist. Áudio - JB, SP e MG-2";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Crítica Sist. Áudio - JB, SP e MG-2";2026;"RESERVA";81,69;;81,69;81,69;;81,69;;"✔️ Saldo";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Crítica Sist. Áudio - JB, SP e MG-2";2026;"SOLUÇÃO";120895,82;60665,159999999989;60230,66;164519,09999999998;;60230,660000000018;;"✔️ Saldo";60230,660000000018;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Crítica Sist. Áudio - JB, SP e MG-2";2026;"SOLUÇÃO";120895,82;60665,159999999996;60230,66;164519,09999999998;;60230,660000000011;;"✔️ Saldo";60230,660000000011;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescencia Gravadores Multipista MG1";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescencia Gravadores Multipista MG1";2026;"MDO";123000;45262,22;77737,78;71270,74;71270,74;6467,0399999999936;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescencia Gravadores Multipista MG1";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -359,7 +359,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Microfones - PRJ";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Microfones - PRJ";2026;"MDO";63957;;63957;61343,99;61343,99;2613,010000000002;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Microfones - PRJ";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Microfones - PRJ";2026;"SOLUÇÃO";416769,47;410057,77000000008;6711,7;72107,91;72107,91;-65396,210000000108;2026-05-19 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"roberta.mesquita@g.globo";"Obsolescência Microfones - PRJ";2026;"SOLUÇÃO";416769,47;410057,77;6711,7;72107,91;72107,91;-65396,21000000005;2026-05-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Obsolescência Troca do filtro do glass";2026;"SOLUÇÃO";;;;2,5;;;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obsolescência UPPs Dramaturgia (2023)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Obsolescência UPPs Dramaturgia (2023)";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -372,7 +372,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BH";2026;"INSTALAÇÃO";2387440;2102290,25;285149,75;285149,75;285149,75;0;2026-03-30 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BH";2026;"MDO";857510,06;814390,17999999993;43119,88;1003401,8200000001;1003401,8200000001;-960281,94;2026-09-28 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BH";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BH";2026;"SOLUÇÃO";13731966,13;8901851,7599999979;4830114,37;4331615,049999998;4331615,049999998;498499,32000000495;2026-10-16 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BH";2026;"SOLUÇÃO";13731966,13;8903021,9099999983;4828944,22;4332530,6899999995;4332530,6899999995;496413,53000000305;2026-10-16 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BSA - Obs. Controle 1 BSA";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BSA - Obs. Controle 1 BSA";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Plataforma de Controles BSA - Obs. Controle 1 BSA";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -380,7 +380,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles JB - Controle 3";2026;"INSTALAÇÃO";348634,45;402476,72;-53842,27;219049,28;219049,28;-272891,54999999993;2026-03-31 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles JB - Controle 3";2026;"MDO";0;;0;250000;250000;-250000;2026-09-28 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles JB - Controle 3";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles JB - Controle 3";2026;"SOLUÇÃO";2558041,0100000002;81,34;2557959,67;7040534,22;7040534,22;-4482574,5499999989;2026-10-07 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles JB - Controle 3";2026;"SOLUÇÃO";2558041,0100000002;81,34;2557959,67;7040534,2200000007;7040534,2200000007;-4482574,5500000007;2026-10-07 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles RJ - Obs. Controle 3 ION";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles RJ - Obs. Controle 3 ION";2026;"MDO";13008,86;13008,86;0;0;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Plataforma de Controles RJ - Obs. Controle 3 ION";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -414,7 +414,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Roadmap Controles - Obsolescência Multiviewer";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Roadmap Controles - Obsolescência Multiviewer";2026;"MDO";315;;315;315,09;;315;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Roadmap Controles - Obsolescência Multiviewer";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Roadmap Controles - Obsolescência Multiviewer";2026;"SOLUÇÃO";486807,76;486392,47000000003;415,29;105172,48999999999;93233,89;-92818,60000000002;2026-03-26 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"rodrigo.ogura@g.globo";"Roadmap Controles - Obsolescência Multiviewer";2026;"SOLUÇÃO";486807,76;486392,47;415,29;105172,48999999999;93233,89;-92818,599999999962;2026-03-26 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap de Câmeras - Dramaturgia - Fase 3";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap de Câmeras - Dramaturgia - Fase 3";2026;"MDO";14119;14119;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap de Câmeras - Dramaturgia - Fase 3";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -427,7 +427,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Roadmap de Iluminação - Carros de Iluminação EG";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Roadmap de Iluminação - Carros de Iluminação EG";2026;"MDO";309193,76;297230,44999999995;11963,31;10278,8;;11963,310000000056;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Roadmap de Iluminação - Carros de Iluminação EG";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Roadmap de Iluminação - Carros de Iluminação EG";2026;"SOLUÇÃO";369631,55;454680,0400000001;-85048,49;0,87;0,87;-85049,3600000001;2026-09-24 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Roadmap de Iluminação - Carros de Iluminação EG";2026;"SOLUÇÃO";369631,55;454680,0400000001;-85048,49;1685,3799999999999;1685,3799999999999;-86733,870000000112;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap de Iluminação - Obsolescência";2026;"INSTALAÇÃO";0;;0;0;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap de Iluminação - Obsolescência";2026;"MDO";3802,6200000000003;3802,6200000000003;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap de Iluminação - Obsolescência";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -439,7 +439,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap Estudio Rede 4k - Cameras SP";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap Estudio Rede 4k - Cameras SP";2026;"MDO";373291,63;250000;123291,63;0;0;123291,63;2026-05-07 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap Estudio Rede 4k - Cameras SP";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap Estudio Rede 4k - Cameras SP";2026;"SOLUÇÃO";2808708;1125506,3800000001;1683201,62;1602075,1600000001;1602075,1600000001;81126,45999999973;2026-07-27 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Roadmap Estudio Rede 4k - Cameras SP";2026;"SOLUÇÃO";2808708;1125506,3800000004;1683201,62;1602075,1600000001;1602075,1600000001;81126,4599999995;2026-07-27 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Roadmap Instant Replay - Obsolescência";2026;"INSTALAÇÃO";0;;0;0;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Roadmap Instant Replay - Obsolescência";2026;"MDO";1017;;1017;5241,9800000000014;;1017;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"victor.chagas@g.globo";"Roadmap Instant Replay - Obsolescência";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -447,7 +447,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Estabilização de Câmera";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Estabilização de Câmera";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Estabilização de Câmera";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Estabilização de Câmera";2026;"SOLUÇÃO";130000;102456,76;27543,24;500;500;27043,240000000005;2026-04-28 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Estabilização de Câmera";2026;"SOLUÇÃO";130000;102456,75999999998;27543,24;500;500;27043,24000000002;2026-04-28 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Movimentação BSA - Obs. Crítica";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Movimentação BSA - Obs. Crítica";2026;"MDO";35992;34337,61;1654,39;1654,39;;1654,3899999999994;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"fparisi@g.globo";"Sistema de Movimentação BSA - Obs. Crítica";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -455,7 +455,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Sistemas de TP - Obs. crítica BSA";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Sistemas de TP - Obs. crítica BSA";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Sistemas de TP - Obs. crítica BSA";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Sistemas de TP - Obs. crítica BSA";2026;"SOLUÇÃO";635208;;635208;492935,52999999997;492935,52999999997;142272,47000000003;2026-07-20 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE CAPTAÇÃO E PRODUÇÃO";"arthurnsantos@g.globo";"Sistemas de TP - Obs. crítica BSA";2026;"SOLUÇÃO";635208;;635208;500059,56999999995;500059,56999999995;135148,43000000005;2026-10-01 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Solução All In One";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Solução All In One";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE CAPTAÇÃO E PRODUÇÃO";"diogo.silva@g.globo";"Solução All In One";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -500,7 +500,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE METADADOS E MÍDIAS";"caio.guedes@g.globo";"Globo Mídia - Integrações com Plataformas de Mídias e Dados e Evolução do UniCo";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE METADADOS E MÍDIAS";"caio.guedes@g.globo";"Globo Mídia - Integrações com Plataformas de Mídias e Dados e Evolução do UniCo";2026;"MDO";370501,78;370501,77999999997;0;51096,28;37792,859999999993;-37792,859999999935;2026-04-30 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE METADADOS E MÍDIAS";"caio.guedes@g.globo";"Globo Mídia - Integrações com Plataformas de Mídias e Dados e Evolução do UniCo";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE METADADOS E MÍDIAS";"caio.guedes@g.globo";"Globo Mídia - Integrações com Plataformas de Mídias e Dados e Evolução do UniCo";2026;"SOLUÇÃO";2253406,36;1453712,4999999998;799693,86;314403,74;314403,74;485290,12000000011;2026-10-09 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE METADADOS E MÍDIAS";"caio.guedes@g.globo";"Globo Mídia - Integrações com Plataformas de Mídias e Dados e Evolução do UniCo";2026;"SOLUÇÃO";2253406,36;1453712,5;799693,86;445513,74000000005;445513,74000000005;354180,11999999982;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE METADADOS E MÍDIAS";"marcio.rocha@g.globo";"Migração dos Sistemas legados do Acervo EG";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE METADADOS E MÍDIAS";"marcio.rocha@g.globo";"Migração dos Sistemas legados do Acervo EG";2026;"MDO";113339;65335,42;48003,58;48003,58;48003,58;0;2026-04-30 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE METADADOS E MÍDIAS";"marcio.rocha@g.globo";"Migração dos Sistemas legados do Acervo EG";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -557,7 +557,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (33) - EG";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (33) - EG";2026;"MDO";656516,31;638248,51;18267,8;18267,49;18267,49;0,31000000004496542;2026-04-27 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (33) - EG";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (33) - EG";2026;"SOLUÇÃO";0;;0;2052943,87;2052943,87;-2052943,87;2026-08-10 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (33) - EG";2026;"SOLUÇÃO";0;;0;2247227,5100000002;2247227,5100000002;-2247227,5100000002;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (7) - SP";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (7) - SP";2026;"MDO";131303,34;129565,04999999999;1738,29;1737,95;1737,95;0,3400000000081036;2026-04-28 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Estações Design (7) - SP";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -573,7 +573,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"GC 4K JB - CTL 3";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"GC 4K JB - CTL 3";2026;"MDO";402226,55999999994;399828,35999999993;2398,2;2398,64;2398,64;-0,43999999998823114;2026-04-27 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"GC 4K JB - CTL 3";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"GC 4K JB - CTL 3";2026;"SOLUÇÃO";1832364,69;1637857,7;194506,99;215890,19;215890,19;-21383,200000000012;2026-08-24 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"GC 4K JB - CTL 3";2026;"SOLUÇÃO";1832364,69;1637857,7;194506,99;215890,18999999997;215890,18999999997;-21383,199999999983;2026-08-24 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"lai@g.globo";"Grafismo Virtual - Sistemas de Tracking";2026;"SOLUÇÃO";;;;0,01;;;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de colorização EG (1 de 4)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de colorização EG (1 de 4)";2026;"MDO";146095,8;146376,43;-280,63;53,26;;-280,63000000000466;;"";;2026-10-19 00:00:00,000
@@ -582,7 +582,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição (42)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição (42)";2026;"MDO";582818,33000000007;558747,85;24070,48;19632,059999999998;;24070,480000000098;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição (42)";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição (42)";2026;"SOLUÇÃO";5770627,6899999995;3509226,23;2261401,46;886286,59;825072,57;1436328,8899999997;2026-10-15 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição (42)";2026;"SOLUÇÃO";5770627,6899999995;3509226,23;2261401,46;906236,59;845022,57;1416378,8899999997;2026-10-15 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição G5";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição G5";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Ilhas de Edição G5";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -606,15 +606,15 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obs. Ingest Live Ion - Fase 2";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obs. Ingest Live Ion - Fase 2";2026;"MDO";307034,39999999997;256885,54;50148,86;31617,78;28057,18;22091,679999999957;2026-08-14 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obs. Ingest Live Ion - Fase 2";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obs. Ingest Live Ion - Fase 2";2026;"SOLUÇÃO";1356363,29;1096367,29;259996;115745,31;115745,31;144250,69;2026-10-01 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obs. Ingest Live Ion - Fase 2";2026;"SOLUÇÃO";1356363,29;1096367,2899999998;259996;115745,31;115745,31;144250,69000000024;2026-10-01 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obs. VDI (1 cluster de 3 - 12 ilhas)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obs. VDI (1 cluster de 3 - 12 ilhas)";2026;"MDO";107261,19;107252,63;8,56;8,56;;8,5599999999976717;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obs. VDI (1 cluster de 3 - 12 ilhas)";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obs. VDI (1 cluster de 3 - 12 ilhas)";2026;"SOLUÇÃO";1487081,62;;1487081,62;1403703,34;1403703,34;83378,280000000028;2026-10-05 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obs. VDI (1 cluster de 3 - 12 ilhas)";2026;"SOLUÇÃO";1487081,62;;1487081,62;1407896,73;1407896,73;79184,89000000013;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obsolescência - BBB Página em Branco - Fase 3";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obsolescência - BBB Página em Branco - Fase 3";2026;"MDO";19095,8;19095,8;0;12360;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obsolescência - BBB Página em Branco - Fase 3";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obsolescência - BBB Página em Branco - Fase 3";2026;"SOLUÇÃO";313575,4;296738,39999999997;16837;16836,379999999997;;16837,000000000058;;"✔️ Saldo";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"rodrigo.freitas@g.globo";"Obsolescência - BBB Página em Branco - Fase 3";2026;"SOLUÇÃO";313575,4;296738,4;16837;16836,379999999997;;16837;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Obsolescência - Composição Flame";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Obsolescência - Composição Flame";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Obsolescência - Composição Flame";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -658,7 +658,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Central de Foley";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Central de Foley";2026;"MDO";305985;208201,07;97783,93;45905,93;45905,93;51877,999999999993;2026-09-03 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Central de Foley";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Central de Foley";2026;"SOLUÇÃO";647301,58;234614,65999999997;412686,92;65458,039999999994;65458,039999999994;347228,88;2026-08-28 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Central de Foley";2026;"SOLUÇÃO";647301,58;234614,65999999997;412686,92;117476,27;117476,27;295210,64999999997;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Obsolescência Cliplayer (4) - JB";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Obsolescência Cliplayer (4) - JB";2026;"MDO";195983;195982,8;0,2;0,2;0,2;1,1641521080463235E-11;2026-04-27 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Obsolescência Cliplayer (4) - JB";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -674,7 +674,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Colorgrading (x3) - EG";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Colorgrading (x3) - EG";2026;"MDO";354463;184492;169971;169971;169971;0;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Colorgrading (x3) - EG";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Colorgrading (x3) - EG";2026;"SOLUÇÃO";721536,83;;721536,83;706665,21000000008;706665,21000000008;14871,619999999879;2026-06-30 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Colorgrading (x3) - EG";2026;"SOLUÇÃO";721536,83;;721536,83;706665,21;706665,21;14871,619999999995;2026-06-30 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Obsolescência Composição (2023)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Obsolescência Composição (2023)";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Obsolescência Composição (2023)";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -682,15 +682,15 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ilhas de Edição 2023";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ilhas de Edição 2023";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ilhas de Edição 2023";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ilhas de Edição 2023";2026;"SOLUÇÃO";137873,54;137873,53;0,01;37015,24;;0,010000000009313226;;"✔️ Saldo";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ilhas de Edição 2023";2026;"SOLUÇÃO";137873,54;137873,53;0,01;37015,240000000005;;0,010000000009313226;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ingest Live SP - Fase 1";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ingest Live SP - Fase 1";2026;"MDO";277792;103450,31;174341,69;174341,69;174341,69;0;2026-08-27 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ingest Live SP - Fase 1";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ingest Live SP - Fase 1";2026;"SOLUÇÃO";1441061;883289,64;557771,36;557771,44;557771,44;-0,079999999958090484;2026-05-26 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência Ingest Live SP - Fase 1";2026;"SOLUÇÃO";1441061;883289,64;557771,36;557771,44000000006;557771,44000000006;-0,0800000000745058;2026-05-26 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência MAM Vizrt 2023";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência MAM Vizrt 2023";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência MAM Vizrt 2023";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência MAM Vizrt 2023";2026;"SOLUÇÃO";54846,619999999995;53823,819999999956;1022,8;8373,49;;1022,8000000000393;;"✔️ Saldo";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Obsolescência MAM Vizrt 2023";2026;"SOLUÇÃO";54846,619999999995;53823,819999999934;1022,8;8373,49;;1022,8000000000611;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Obsolescência Produção Virtual Jornalismo & Esporte - RJ e SP";2026;"INSTALAÇÃO";0;;0;0;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Obsolescência Produção Virtual Jornalismo & Esporte - RJ e SP";2026;"MDO";462809,57999999996;428043,08999999991;34766,49;5486,21;1719,72;33046,770000000048;2026-08-14 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Obsolescência Produção Virtual Jornalismo & Esporte - RJ e SP";2026;"RESERVA";26536;;26536;46226,59;19690,59;6845,41;2026-08-04 00:00:00,000;"";;2026-10-19 00:00:00,000
@@ -729,8 +729,8 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"priscila.david@g.globo";"PAM do Futuro - Revisão dos MAMs";2026;"SOLUÇÃO";13903;;13903;;;13903;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Pool de Trascoding ION & EG (Amberfin)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Pool de Trascoding ION & EG (Amberfin)";2026;"MDO";374747,51;329585,47;45162,04;45162,36;;45162,040000000037;;"✔️ Saldo";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Pool de Trascoding ION & EG (Amberfin)";2026;"RESERVA";23379,5;23379,500000000004;0;0;;-3,637978807091713E-12;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Pool de Trascoding ION & EG (Amberfin)";2026;"SOLUÇÃO";682420,36;78271,3;604149,06;536357,80999999994;534484,48;69664,579999999958;2026-10-06 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Pool de Trascoding ION & EG (Amberfin)";2026;"RESERVA";23379,5;23379,499999999996;0;0;;3,637978807091713E-12;;"✔️ Saldo";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Pool de Trascoding ION & EG (Amberfin)";2026;"SOLUÇÃO";682420,36;78271,299999999988;604149,06;536357,80999999994;534484,48;69664,580000000075;2026-10-06 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Pool GC Vizrt ION (Fase 2)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Pool GC Vizrt ION (Fase 2)";2026;"MDO";272823,89;109963,81;162860,08;140036,19;140036,19;22823,890000000014;2026-04-27 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Pool GC Vizrt ION (Fase 2)";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -746,7 +746,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Renders VFX (35)";2026;"INSTALAÇÃO";0;;0;0;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Renders VFX (35)";2026;"MDO";379593,12;345392,97000000003;34200,15;34200,15;20783,51;13416,639999999967;2026-09-25 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Renders VFX (35)";2026;"RESERVA";0;;0;0,01;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Renders VFX (35)";2026;"SOLUÇÃO";1512847;1512823,5599999998;23,44;;;23,440000000176951;;"✔️ Saldo";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Renders VFX (35)";2026;"SOLUÇÃO";1512847;1512823,56;23,44;;;23,439999999944121;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Roadmap de GCs";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Roadmap de GCs";2026;"MDO";4221,47;4221,47;0;1121,47;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"geonis.teixeira@g.globo";"Roadmap de GCs";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -754,7 +754,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"lai@g.globo";"Roadmap Playout Controles - SP/JB/BSA";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"lai@g.globo";"Roadmap Playout Controles - SP/JB/BSA";2026;"MDO";169795,22;193185,40999999997;-23390,19;0;;-23390,189999999973;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"lai@g.globo";"Roadmap Playout Controles - SP/JB/BSA";2026;"RESERVA";46761,11;46761,11;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"lai@g.globo";"Roadmap Playout Controles - SP/JB/BSA";2026;"SOLUÇÃO";692161,46;127931,17000000001;564230,29;368314,39;360953,98000000004;203276,30999999988;2026-09-21 00:00:00,000;"";;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"lai@g.globo";"Roadmap Playout Controles - SP/JB/BSA";2026;"SOLUÇÃO";692161,46;127931,17000000001;564230,29;368314,39;360953,98;203276,30999999994;2026-09-21 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Telas e touch - EG, SP e ION";2026;"INSTALAÇÃO";0;;0;6943,36;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Telas e touch - EG, SP e ION";2026;"MDO";103977,11;76538,11;27439;27439;27439;0;2026-03-11 00:00:00,000;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"julia.maia.rodrigues@g.globo";"Telas e touch - EG, SP e ION";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -766,7 +766,7 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Workflow 4K Light (sites: JB, ÍON & SP)";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Workflow 4K Light (sites: JB, ÍON & SP)";2026;"MDO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Workflow 4K Light (sites: JB, ÍON & SP)";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Workflow 4K Light (sites: JB, ÍON & SP)";2026;"SOLUÇÃO";93092,08;-34804,83;127896,91;;;127896,91;;"✔️ Saldo";127896,91;2026-10-19 00:00:00,000
+"PLAT. DE PÓS-PROD. E DESIGN";"renan.reis@g.globo";"Workflow 4K Light (sites: JB, ÍON & SP)";2026;"SOLUÇÃO";93092,08;-34804,829999999994;127896,91;;;127896,91;;"✔️ Saldo";127896,91;2026-10-19 00:00:00,000
 "PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move AWS to GCP - Newshub e SCOUT";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move AWS to GCP - Newshub e SCOUT";2026;"MDO";16065,35;16065,35;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move AWS to GCP - Newshub e SCOUT";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
@@ -774,4 +774,4 @@ N4;1º Aprovador;NomeLB;Ano;Rubrica;Orcamento_Cenarios;Realizado_Conecta_Ano;Del
 "PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move to cloud e Resgate / upload dos assets do Acervo da Produção Artística";2026;"INSTALAÇÃO";0;;0;;;0;;"";;2026-10-19 00:00:00,000
 "PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move to cloud e Resgate / upload dos assets do Acervo da Produção Artística";2026;"MDO";6490,48;;6490,48;;;6490,48;;"✔️ Saldo";;2026-10-19 00:00:00,000
 "PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move to cloud e Resgate / upload dos assets do Acervo da Produção Artística";2026;"RESERVA";0;;0;;;0;;"";;2026-10-19 00:00:00,000
-"PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move to cloud e Resgate / upload dos assets do Acervo da Produção Artística";2026;"SOLUÇÃO";101580;108135,27;-6555,27;;;-6555,2700000000041;;"";;2026-10-19 00:00:00,000
+"PLATAFORMA DE PRÉ-PRODUÇÃO";"leonardo.cabral@g.globo";"Move to cloud e Resgate / upload dos assets do Acervo da Produção Artística";2026;"SOLUÇÃO";101580;108135,27;-6555,27;6490,48;6490,48;-13045,750000000004;2026-10-19 00:00:00,000;"";;2026-10-19 00:00:00,000
