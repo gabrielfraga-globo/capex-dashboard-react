@@ -1,17 +1,20 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import { navigate } from "../../lib/simpleRouter";
 import { usePortfolioData } from "../../hooks/usePortfolioData";
 import { useSaldoProjetos } from "./useSaldoProjetos";
 import { Button, Card } from "../../components/ui/primitives";
 import { Select } from "../../components/ui/select";
 import { SkeletonList } from "../../components/ui/SkeletonCard";
+import { Collapsible } from "../executivo/Collapsible";
+import { buildNarrativaRisco } from "../executivo/narrativa";
 import { SaldoBridge } from "./SaldoBridge";
-import { SaldoPotencialCard } from "./SaldoPotencialCard";
-import { RubricaRiskPanel } from "./RubricaRiskPanel";
 import { ProjetoSaldoTable } from "./ProjetoSaldoTable";
 import { SaldoAuditPanel } from "./SaldoAuditPanel";
-import { aggregateSaldoBy, filterSaldoLinhas, summarizeSaldo } from "./saldo";
+import { RiscoKpis } from "./RiscoKpis";
+import { RubricaChips } from "./RubricaChips";
+import { OndeAgirList, type MetaProjeto } from "./OndeAgirList";
+import { aggregateSaldoBy, filterSaldoLinhas, saldoTotalDe, splitPressaoFolga, summarizeSaldo, ultimaDataParadaPorProjeto } from "./saldo";
 import type { SaldoProjetoLinha, SaldoProjetosSection } from "../radar/types";
 
 function formatarDataBR(iso: string): string {
@@ -27,6 +30,9 @@ export function RiscoCaixaPage() {
   const [rubricas, setRubricas] = useState<string[]>([]);
   const [aprovador, setAprovador] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [todosAberto, setTodosAberto] = useState(false);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const todosRef = useRef<HTMLDivElement>(null);
 
   const section: SaldoProjetosSection | null = state.status === "ready" ? state.section : null;
   const projetos = useMemo(() => parsed?.projetos ?? [], [parsed]);
@@ -89,6 +95,28 @@ export function RiscoCaixaPage() {
   const totals = useMemo(() => summarizeSaldo(linhas), [linhas]);
   const viewsRubrica = useMemo(() => aggregateSaldoBy(linhas, "rubrica"), [linhas]);
   const viewsProjeto = useMemo(() => aggregateSaldoBy(linhas, "projeto"), [linhas]);
+
+  const linhasSemRubrica = useMemo(
+    () => filterSaldoLinhas(linhasBase, { projectKeys, aprovador: aprovador ?? undefined, busca }),
+    [linhasBase, projectKeys, aprovador, busca],
+  );
+  const viewsRubricaChips = useMemo(() => aggregateSaldoBy(linhasSemRubrica, "rubrica"), [linhasSemRubrica]);
+  const pf = useMemo(() => splitPressaoFolga(viewsProjeto, viewsRubrica), [viewsProjeto, viewsRubrica]);
+  const filtrosSecundarios = rubricas.length + (aprovador ? 1 : 0) + (busca.trim() !== "" ? 1 : 0);
+  const tituloMaisFiltros =
+    filtrosSecundarios > 0 ? `Mais filtros (${filtrosSecundarios} ativo${filtrosSecundarios > 1 ? "s" : ""})` : "Mais filtros";
+
+  const ultimaParada = useMemo(() => ultimaDataParadaPorProjeto(linhas), [linhas]);
+  const metaParado = useMemo(() => {
+    const m = new Map<string, MetaProjeto>();
+    for (const [key, p] of meta) m.set(key, { ...p, ultimaDataParada: ultimaParada.get(key) ?? null });
+    return m;
+  }, [meta, ultimaParada]);
+
+  function abrirTodosProjetos() {
+    setTodosAberto(true);
+    requestAnimationFrame(() => todosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 
   const linhasPorProjeto = useMemo(() => {
     const m = new Map<string, SaldoProjetoLinha[]>();
@@ -166,73 +194,84 @@ export function RiscoCaixaPage() {
 
     corpo = (
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          <div className="lg:col-span-8">
-            <SaldoBridge totals={totals} exerciseYear={state.section.exerciseYear} hidden={!ok} />
-          </div>
-          <div className="lg:col-span-4">
-            {ok ? (
-              <SaldoPotencialCard variant="full" projectKeys={projectKeys} rubricas={rubricasFiltro} hideCta />
-            ) : (
-              <Card>
-                <div className="text-sm text-risk-critico">
-                  Saldo potencial oculto: a conciliação com a carteira não confere.
+        <Card>
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-2">
+              <label className="flex flex-col gap-1 text-xs text-text-muted">
+                Programa
+                <Select value={programa} onValueChange={setPrograma} options={programaOptions} placeholder="Todos os programas" />
+              </label>
+              <button
+                type="button"
+                aria-expanded={filtrosAbertos}
+                aria-controls="filtros-secundarios"
+                onClick={() => setFiltrosAbertos((v) => !v)}
+                className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-card px-3 text-left text-sm font-semibold text-text transition-colors hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+              >
+                {filtrosAbertos ? (
+                  <ChevronDown size={16} aria-hidden="true" className="shrink-0 text-text-muted" />
+                ) : (
+                  <ChevronRight size={16} aria-hidden="true" className="shrink-0 text-text-muted" />
+                )}
+                {tituloMaisFiltros}
+              </button>
+            </div>
+            {filtrosAbertos && (
+              <div id="filtros-secundarios" className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <label className="flex flex-col gap-1 text-xs text-text-muted">
+                    Rubricas
+                    <Select
+                      value={null}
+                      onValueChange={(v) => {
+                        if (v) alternarRubrica(v);
+                      }}
+                      options={rubricaOptions}
+                      placeholder={rubricas.length > 0 ? `${rubricas.length} selecionada(s)` : "Todas as rubricas"}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-text-muted">
+                    Aprovador
+                    <Select value={aprovador} onValueChange={setAprovador} options={aprovadorOptions} placeholder="Todos os aprovadores" />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-text-muted">
+                    Busca
+                    <input
+                      type="search"
+                      value={busca}
+                      onChange={(e) => setBusca(e.target.value)}
+                      placeholder="Projeto, LB ou rubrica"
+                      className="rounded-md border border-border bg-card px-3 py-2 text-sm text-text placeholder:text-text-faint"
+                    />
+                  </label>
                 </div>
-              </Card>
+                {rubricas.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {rubricas.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => alternarRubrica(r)}
+                        aria-label={`Remover rubrica ${r}`}
+                        className="rounded-full border border-border px-2 py-0.5 text-text hover:bg-card-alt"
+                      >
+                        {r} ×
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        </div>
-
-        <Card>
-          <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-4">
-            <label className="flex flex-col gap-1 text-xs text-text-muted">
-              Programa
-              <Select value={programa} onValueChange={setPrograma} options={programaOptions} placeholder="Todos os programas" />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-text-muted">
-              Rubricas
-              <Select
-                value={null}
-                onValueChange={(v) => {
-                  if (v) alternarRubrica(v);
-                }}
-                options={rubricaOptions}
-                placeholder={rubricas.length > 0 ? `${rubricas.length} selecionada(s)` : "Todas as rubricas"}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-text-muted">
-              Aprovador
-              <Select value={aprovador} onValueChange={setAprovador} options={aprovadorOptions} placeholder="Todos os aprovadores" />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-text-muted">
-              Busca
-              <input
-                type="search"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Projeto, LB ou rubrica"
-                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-text placeholder:text-text-faint"
-              />
-            </label>
-          </div>
-          {rubricas.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              {rubricas.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => alternarRubrica(r)}
-                  aria-label={`Remover rubrica ${r}`}
-                  className="rounded-full border border-border px-2 py-0.5 text-text hover:bg-card-alt"
-                >
-                  {r} ×
-                </button>
-              ))}
-            </div>
-          )}
         </Card>
 
-        {linhas.length === 0 ? (
+        {!ok ? (
+          <Card>
+            <div className="text-sm text-risk-critico">
+              Saldo potencial oculto: a conciliação com a carteira não confere.
+            </div>
+          </Card>
+        ) : linhas.length === 0 ? (
           <Card>
             <div className="flex flex-col items-start gap-3">
               <p className="text-sm text-text-muted">Nenhum projeto corresponde aos filtros selecionados.</p>
@@ -242,19 +281,43 @@ export function RiscoCaixaPage() {
             </div>
           </Card>
         ) : (
-          <>
-            <RubricaRiskPanel views={viewsRubrica} selected={rubricas} onToggle={alternarRubrica} />
-            <ProjetoSaldoTable
-              views={viewsProjeto}
-              linhasPorProjeto={linhasPorProjeto}
-              meta={meta}
-              dataReferencia={state.section.dataReferencia}
-              exerciseYear={state.section.exerciseYear}
-            />
-          </>
+          <div className="flex flex-col gap-4">
+            <p className="text-lg text-text">{buildNarrativaRisco(pf)}</p>
+            <RiscoKpis pf={pf} saldoLiquido={saldoTotalDe(totals)} />
+          </div>
         )}
 
-        <SaldoAuditPanel section={state.section} projetos={projetos} />
+        <RubricaChips views={viewsRubricaChips} selected={rubricas} onToggle={alternarRubrica} />
+
+        <OndeAgirList
+          porProjeto={viewsProjeto}
+          meta={metaParado}
+          dataReferencia={state.section.dataReferencia}
+          exerciseYear={state.section.exerciseYear}
+          onVerTodos={abrirTodosProjetos}
+        />
+
+        <Collapsible title="Como chegamos nesse número">
+          <SaldoBridge totals={totals} exerciseYear={state.section.exerciseYear} hidden={!ok} incluirLegado />
+        </Collapsible>
+
+        <div ref={todosRef}>
+          <Collapsible title="Todos os projetos" open={todosAberto} onOpenChange={setTodosAberto}>
+            {linhas.length === 0 ? null : (
+              <ProjetoSaldoTable
+                views={viewsProjeto}
+                linhasPorProjeto={linhasPorProjeto}
+                meta={meta}
+                dataReferencia={state.section.dataReferencia}
+                exerciseYear={state.section.exerciseYear}
+              />
+            )}
+          </Collapsible>
+        </div>
+
+        <Collapsible title="Auditoria">
+          <SaldoAuditPanel section={state.section} projetos={projetos} />
+        </Collapsible>
       </div>
     );
   }

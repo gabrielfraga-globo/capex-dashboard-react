@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
 import type { SaldoIdentityError, SaldoProjetosSection, SaldoReconcileCheck } from "../radar/types";
 import type { ProjetoBase } from "../../types";
-import { Button, Card } from "../../components/ui/primitives";
+import { Card } from "../../components/ui/primitives";
 import { fmtBRL } from "../../lib/format";
 
 const TOP_N = 10;
@@ -53,8 +52,6 @@ export interface SaldoAuditPanelProps {
 }
 
 export function SaldoAuditPanel({ section, projetos }: SaldoAuditPanelProps) {
-  const [aberto, setAberto] = useState(false);
-
   const topDivergencias = useMemo(() => {
     const oficialPorProjeto = new Map<string, number>();
     for (const l of section.linhas) {
@@ -76,21 +73,7 @@ export function SaldoAuditPanel({ section, projetos }: SaldoAuditPanelProps) {
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Auditoria da fonte</div>
-        <Button
-          variant="outline"
-          aria-expanded={aberto}
-          onClick={() => setAberto((v) => !v)}
-          className="inline-flex items-center gap-1 px-2 py-1 text-xs"
-        >
-          {aberto ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
-          Auditoria
-        </Button>
-      </div>
-
-      {aberto && (
-        <div className="mt-4 flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
           <div className="text-xs text-text-muted">
             Ano de referência {rec.yearGuard.anoReferencia} · anos na fonte: {rec.yearGuard.anosNaFonte.join(", ") || "—"} ·{" "}
             <span className={rec.yearGuard.ok ? "text-risk-baixo" : "text-risk-critico"}>
@@ -153,8 +136,7 @@ export function SaldoAuditPanel({ section, projetos }: SaldoAuditPanelProps) {
               A diferença esperada é próxima do compromisso legado (premissa).
             </p>
           </div>
-        </div>
-      )}
+      </div>
     </Card>
   );
 }

@@ -20,7 +20,17 @@ const ROTULO: Record<string, string> = {
   Orçamento: "Orçamento (BG Gov)",
 };
 
-export function SaldoBridge({ totals, exerciseYear, hidden = false }: { totals: SaldoTotals; exerciseYear: number; hidden?: boolean }) {
+export function SaldoBridge({
+  totals,
+  exerciseYear,
+  hidden = false,
+  incluirLegado = false,
+}: {
+  totals: SaldoTotals;
+  exerciseYear: number;
+  hidden?: boolean;
+  incluirLegado?: boolean;
+}) {
   if (hidden) {
     return (
       <Card>
@@ -32,9 +42,9 @@ export function SaldoBridge({ totals, exerciseYear, hidden = false }: { totals: 
     );
   }
 
-  const passos = buildSaldoBridge(totals);
+  const passos = buildSaldoBridge(totals, { incluirLegado });
   const orcamento = totals.orcamento;
-  const premissaVisivel = totals.compromissoLegado >= SALDO_LEGADO_MATERIAL;
+  const premissaVisivel = !incluirLegado && totals.compromissoLegado >= SALDO_LEGADO_MATERIAL;
 
   return (
     <Card>

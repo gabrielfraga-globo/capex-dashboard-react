@@ -7,9 +7,14 @@ import { mesesDesde, saldoTotalDe } from "./saldo";
 
 type Aba = "acima" | "parado";
 
+export interface MetaProjeto {
+  n4Curta: string;
+  ultimaDataParada?: string | null;
+}
+
 interface OndeAgirListProps {
   porProjeto: SaldoRecorteView[];
-  meta: Map<string, { n4Curta: string }>;
+  meta: Map<string, MetaProjeto>;
   dataReferencia: string;
   exerciseYear: number;
   limit?: number;
@@ -131,7 +136,7 @@ function AbaButton({
   );
 }
 
-function ProjetoCelula({ v, meta }: { v: SaldoRecorteView; meta: Map<string, { n4Curta: string }> }) {
+function ProjetoCelula({ v, meta }: { v: SaldoRecorteView; meta: Map<string, MetaProjeto> }) {
   const programa = meta.get(v.key)?.n4Curta;
   return (
     <>
@@ -141,7 +146,7 @@ function ProjetoCelula({ v, meta }: { v: SaldoRecorteView; meta: Map<string, { n
   );
 }
 
-function LinhaAcima({ v, meta }: { v: SaldoRecorteView; meta: Map<string, { n4Curta: string }> }) {
+function LinhaAcima({ v, meta }: { v: SaldoRecorteView; meta: Map<string, MetaProjeto> }) {
   const total = saldoTotalDe(v);
   const comprometido = v.caixa + v.compromissoTotal;
   const situacao =
@@ -170,11 +175,13 @@ function LinhaParada({
   exerciseYear,
 }: {
   v: SaldoRecorteView;
-  meta: Map<string, { n4Curta: string }>;
+  meta: Map<string, MetaProjeto>;
   dataReferencia: string;
   exerciseYear: number;
 }) {
-  const meses = mesesDesde(v.ultimaDataCompromisso, dataReferencia);
+  const metaProjeto = meta.get(v.key);
+  const dataParada = metaProjeto && "ultimaDataParada" in metaProjeto ? metaProjeto.ultimaDataParada : v.ultimaDataCompromisso;
+  const meses = mesesDesde(dataParada ?? null, dataReferencia);
   const tempo =
     meses === null
       ? `sem compromisso aprovado em ${exerciseYear}`

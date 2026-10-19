@@ -5,8 +5,10 @@ import type { PressaoFolga } from "./saldo";
 
 const plural = (n: number): string => `${n} ${n === 1 ? "projeto" : "projetos"}`;
 
-export function RiscoKpis({ pf }: { pf: PressaoFolga }) {
+export function RiscoKpis({ pf, saldoLiquido }: { pf: PressaoFolga; saldoLiquido?: number }) {
   const temPressao = pf.pressao > 0;
+  const liquidoTxt =
+    saldoLiquido === undefined ? null : `${saldoLiquido < 0 ? "−" : "+"}${fmtBRL(Math.abs(saldoLiquido), true)}`;
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -25,6 +27,9 @@ export function RiscoKpis({ pf }: { pf: PressaoFolga }) {
               {plural(pf.projetosPressao)}
               {pf.maiorRubricaPressao ? ` · maior: ${pf.maiorRubricaPressao}` : ""}
             </div>
+            {liquidoTxt !== null && (
+              <div className="text-[11px] text-text-faint">líquido da carteira: {liquidoTxt} após folgas de outros projetos</div>
+            )}
           </>
         ) : (
           <div className="mt-1 text-xs text-text-muted">Nenhum projeto acima do orçamento</div>

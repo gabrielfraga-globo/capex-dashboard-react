@@ -7,6 +7,7 @@ import {
   classifySaldo,
   mesesDesde,
   saldoTotalDe,
+  ultimaDataParadaPorProjeto,
   splitPressaoFolga,
   summarizeSaldo,
 } from "./saldo";
@@ -181,5 +182,25 @@ describe("saldo.ts", () => {
     expect(results.at(-2)?.label).toBe("Saldo disponível (BI)");
     expect(passos.at(-1)?.kind).toBe("sub");
     expect(buildSaldoBridge(t).find((s) => s.kind === "result" && s.label.startsWith("Saldo disponível"))?.label).toBe("Saldo disponível");
+  });
+
+  it("ultimaDataParadaPorProjeto ignora linhas sem saldo parado e devolve null quando o parado não tem data", () => {
+    const linhas = [
+      mkLinha({ projectKey: "p|p", rubrica: "A", ultimaDataCompromisso: "2026-01-10", saldoPotencial: 0 }),
+      mkLinha({ projectKey: "p|p", rubrica: "B", ultimaDataCompromisso: null, saldoPotencial: 100_000 }),
+    ];
+    const m = ultimaDataParadaPorProjeto(linhas);
+
+    expect(m.get("p|p")).toBeNull();
+  });
+
+  it("ultimaDataParadaPorProjeto usa a maior data entre as linhas com saldo parado", () => {
+    const linhas = [
+      mkLinha({ projectKey: "p|p", rubrica: "A", ultimaDataCompromisso: "2026-01-10", saldoPotencial: 0 }),
+      mkLinha({ projectKey: "p|p", rubrica: "B", ultimaDataCompromisso: "2025-09-10", saldoPotencial: 100_000 }),
+    ];
+    const m = ultimaDataParadaPorProjeto(linhas);
+
+    expect(m.get("p|p")).toBe("2025-09-10");
   });
 });

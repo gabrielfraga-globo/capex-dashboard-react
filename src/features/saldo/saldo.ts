@@ -123,6 +123,18 @@ export function aggregateSaldoBy(linhas: readonly SaldoProjetoLinha[], dim: "pro
   return views.sort((a, b) => b.saldoPotencial - a.saldoPotencial || b.saldoDisponivel - a.saldoDisponivel);
 }
 
+/** Maior data de compromisso considerando só linhas com saldo parado (saldoPotencial > 0); null se nenhuma tiver data. */
+export function ultimaDataParadaPorProjeto(linhas: readonly SaldoProjetoLinha[]): Map<string, string | null> {
+  const out = new Map<string, string | null>();
+  for (const l of linhas) {
+    if (!(l.saldoPotencial > 0)) continue;
+    const atual = out.get(l.projectKey) ?? null;
+    const candidata = l.ultimaDataCompromisso;
+    out.set(l.projectKey, candidata && (atual === null || candidata > atual) ? candidata : atual);
+  }
+  return out;
+}
+
 /** Saldo com compromisso TOTAL (decisão D1): orçamento − caixa − compromisso total. */
 export function saldoTotalDe(t: Pick<SaldoTotals, "orcamento" | "caixa" | "compromissoTotal">): number {
   return t.orcamento - t.caixa - t.compromissoTotal;
