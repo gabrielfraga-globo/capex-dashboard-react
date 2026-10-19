@@ -228,7 +228,7 @@ export function RadarExecutivoPage({
   );
 
   return (
-    <div className="flex flex-col gap-3 max-h-[calc(100vh-10.75rem)] overflow-hidden">
+    <div className="flex flex-col gap-3 max-h-[calc(100vh-10.75rem)] overflow-y-auto">
       
       {/* ── Cabeçalho com ano e filtros ───────────────────────── */}
       <div className="flex items-center justify-between shrink-0 mb-1">
@@ -357,12 +357,8 @@ export function RadarExecutivoPage({
       {/* ── Layout ─────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 min-h-0 flex-1">
         
-        {/* Execução e Fluxo em largura total; Análise de risco abaixo */}
+        {/* Fluxo, Execução e Análise de risco em largura total, nesta ordem */}
         <div className="flex flex-col gap-3 min-w-0">
-          <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
-            <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
-          </SectionCard>
-
           <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 flex-1 min-h-[220px]">
             <div className="flex items-center justify-between shrink-0 mb-1">
               <div className="flex items-center gap-3">
@@ -413,9 +409,13 @@ export function RadarExecutivoPage({
               </div>
             )}
           </div>
+
+          <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
+            <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
+          </SectionCard>
         </div>
 
-        {/* Análise de risco: largura total, abaixo do Fluxo */}
+        {/* Análise de risco: largura total, abaixo da Execução do Plano */}
         <div className="flex flex-col min-w-0 relative [&>*]:flex-1">
           <AnaliseRiscoPanel 
              lista={listaAno26} 

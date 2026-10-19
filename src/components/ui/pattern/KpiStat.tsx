@@ -21,14 +21,10 @@ export function KpiStat({ icon, label, value, context, tone = "neutral", onClick
     crit: { text: "text-crit", icon: "text-crit" },
   }[tone];
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!isClickable}
-      title={title}
-      className={`flex-1 min-w-0 flex flex-col justify-start gap-1 px-4 py-3 rounded-card border border-border bg-card text-left transition-colors h-full ${isClickable ? "hover:border-accent/60 cursor-pointer" : "cursor-default"}`}
-    >
+  const className = `flex-1 min-w-0 flex flex-col justify-start gap-1 px-4 py-3 rounded-card border border-border bg-card text-left transition-colors h-full ${isClickable ? "hover:border-accent/60 cursor-pointer" : "cursor-default"}`;
+
+  const content = (
+    <>
       <div className="flex items-center gap-2">
         <span className={`shrink-0 ${colors.icon}`}>{icon}</span>
         <span className="text-[12px] font-semibold text-text-muted leading-snug">{label}</span>
@@ -39,6 +35,40 @@ export function KpiStat({ icon, label, value, context, tone = "neutral", onClick
       {context && (
         <div className="text-[11px] text-text-faint leading-tight mt-1">{context}</div>
       )}
-    </button>
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <button type="button" disabled title={title} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  // Ações aninhadas (ex.: ⓘ do InfoTooltip) são <button>; não disparam o cartão.
+  const isFromNestedButton = (target: EventTarget, current: EventTarget) =>
+    (target as HTMLElement).closest("button") !== null && target !== current;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      title={title}
+      onClick={(e) => {
+        if (isFromNestedButton(e.target, e.currentTarget)) return;
+        onClick();
+      }}
+      onKeyDown={(e) => {
+        if (isFromNestedButton(e.target, e.currentTarget)) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`${className} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+    >
+      {content}
+    </div>
   );
 }
