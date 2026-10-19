@@ -127,3 +127,12 @@ table tbody tr:hover td { background: var(--color-card-alt); }
   white-space: normal;
   background: var(--color-card);
 }
+
+/* FlipCard (components/ui/FlipCard.tsx): rotação 3D só com motion permitido */
+.flip-perspective { perspective: 1200px; }
+.flip-stage { transform-style: preserve-3d; }
+.flip-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .flip-stage[data-flipped="true"] { transform: rotateY(180deg); }
+  .flip-face-back { transform: rotateY(180deg); }
+}
