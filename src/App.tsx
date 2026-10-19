@@ -17,6 +17,7 @@ import { useCurrentPath, navigate } from "./lib/simpleRouter";
 import { AlertTriangle } from "lucide-react";
 import { SkeletonList, SkeletonRadar } from "./components/ui/SkeletonCard";
 import { Analytics } from "@vercel/analytics/react";
+import { LABELS } from "./config/labels";
 
 // Lazy: o bundle da Auditoria só é baixado quando o usuário navega para essa aba
 const AuditoriaCarteiraPage = lazy(() =>
@@ -216,7 +217,7 @@ export default function App() {
                   pathname === "/risco-caixa" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
                 }`}
               >
-                Risco de Caixa
+                {LABELS.riscoCaixaNav}
               </button>
             )}
           </nav>

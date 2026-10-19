@@ -18,6 +18,7 @@ import { SaldoBridge } from "./SaldoBridge";
 import { ProjetoSaldoTable } from "./ProjetoSaldoTable";
 import { SaldoAuditPanel } from "./SaldoAuditPanel";
 import { RiscoKpis } from "./RiscoKpis";
+import { LABELS } from "../../config/labels";
 import { RiscoKpisPlurianual } from "./RiscoKpisPlurianual";
 import { buildNarrativaPlurianual, buildPlurianualViews, resumoPlurianual, rubricasPlurianuaisDoProjeto } from "./plurianual";
 import { RubricaChips } from "./RubricaChips";
@@ -208,7 +209,7 @@ export function RiscoCaixaPage() {
             <ArrowLeft size={16} aria-hidden="true" />
             Voltar
           </Button>
-          <h1 className="text-xl font-semibold text-text">Risco de Caixa &amp; Rubricas</h1>
+          <h1 className="text-xl font-semibold text-text">{LABELS.riscoCaixaTitulo}</h1>
           <div className="flex items-center gap-2">
             {(["plurianual", "2026"] as const).map((op) => (
               <button

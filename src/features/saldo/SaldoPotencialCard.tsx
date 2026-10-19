@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, Info } from "lucide-react";
 import { Button, Card } from "../../components/ui/primitives";
 import { fmtBRL, fmtPct } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
+import { LABELS } from "../../config/labels";
 import type { SaldoRecorteView } from "../radar/types";
 import { useSaldoProjetos } from "./useSaldoProjetos";
 import { SALDO_LEGADO_MATERIAL } from "./saldoConfig";
@@ -135,7 +136,7 @@ export function SaldoPotencialCard({
 
   const header = (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Saldo potencial dos projetos</div>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{LABELS.saldoParadoCard}</div>
       <div className="text-[11px] text-text-faint">
         Exercício {exerciseYear} · ref. {formatDiaMes(dataReferencia)}
       </div>
@@ -183,7 +184,7 @@ export function SaldoPotencialCard({
       <Card className={cardClass}>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div className="min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Saldo potencial dos projetos</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{LABELS.saldoParadoCard}</div>
             <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
               <span className="text-xl font-extrabold leading-none text-text">{fmtBRL(totals.saldoPotencial, true)}</span>
               <span className="text-xs text-text-faint">{subtexto}</span>
