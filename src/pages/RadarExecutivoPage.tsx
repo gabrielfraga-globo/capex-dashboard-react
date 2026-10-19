@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import {
-  FolderKanban, Wallet, ShieldAlert, Gauge, Filter
+  FolderKanban, Wallet, ShieldAlert, Gauge, Filter, CheckCircle2
 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
@@ -30,6 +30,7 @@ import { EstouroPanel } from "../features/radar/panels/EstouroPanel";
 import { BalancesPanel } from "../features/radar/panels/BalancesPanel";
 import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
+import { InfoTooltip } from "../components/ui/primitives";
 import { SectionCard } from "../components/ui/pattern/SectionCard";
 import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
 import { Select } from "../components/ui/select";
@@ -161,13 +162,14 @@ export function RadarExecutivoPage({
     });
     
     const bgVivoSum = buildBgVivo(listaAno, opRows, ano);
+    const compromisso27 = buildBgVivo(listaAno, opRows, 2027).emitido;
 
     const flow = buildFlowSummary(listaAno);
 
     return {
       bgSistemico, totalRealizado, totalEmPagamento, prov26, provRisco, prov27,
       balanceSummary, projectBalances, risk, bridge, bottleneck,
-      flow, listaAno, listaAno26, bgVivoSum
+      flow, listaAno, listaAno26, bgVivoSum, compromisso27
     };
   }, [bundle, curationMap, lista, dataBase, ano, filtroPrograma, filtroRubrica]);
 
@@ -191,7 +193,7 @@ export function RadarExecutivoPage({
   const {
     balanceSummary, risk, bridge, flow,
     projectBalances,
-    listaAno, listaAno26, bgVivoSum
+    listaAno, listaAno26, bgVivoSum, compromisso27
   } = computed;
 
   return (
@@ -260,6 +262,34 @@ export function RadarExecutivoPage({
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
 
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
+        {ano === 2026 ? (
+          <>
+            <KpiStat
+              icon={<FolderKanban size={16} />}
+              label="BG Gov 26"
+              value={fmtBRL(bgVivoSum.bgGov, true)}
+              context={`BG Vivo ${fmtBRL(bgVivoSum.bgVivo, true)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtBRL(bgVivoSum.diferencaVsGov, true)})`}
+            />
+            <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(bgVivoSum.realizado, true)} context="pago no exercício" />
+            <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(bgVivoSum.emPagamento, true)} context="etapa E7" />
+            <KpiStat icon={<Wallet size={16} />} label="Compromisso 26" value={fmtBRL(bgVivoSum.emitido, true)} context="emitido na carteira" />
+            <KpiStat icon={<Wallet size={16} />} label="Compromisso 27" value={fmtBRL(compromisso27, true)} context="RCs com caixa previsto em 2027" />
+            <KpiStat
+              icon={<ShieldAlert size={16} />}
+              label="Em risco"
+              value={fmtBRL(risk.totalValue, true)}
+              tone="warn"
+              context={
+                <span className="inline-flex items-center gap-1">
+                  {`${risk.count} projetos`}
+                  <InfoTooltip text="Parte do Compromisso 26 que pode não virar caixa em 2026: RCs em etapas iniciais (E1–E3), atrasadas na E4 ou com previsão marcada como incerta na Curadoria. Clique para ver os projetos." />
+                </span>
+              }
+              onClick={() => setPanel("risk")}
+            />
+          </>
+        ) : (
+          <>
         <KpiStat icon={<FolderKanban size={16} />} label={`BG Gov ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.bgGov, true)} context="orçamento aprovado" />
         
         <KpiStat
@@ -275,10 +305,12 @@ export function RadarExecutivoPage({
           }
         />
         
-        <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={ano === 2026 ? fmtBRL(bgVivoSum.emPagamento, true) : "—"} context={ano === 2026 ? "etapa E7" : "—"} />
+        <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value="—" context="—" />
         <KpiStat icon={<Wallet size={16} />} label={`Compromisso ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.emitido, true)} context="emitido na carteira" />
         <KpiStat icon={<Wallet size={16} />} label="A emitir" value={fmtBRL(bgVivoSum.aEmitir, true)} context="saldo a contratar" />
-        <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value={ano === 2026 ? fmtBRL(risk.totalValue, true) : "—"} tone={ano === 2026 ? "warn" : "neutral"} context={ano === 2026 ? `${risk.count} projetos` : "—"} onClick={ano === 2026 ? () => setPanel("risk") : undefined} />
+        <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value="—" tone="neutral" context="—" />
+          </>
+        )}
       </div>
 
       {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" && (
