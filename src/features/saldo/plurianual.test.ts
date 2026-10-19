@@ -8,6 +8,7 @@ import {
   buildPlurianualViews,
   nivelEstouro,
   resumoPlurianual,
+  rubricasPlurianuaisDoProjeto,
 } from "./plurianual";
 
 type RubricaEntry = ProjetoBase["porRubrica"][string];
@@ -104,6 +105,61 @@ describe("nivelEstouro", () => {
   it("comprometido acima respeita a tolerância de sinal (estrita: > tol)", () => {
     expect(nivelEstouro({ orcamento: 100_000, caixa: 50_000, compromissoTotal: 50_000 + TOL })).toBe("OK");
     expect(nivelEstouro({ orcamento: 100_000, caixa: 50_000, compromissoTotal: 50_000 + TOL + 1 })).toBe("COMPROMETIDO_ACIMA");
+  });
+});
+
+describe("rubricasPlurianuaisDoProjeto", () => {
+  const consistente = mkProjeto({
+    id: "c|lb c",
+    nome: "LB C",
+    orcamentoPlurianual: 1_000_000,
+    realizado2026: 150_000,
+    emPagamento2026: 20_000,
+    realizado2027: 300_000,
+    emPagamento2027: 30_000,
+    compromisso: 200_000,
+    porRubrica: {
+      R1: mkRubrica({ orcamento2026: 400_000, orcamento2027: 100_000, realizado2026: 100_000, emPagamento2026: 20_000, realizado2027: 300_000, emPagamento2027: 0, compromisso: 200_000 }),
+      R2: mkRubrica({ orcamento2026: 500_000, orcamento2027: 0, realizado2026: 50_000, emPagamento2027: 30_000 }),
+    },
+  });
+
+  it("uma view por rubrica, com orçamento 2026+2027 e caixa dos 2 anos", () => {
+    const views = rubricasPlurianuaisDoProjeto(consistente);
+    expect(views.map((v) => v.label).sort()).toEqual(["R1", "R2"]);
+    const r1 = views.find((v) => v.label === "R1")!;
+    expect(r1.orcamento).toBe(500_000);
+    expect(r1.caixa).toBe(420_000);
+    expect(r1.compromissoTotal).toBe(200_000);
+    expect(r1.saldoDisponivel).toBe(500_000 - 420_000 - 200_000);
+  });
+
+  it("sem filtro, a soma das rubricas é igual à view do projeto", () => {
+    const [proj] = buildPlurianualViews([consistente]).porProjeto;
+    const soma = rubricasPlurianuaisDoProjeto(consistente).reduce(
+      (acc, v) => ({
+        orcamento: acc.orcamento + v.orcamento,
+        caixa: acc.caixa + v.caixa,
+        compromisso: acc.compromisso + v.compromissoTotal,
+      }),
+      { orcamento: 0, caixa: 0, compromisso: 0 },
+    );
+    expect(soma.orcamento).toBe(proj.orcamento);
+    expect(soma.caixa).toBe(proj.caixa);
+    expect(soma.compromisso).toBe(proj.compromissoTotal);
+  });
+
+  it("com filtro de rubricas, retorna só as selecionadas e soma igual à view filtrada", () => {
+    const filtradas = rubricasPlurianuaisDoProjeto(consistente, ["R2"]);
+    expect(filtradas.map((v) => v.label)).toEqual(["R2"]);
+    const [proj] = buildPlurianualViews([consistente], { rubricas: ["R2"] }).porProjeto;
+    expect(filtradas[0].orcamento).toBe(proj.orcamento);
+    expect(filtradas[0].caixa).toBe(proj.caixa);
+    expect(filtradas[0].compromissoTotal).toBe(proj.compromissoTotal);
+  });
+
+  it("projeto sem porRubrica retorna lista vazia", () => {
+    expect(rubricasPlurianuaisDoProjeto(mkProjeto({ porRubrica: {} }))).toEqual([]);
   });
 });
 

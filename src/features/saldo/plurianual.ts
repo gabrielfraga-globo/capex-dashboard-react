@@ -126,6 +126,16 @@ function montarView(
   };
 }
 
+export function rubricasPlurianuaisDoProjeto(p: ProjetoBase, rubricas?: string[]): SaldoRecorteView[] {
+  const filtro = rubricas && rubricas.length > 0 ? new Set(rubricas) : null;
+  const views: SaldoRecorteView[] = [];
+  for (const [rub, e] of Object.entries(p.porRubrica)) {
+    if (filtro && !filtro.has(rub)) continue;
+    views.push(montarView(`${p.id}|${rub}`, rub, p.aprovador, valoresDeRubrica(e), 1, undefined));
+  }
+  return views.sort((a, b) => b.orcamento - a.orcamento || a.label.localeCompare(b.label, "pt-BR"));
+}
+
 function ordenar(views: SaldoRecorteView[]): SaldoRecorteView[] {
   return views.sort((a, b) => b.saldoPotencial - a.saldoPotencial || b.saldoDisponivel - a.saldoDisponivel);
 }

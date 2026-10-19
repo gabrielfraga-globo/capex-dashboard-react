@@ -100,13 +100,16 @@ function Negativo({ v, children }: { v: number; children: React.ReactNode }) {
 
 export interface ProjetoSaldoTableProps {
   views: SaldoRecorteView[];
-  linhasPorProjeto: Map<string, SaldoProjetoLinha[]>;
+  /** Linhas BI por projeto (visão 2026). Não usado quando `rubricasPorProjeto` é informada. */
+  linhasPorProjeto?: Map<string, SaldoProjetoLinha[]>;
+  /** Quando informada, a expansão mostra estas views por rubrica (ex.: Plurianual) em vez das linhas BI. */
+  rubricasPorProjeto?: Map<string, SaldoRecorteView[]>;
   meta: Map<string, { n4Curta: string }>;
   dataReferencia: string;
   exerciseYear: number;
 }
 
-export function ProjetoSaldoTable({ views, linhasPorProjeto, meta, dataReferencia, exerciseYear }: ProjetoSaldoTableProps) {
+export function ProjetoSaldoTable({ views, linhasPorProjeto, rubricasPorProjeto, meta, dataReferencia, exerciseYear }: ProjetoSaldoTableProps) {
   const [sortKey, setSortKey] = useState<SaldoSortKey>("saldoPotencial");
   const [direction, setDirection] = useState<SortDirection>("desc");
   const [expandidos, setExpandidos] = useState<Set<string>>(() => new Set());
@@ -200,13 +203,15 @@ export function ProjetoSaldoTable({ views, linhasPorProjeto, meta, dataReferenci
             {linhas.map((row) => {
               const v = row.view;
               const aberto = expandidos.has(v.key);
-              const rubricas = linhasPorProjeto.get(v.key) ?? [];
+              const rubricas = linhasPorProjeto?.get(v.key) ?? [];
+              const rubricasViews = rubricasPorProjeto ? (rubricasPorProjeto.get(v.key) ?? []) : undefined;
               return (
                 <ProjetoLinhaFragment
                   key={v.key}
                   row={row}
                   aberto={aberto}
                   rubricas={rubricas}
+                  rubricasViews={rubricasViews}
                   exerciseYear={exerciseYear}
                   onToggle={() => alternarExpansao(v.key)}
                 />
@@ -233,16 +238,47 @@ export function ProjetoSaldoTable({ views, linhasPorProjeto, meta, dataReferenci
   );
 }
 
+function RubricasViewsTabela({ views }: { views: SaldoRecorteView[] }) {
+  if (views.length === 0) return <span>Nenhuma rubrica neste projeto.</span>;
+  const celula = "px-2 py-1 text-right";
+  return (
+    <table className="w-full text-xs tabular-nums">
+      <thead>
+        <tr className="text-text-faint">
+          <th className="px-2 py-1 text-left font-medium">Rubrica</th>
+          <th className="px-2 py-1 text-right font-medium">Orçamento</th>
+          <th className="px-2 py-1 text-right font-medium">Caixa</th>
+          <th className="px-2 py-1 text-right font-medium">Compromisso</th>
+          <th className="px-2 py-1 text-right font-medium">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {views.map((r) => (
+          <tr key={r.key} className="border-t border-border/40">
+            <td className="px-2 py-1 text-left text-text">{r.label}</td>
+            <td className={celula}><Negativo v={r.orcamento}>{fmtBRL(r.orcamento)}</Negativo></td>
+            <td className={celula}><Negativo v={r.caixa}>{fmtBRL(r.caixa)}</Negativo></td>
+            <td className={celula}><Negativo v={r.compromissoTotal}>{fmtBRL(r.compromissoTotal)}</Negativo></td>
+            <td className={celula}><Negativo v={r.saldoDisponivel}>{fmtBRL(r.saldoDisponivel)}</Negativo></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function ProjetoLinhaFragment({
   row,
   aberto,
   rubricas,
+  rubricasViews,
   exerciseYear,
   onToggle,
 }: {
   row: ProjetoRow;
   aberto: boolean;
   rubricas: SaldoProjetoLinha[];
+  rubricasViews?: SaldoRecorteView[];
   exerciseYear: number;
   onToggle: () => void;
 }) {
@@ -282,7 +318,9 @@ function ProjetoLinhaFragment({
         <tr className="bg-card-alt text-text-muted">
           <td />
           <td colSpan={12} className="px-2 py-2">
-            {rubricas.length === 0 ? (
+            {rubricasViews ? (
+              <RubricasViewsTabela views={rubricasViews} />
+            ) : rubricas.length === 0 ? (
               <span>Nenhuma rubrica neste projeto.</span>
             ) : (
               <table className="w-full text-xs tabular-nums">

@@ -5,6 +5,15 @@ import { fmtBRL, fmtPct } from "../../lib/format";
 import { SALDO_LEGADO_MATERIAL } from "./saldoConfig";
 import { buildSaldoBridge, type SaldoBridgeStep } from "./saldo";
 
+const buildBridgePlurianual = (t: SaldoTotals): SaldoBridgeStep[] => [
+  { label: "Orçamento plurianual", value: t.orcamento, kind: "base" },
+  { label: "Caixa 2026+2027", value: t.caixa, kind: "minus" },
+  { label: "Compromisso total", value: t.compromissoTotal, kind: "minus" },
+  { label: "Saldo plurianual", value: t.orcamento - t.caixa - t.compromissoTotal, kind: "result" },
+  { label: "Saldo potencial 2026 (parado 6m+)", value: t.saldoPotencial, kind: "sub" },
+];
+
+
 const CRITERIO_BI_SALDO =
   "Critério do BI (Saldo Projetos): orçamento BG Gov (BGQ3) − caixa do exercício − compromissos de RCs aprovadas no exercício. " +
   "Difere do KPI 'A emitir', que usa BG Vivo e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
@@ -25,11 +34,13 @@ export function SaldoBridge({
   exerciseYear,
   hidden = false,
   incluirLegado = false,
+  modo = "2026",
 }: {
   totals: SaldoTotals;
   exerciseYear: number;
   hidden?: boolean;
   incluirLegado?: boolean;
+  modo?: "2026" | "plurianual";
 }) {
   if (hidden) {
     return (
@@ -42,14 +53,17 @@ export function SaldoBridge({
     );
   }
 
-  const passos = buildSaldoBridge(totals, { incluirLegado });
+  const plurianual = modo === "plurianual";
+  const passos: SaldoBridgeStep[] = plurianual
+    ? buildBridgePlurianual(totals)
+    : buildSaldoBridge(totals, { incluirLegado });
   const orcamento = totals.orcamento;
-  const premissaVisivel = !incluirLegado && totals.compromissoLegado >= SALDO_LEGADO_MATERIAL;
+  const premissaVisivel = !plurianual && !incluirLegado && totals.compromissoLegado >= SALDO_LEGADO_MATERIAL;
 
   return (
     <Card>
       <div className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-        Ponte de saldo · exercício {exerciseYear}
+        {plurianual ? "Ponte de saldo · orçamento plurianual" : `Ponte de saldo · exercício ${exerciseYear}`}
       </div>
       <ol className="flex flex-col gap-1.5">
         {passos.map((passo) => {

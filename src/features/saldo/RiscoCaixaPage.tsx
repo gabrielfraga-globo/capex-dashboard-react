@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import { navigate } from "../../lib/simpleRouter";
+import { fmtBRL } from "../../lib/format";
+import { cn } from "../../lib/utils";
 import { usePortfolioData } from "../../hooks/usePortfolioData";
 import { projetoNoRecorte, rubricasDoRecorte, type Recorte } from "../../lib/recorte";
 import { useRecorteStore } from "../../store/recorteStore";
@@ -16,10 +18,34 @@ import { SaldoBridge } from "./SaldoBridge";
 import { ProjetoSaldoTable } from "./ProjetoSaldoTable";
 import { SaldoAuditPanel } from "./SaldoAuditPanel";
 import { RiscoKpis } from "./RiscoKpis";
+import { RiscoKpisPlurianual } from "./RiscoKpisPlurianual";
+import { buildNarrativaPlurianual, buildPlurianualViews, resumoPlurianual, rubricasPlurianuaisDoProjeto } from "./plurianual";
 import { RubricaChips } from "./RubricaChips";
 import { OndeAgirList, type MetaProjeto } from "./OndeAgirList";
 import { aggregateSaldoBy, filterSaldoLinhas, saldoTotalDe, splitPressaoFolga, summarizeSaldo, ultimaDataParadaPorProjeto } from "./saldo";
-import type { SaldoProjetoLinha, SaldoProjetosSection } from "../radar/types";
+import type { SaldoProjetoLinha, SaldoProjetosSection, SaldoRecorteView, SaldoTotals } from "../radar/types";
+
+function AuditoriaPlurianual({ totals }: { totals: SaldoTotals }) {
+  const itens: Array<[string, string]> = [
+    ["Σ orçamento plurianual", fmtBRL(totals.orcamento)],
+    ["Σ caixa 2026+2027", fmtBRL(totals.caixa)],
+    ["Σ compromisso total", fmtBRL(totals.compromissoTotal)],
+    ["Nº de projetos", String(totals.projetos)],
+  ];
+  return (
+    <Card>
+      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        {itens.map(([rotulo, valor]) => (
+          <div key={rotulo}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">{rotulo}</dt>
+            <dd className="tabular-nums text-text">{valor}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-xs text-text-muted">A reconciliação com o BI fica na visão 2026.</p>
+    </Card>
+  );
+}
 
 function formatarDataBR(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
@@ -42,6 +68,7 @@ export function RiscoCaixaPage() {
   const limpar = useRecorteStore((s) => s.limpar);
   const [todosAberto, setTodosAberto] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const [modo, setModo] = useState<"plurianual" | "2026">("plurianual");
   const todosRef = useRef<HTMLDivElement>(null);
 
   const section: SaldoProjetosSection | null = state.status === "ready" ? state.section : null;
@@ -142,6 +169,31 @@ export function RiscoCaixaPage() {
     return m;
   }, [linhas]);
 
+  // Plurianual: projetos da carteira, sem filtro de rubrica (a rubrica só filtra as views de saldo)
+  const projetosPlurianual = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
+    return projetos.filter(
+      (p) =>
+        projetoNoRecorte(p, { ...recorte, rubricas: [] }) &&
+        (!termo || p.nome.toLocaleLowerCase("pt-BR").includes(termo)),
+    );
+  }, [projetos, recorte, busca]);
+
+  const plurianual = useMemo(
+    () => buildPlurianualViews(projetosPlurianual, { rubricas, saldoBI: [...viewsProjeto, ...viewsRubrica] }),
+    [projetosPlurianual, rubricas, viewsProjeto, viewsRubrica],
+  );
+  const resumoPl = useMemo(() => resumoPlurianual(plurianual.porProjeto), [plurianual]);
+  const narrativaPl = useMemo(() => buildNarrativaPlurianual(resumoPl), [resumoPl]);
+  const rubricasPlurianuaisPorProjeto = useMemo(() => {
+    const exibidos = new Set(plurianual.porProjeto.map((v) => v.key));
+    const mapa = new Map<string, SaldoRecorteView[]>();
+    for (const p of projetosPlurianual) {
+      if (exibidos.has(p.id)) mapa.set(p.id, rubricasPlurianuaisDoProjeto(p, rubricas));
+    }
+    return mapa;
+  }, [plurianual, projetosPlurianual, rubricas]);
+
   const temFiltro = filtrosAtivos > 0;
 
   function alternarRubrica(r: string) {
@@ -157,7 +209,27 @@ export function RiscoCaixaPage() {
             Voltar
           </Button>
           <h1 className="text-xl font-semibold text-text">Risco de Caixa &amp; Rubricas</h1>
-          {section && (
+          <div className="flex items-center gap-2">
+            {(["plurianual", "2026"] as const).map((op) => (
+              <button
+                key={op}
+                type="button"
+                aria-pressed={modo === op}
+                onClick={() => setModo(op)}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70",
+                  modo === op ? "bg-accent text-white" : "bg-card-alt text-text-muted hover:text-text",
+                )}
+              >
+                {op === "plurianual" ? "Plurianual" : "2026"}
+              </button>
+            ))}
+          </div>
+          {modo === "plurianual" ? (
+            <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-text-muted">
+              Fonte: carteira (orçamento plurianual)
+            </span>
+          ) : section && (
             <span
               className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
                 section.reconciliation.ok
@@ -169,7 +241,9 @@ export function RiscoCaixaPage() {
             </span>
           )}
         </div>
-        {section && (
+        {modo === "plurianual" ? (
+          <p className="text-sm text-text-muted">Orçamento plurianual</p>
+        ) : section && (
           <p className="text-sm text-text-muted">
             Exercício {section.exerciseYear} · referência BI {formatarDataBR(section.dataReferencia)}
           </p>
@@ -198,6 +272,57 @@ export function RiscoCaixaPage() {
     );
   } else {
     const ok = state.section.reconciliation.ok;
+    const exercicio = state.section.exerciseYear;
+
+    const blocoPlurianual =
+      projetosPlurianual.length === 0 ? (
+        <Card>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-text-muted">Nenhum projeto corresponde aos filtros selecionados.</p>
+            <Button variant="outline" onClick={limpar} disabled={!temFiltro}>
+              Limpar filtros
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
+            <p className="text-lg text-text">{narrativaPl}</p>
+            <RiscoKpisPlurianual resumo={resumoPl} />
+          </div>
+
+          <RubricaChips views={plurianual.porRubrica} selected={rubricas} onToggle={alternarRubrica} />
+
+          <OndeAgirList
+            modo="plurianual"
+            porProjeto={plurianual.porProjeto}
+            meta={metaParado}
+            dataReferencia={state.section.dataReferencia}
+            exerciseYear={exercicio}
+            onVerTodos={abrirTodosProjetos}
+          />
+
+          <Collapsible title="Como chegamos nesse número">
+            <SaldoBridge modo="plurianual" totals={plurianual.totals} exerciseYear={exercicio} />
+          </Collapsible>
+
+          <div ref={todosRef}>
+            <Collapsible title="Todos os projetos" open={todosAberto} onOpenChange={setTodosAberto}>
+              <ProjetoSaldoTable
+                views={plurianual.porProjeto}
+                rubricasPorProjeto={rubricasPlurianuaisPorProjeto}
+                meta={meta}
+                dataReferencia={state.section.dataReferencia}
+                exerciseYear={exercicio}
+              />
+            </Collapsible>
+          </div>
+
+          <Collapsible title="Auditoria">
+            <AuditoriaPlurianual totals={plurianual.totals} />
+          </Collapsible>
+        </div>
+      );
 
     corpo = (
       <div className="flex flex-col gap-4">
@@ -274,6 +399,7 @@ export function RiscoCaixaPage() {
 
         <RecorteAtivo />
 
+        {modo === "plurianual" ? blocoPlurianual : (<>
         {!ok ? (
           <Card>
             <div className="text-sm text-risk-critico">
@@ -327,6 +453,7 @@ export function RiscoCaixaPage() {
         <Collapsible title="Auditoria">
           <SaldoAuditPanel section={state.section} projetos={projetos} />
         </Collapsible>
+        </>)}
       </div>
     );
   }
