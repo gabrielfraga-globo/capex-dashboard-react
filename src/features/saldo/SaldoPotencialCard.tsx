@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { AlertTriangle, ArrowRight, Info } from "lucide-react";
+import { AlertTriangle, ArrowRight, Info, ShieldAlert } from "lucide-react";
 import { Button, Card } from "../../components/ui/primitives";
 import { fmtBRL, fmtPct } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
@@ -23,7 +23,7 @@ export interface SaldoPotencialCardProps {
   rubricas?: string[];
   /** undefined = qualquer ano; se informado e diferente do exercício do saldo, o card não renderiza */
   anoSelecionado?: number;
-  variant?: "compact" | "full";
+  variant?: "compact" | "full" | "flip";
   topN?: number;
   onOpenDetail?: () => void;
   /** true = não renderiza o CTA "Ver risco de caixa →" (uso na própria página de detalhe) */
@@ -93,6 +93,46 @@ function Skeleton() {
   );
 }
 
+/** Face "flip": mesma caixa e tipografia dos KPIs da faixa (KpiStat). */
+const FLIP_BOX = "flex h-full flex-col justify-start gap-1 rounded-card border border-border bg-card px-4 py-3";
+
+function SaldoFlipSkeleton() {
+  return (
+    <div className={`${FLIP_BOX} animate-pulse`} aria-live="polite" aria-busy="true">
+      <div className="h-3 w-40 rounded bg-card-alt" />
+      <div className="mt-1 h-7 w-28 rounded bg-card-alt" />
+      <div className="mt-1 h-3 w-44 rounded bg-card-alt" />
+    </div>
+  );
+}
+
+function SaldoFlipView({ valor, contexto, onOpenDetail, hideCta }: {
+  valor: string;
+  contexto: string;
+  onOpenDetail: () => void;
+  hideCta: boolean;
+}) {
+  return (
+    <div className={FLIP_BOX}>
+      <div className="flex items-center gap-2">
+        <ShieldAlert size={16} className="shrink-0 text-text-muted" aria-hidden="true" />
+        <span data-flip-title className="text-[12px] font-semibold leading-snug text-text-muted">
+          {LABELS.saldoParadoCard}
+        </span>
+      </div>
+      <div className="mt-1 flex items-end justify-between gap-2">
+        <div className="text-[28px] font-bold tabular-nums leading-none text-text">{valor}</div>
+        {!hideCta && (
+          <button type="button" onClick={onOpenDetail} className="shrink-0 pb-0.5 text-[11px] text-info hover:underline">
+            Ver detalhe →
+          </button>
+        )}
+      </div>
+      <div className="mt-1 text-[11px] leading-tight text-text-faint">{contexto}</div>
+    </div>
+  );
+}
+
 export function SaldoPotencialCard({
   projectKeys,
   rubricas,
@@ -115,9 +155,12 @@ export function SaldoPotencialCard({
     return { section, totals, top };
   }, [state, projectKeys, rubricas, topN]);
 
-  if (state.status === "loading") return <Skeleton />;
+  if (state.status === "loading") return variant === "flip" ? <SaldoFlipSkeleton /> : <Skeleton />;
 
   if (state.status === "unavailable" || state.status === "error") {
+    if (variant === "flip") {
+      return <SaldoFlipView valor="—" contexto="saldo indisponível" onOpenDetail={onOpenDetail} hideCta={hideCta} />;
+    }
     if (variant === "compact") return null;
     return (
       <Card className="mb-4">
@@ -133,6 +176,21 @@ export function SaldoPotencialCard({
   const { section, totals, top } = model;
   const { exerciseYear, dataReferencia } = section;
   if (anoSelecionado !== undefined && anoSelecionado !== exerciseYear) return null;
+
+  if (variant === "flip") {
+    if (!section.reconciliation.ok) {
+      return <SaldoFlipView valor="—" contexto="saldo indisponível" onOpenDetail={onOpenDetail} hideCta={hideCta} />;
+    }
+    const n = totals.projetosComSaldo;
+    return (
+      <SaldoFlipView
+        valor={fmtBRL(totals.saldoPotencial, true)}
+        contexto={`${n} ${n === 1 ? "projeto" : "projetos"} · 6+ meses sem compromisso`}
+        onOpenDetail={onOpenDetail}
+        hideCta={hideCta}
+      />
+    );
+  }
 
   const header = (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">

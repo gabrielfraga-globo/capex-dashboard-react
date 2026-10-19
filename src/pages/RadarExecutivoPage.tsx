@@ -33,6 +33,8 @@ import { EstouroPanel } from "../features/radar/panels/EstouroPanel";
 import { BalancesPanel } from "../features/radar/panels/BalancesPanel";
 import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
+import { FlipCard } from "../components/ui/FlipCard";
+import { LABELS } from "../config/labels";
 import { InfoTooltip } from "../components/ui/primitives";
 import { SectionCard } from "../components/ui/pattern/SectionCard";
 import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
@@ -209,6 +211,22 @@ export function RadarExecutivoPage({
     listaAno, listaAno26, bgVivoSum, compromisso27
   } = computed;
 
+  const emRiscoKpi = (
+    <KpiStat
+      icon={<ShieldAlert size={16} />}
+      label="Em risco"
+      value={fmtBRL(risk.totalValue, true)}
+      tone="warn"
+      context={
+        <span className="inline-flex items-center gap-1">
+          {`${risk.count} projetos`}
+          <InfoTooltip text="Parte do Compromisso 26 que pode não virar caixa em 2026: RCs em etapas iniciais (E1–E3), atrasadas na E4 ou com previsão marcada como incerta na Curadoria. Clique para ver os projetos." />
+        </span>
+      }
+      onClick={() => setPanel("risk")}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-3 max-h-[calc(100vh-10.75rem)] overflow-hidden">
       
@@ -294,19 +312,22 @@ export function RadarExecutivoPage({
             <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(bgVivoSum.emPagamento, true)} context="etapa E7" />
             <KpiStat icon={<Wallet size={16} />} label="Compromisso 26" value={fmtBRL(bgVivoSum.emitido, true)} context="emitido na carteira" />
             <KpiStat icon={<Wallet size={16} />} label="Compromisso 27" value={fmtBRL(compromisso27, true)} context="RCs com caixa previsto em 2027" />
-            <KpiStat
-              icon={<ShieldAlert size={16} />}
-              label="Em risco"
-              value={fmtBRL(risk.totalValue, true)}
-              tone="warn"
-              context={
-                <span className="inline-flex items-center gap-1">
-                  {`${risk.count} projetos`}
-                  <InfoTooltip text="Parte do Compromisso 26 que pode não virar caixa em 2026: RCs em etapas iniciais (E1–E3), atrasadas na E4 ou com previsão marcada como incerta na Curadoria. Clique para ver os projetos." />
-                </span>
-              }
-              onClick={() => setPanel("risk")}
-            />
+            {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" ? (
+              <FlipCard
+                compact
+                frontLabel="Em risco"
+                backLabel={LABELS.saldoParadoCard}
+                front={emRiscoKpi}
+                back={
+                  <SaldoPotencialCard
+                    variant="flip"
+                    projectKeys={saldoProjectKeys}
+                    rubricas={rubricas}
+                    anoSelecionado={ano}
+                  />
+                }
+              />
+            ) : emRiscoKpi}
           </>
         ) : (
           <>
@@ -333,19 +354,10 @@ export function RadarExecutivoPage({
         )}
       </div>
 
-      {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" && (
-        <SaldoPotencialCard
-          variant="compact"
-          projectKeys={saldoProjectKeys}
-          rubricas={rubricas}
-          anoSelecionado={ano}
-        />
-      )}
-
       {/* ── Layout ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-[1fr_minmax(300px,360px)] gap-3 items-stretch min-h-0 flex-1">
+      <div className="flex flex-col gap-3 min-h-0 flex-1">
         
-        {/* Coluna Esquerda: Execução em cima, Fluxo embaixo */}
+        {/* Execução e Fluxo em largura total; Análise de risco abaixo */}
         <div className="flex flex-col gap-3 min-w-0">
           <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
             <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
@@ -370,7 +382,7 @@ export function RadarExecutivoPage({
               </div>
             ) : (
               <div className="flex gap-4 items-stretch h-full">
-                <div className="flex-1 min-w-0 h-full min-h-[160px]">
+                <div className="flex-1 min-w-0 h-full min-h-[237px]">
                   <FluxoCaixaChart
                     lista={listaAno}
                     dataBase={dataBase ?? null}
@@ -403,8 +415,8 @@ export function RadarExecutivoPage({
           </div>
         </div>
 
-        {/* Coluna Direita: Ritmo */}
-        <div className="flex flex-col min-w-0 h-full relative [&>*]:flex-1">
+        {/* Análise de risco: largura total, abaixo do Fluxo */}
+        <div className="flex flex-col min-w-0 relative [&>*]:flex-1">
           <AnaliseRiscoPanel 
              lista={listaAno26} 
              kpisEstrategicos={kpisEstrategicos} 
