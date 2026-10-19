@@ -5,7 +5,6 @@ import type { Recorte } from "../lib/recorte";
 interface RecorteStore extends Recorte {
   setPrograma: (v: string | null) => void;
   setRubricas: (v: string[]) => void;
-  setPlataforma: (v: string | null) => void;
   setGestor: (v: string | null) => void;
   setAprovador: (v: string | null) => void;
   setBusca: (v: string) => void;
@@ -15,7 +14,6 @@ interface RecorteStore extends Recorte {
 const DEFAULTS: Recorte = {
   programa: null,
   rubricas: [],
-  plataforma: null,
   gestor: null,
   aprovador: null,
   busca: "",
@@ -54,7 +52,6 @@ export const useRecorteStore = create<RecorteStore>()(
       ...DEFAULTS,
       setPrograma: (programa) => set({ programa }),
       setRubricas: (rubricas) => set({ rubricas }),
-      setPlataforma: (plataforma) => set({ plataforma }),
       setGestor: (gestor) => set({ gestor }),
       setAprovador: (aprovador) => set({ aprovador }),
       setBusca: (busca) => set({ busca }),

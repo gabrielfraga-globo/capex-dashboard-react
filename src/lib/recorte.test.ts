@@ -7,12 +7,12 @@ import {
   projetoNoRecorte,
   projetoNoRecorteComRubrica,
   rcNoRecorte,
-  rubricasDisponiveis,
+  rubricasDoRecorte,
   type ProjetosPorKey,
   type Recorte,
 } from "./recorte";
 
-const VAZIO: Recorte = { programa: null, rubricas: [], plataforma: null, gestor: null, aprovador: null, busca: "" };
+const VAZIO: Recorte = { programa: null, rubricas: [], gestor: null, aprovador: null, busca: "" };
 const recorte = (over: Partial<Recorte>): Recorte => ({ ...VAZIO, ...over });
 
 const projeto = (nome: string, over: Partial<ProjetoBase> = {}) =>
@@ -96,19 +96,19 @@ describe("pagamentoNoRecorte", () => {
 });
 
 describe("projetoNoRecorte", () => {
-  it("compara programa, plataforma, gestor e aprovador", () => {
+  it("compara programa, gestor e aprovador", () => {
     const p = projeto("A", { n4Curta: "Captação", gestor: "Gina", aprovador: "Ana" });
-    expect(projetoNoRecorte(p, recorte({ programa: "Captação", gestor: "Gina", aprovador: "Ana", plataforma: "Captação" }))).toBe(true);
+    expect(projetoNoRecorte(p, recorte({ programa: "Captação", gestor: "Gina", aprovador: "Ana" }))).toBe(true);
     expect(projetoNoRecorte(p, recorte({ gestor: "Outro" }))).toBe(false);
   });
 });
 
-describe("rubricasDisponiveis", () => {
+describe("rubricasDoRecorte", () => {
   it("une rubricas de projetos, RCs e pagamentos, sem vazios e ordenadas", () => {
     const projetos = [projeto("A", { porRubrica: { MDO: {} as never, "SOLUÇÃO": {} as never } })];
     const rcs = [rcView("RC1", [commitment({ rubrica: "RESERVA" })])];
     const pagamentos = [pagamento({ rubrica: "SOLUÇÃO" }), pagamento({ rubrica: null }), pagamento({ rubrica: "" })];
-    expect(rubricasDisponiveis(projetos, rcs, pagamentos)).toEqual(["MDO", "RESERVA", "SOLUÇÃO"]);
+    expect(rubricasDoRecorte(projetos, rcs, pagamentos)).toEqual(["MDO", "RESERVA", "SOLUÇÃO"]);
   });
 });
 

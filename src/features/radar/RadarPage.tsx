@@ -6,13 +6,14 @@ import { SkeletonList } from "../../components/ui/SkeletonCard";
 import { fmtBRL, fmtNumber } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
 import { usePortfolioData } from "../../hooks/usePortfolioData";
-import { aplicarFiltroRubrica } from "../../lib/rubrica";
+import { pagamentoNoRecorte, projetoNoRecorteComRubrica, rcNoRecorte, rubricasDoRecorte, type Recorte } from "../../lib/recorte";
+import { useRecorteStore } from "../../store/recorteStore";
 import { CommitmentTable } from "./CommitmentTable";
 import { OperationalTable } from "./OperationalTable";
 import { useCuration } from "./useCuration";
 import { precisaAtencao } from "./RcRow";
 import { poStatusLabel } from "./status";
-import { RADAR_CARD_BUCKETS } from "./types";
+import { RADAR_CARD_BUCKETS, type CashBucket } from "./types";
 
 function formatGeradoEm(iso: string): string {
   const d = new Date(iso);
@@ -26,94 +27,67 @@ function formatGeradoEm(iso: string): string {
 export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curadoria" | "operacional" } = {}) {
   const { isLoading, error, bundle, views, rcViews, resumo, isSaving, erroDe, salvarChave, salvarRc, curationMap } = useCuration();
   const { parsed } = usePortfolioData();
-  const [plataformaFiltro, setPlataformaFiltro] = useState<string | null>(null);
-  const [gestorFiltro, setGestorFiltro] = useState<string | null>(null);
-  const [aprovadorFiltro, setAprovadorFiltro] = useState<string | null>(null);
-  const [rubricaFiltro, setRubricaFiltro] = useState<string[]>([]);
-  const [busca, setBusca] = useState("");
+  const programa = useRecorteStore((s) => s.programa);
+  const rubricas = useRecorteStore((s) => s.rubricas);
+  const gestor = useRecorteStore((s) => s.gestor);
+  const aprovador = useRecorteStore((s) => s.aprovador);
+  const busca = useRecorteStore((s) => s.busca);
+  const setPrograma = useRecorteStore((s) => s.setPrograma);
+  const setRubricas = useRecorteStore((s) => s.setRubricas);
+  const setGestor = useRecorteStore((s) => s.setGestor);
+  const setAprovador = useRecorteStore((s) => s.setAprovador);
+  const setBusca = useRecorteStore((s) => s.setBusca);
+  const limpar = useRecorteStore((s) => s.limpar);
   const [activeTab, setActiveTab] = useState<"curadoria" | "operacional">(initialTab);
+
+  // Programa e plataforma são o mesmo campo (n4Curta): a tela usa o campo único `programa` do recorte
+  const recorte = useMemo<Recorte>(
+    () => ({ programa, rubricas, gestor, aprovador, busca }),
+    [programa, rubricas, gestor, aprovador, busca]
+  );
+  const exerciseYear = bundle?.exerciseYear ?? new Date().getFullYear();
+  const filtrosAtivos = (programa ? 1 : 0) + (gestor ? 1 : 0) + (aprovador ? 1 : 0) + rubricas.length + (busca.trim() ? 1 : 0);
 
   const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
 
   const opcoesFiltro = useMemo(() => {
     const projetos = views.map((v) => projetoPorNome.get(v.projectName)).filter(Boolean);
     const opcoes = (valores: Array<string | null>) => Array.from(new Set(valores.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "pt-BR")).map((value) => ({ value, label: value }));
-    const rubricasSet = new Set<string>();
-    for (const v of rcViews) {
-      for (const c of v.commitments) {
-        if (c.rubrica) rubricasSet.add(c.rubrica);
-      }
-    }
-    for (const p of bundle?.payments?.inPayment ?? []) {
-      if (p.rubrica) rubricasSet.add(p.rubrica);
-    }
     return {
       plataformas: opcoes(projetos.map((p) => p?.n4Curta ?? null)),
       gestores: opcoes(projetos.map((p) => p?.gestor ?? null)),
       aprovadores: opcoes(projetos.map((p) => p?.aprovador ?? null)),
-      rubricas: Array.from(rubricasSet).sort().map(r => ({ value: r, label: r })),
+      rubricas: rubricasDoRecorte(parsed?.projetos ?? [], rcViews, bundle?.payments?.inPayment ?? []).map((r) => ({ value: r, label: r })),
     };
-  }, [projetoPorNome, views, rcViews, bundle]);
+  }, [projetoPorNome, views, rcViews, bundle, parsed]);
 
-  const rcsPendentes = useMemo(() => rcViews.filter(precisaAtencao).length, [rcViews]);
+  const rcViewsFiltradas = useMemo(
+    () => rcViews.filter((rc) => rcNoRecorte(rc, recorte, projetoPorNome, exerciseYear)),
+    [rcViews, recorte, projetoPorNome, exerciseYear]
+  );
 
-  const rcViewsFiltradas = useMemo(() => {
-    const termo = busca.trim().toLocaleLowerCase("pt-BR");
-    return rcViews.filter((rc) => {
-      const projetos = rc.commitments.map((c) => projetoPorNome.get(c.projectName)).filter(Boolean);
-      if (plataformaFiltro && !projetos.some((p) => p?.n4Curta === plataformaFiltro)) return false;
-      if (gestorFiltro && !projetos.some((p) => p?.gestor === gestorFiltro)) return false;
-      if (aprovadorFiltro && !projetos.some((p) => p?.aprovador === aprovadorFiltro)) return false;
-      if (rubricaFiltro.length > 0 && !rc.commitments.some(c => rubricaFiltro.includes(c.rubrica))) return false;
-      if (termo) {
-        const textos = rc.commitments.flatMap((commitment) => [
-          rc.rc,
-          commitment.oc,
-          commitment.projectId,
-          commitment.projectName,
-          commitment.supplier || commitment.projectName,
-          commitment.curation?.poStatus ?? "",
-          commitment.curation ? poStatusLabel(commitment.curation.poStatus, bundle?.exerciseYear ?? new Date().getFullYear()) : "",
-          commitment.systemStatus,
-          commitment.requestDescription ?? "",
-          commitment.curation?.notes ?? "",
-        ]);
-        if (!textos.some((texto) => texto.toLocaleLowerCase("pt-BR").includes(termo))) return false;
-      }
-      return true;
-    });
-  }, [rcViews, projetoPorNome, plataformaFiltro, gestorFiltro, aprovadorFiltro, busca, bundle?.exerciseYear]);
+  const rcsPendentes = useMemo(() => rcViewsFiltradas.filter(precisaAtencao).length, [rcViewsFiltradas]);
+
+  // Os KPIs do topo somam os baldes das RCs que passam no recorte (cada RC mantém o valor total)
+  const somaBalde = (balde: CashBucket) => rcViewsFiltradas.reduce((acc, rc) => acc + rc.buckets[balde], 0);
 
   const rcsFiltradas = useMemo(() => new Set(rcViewsFiltradas.map((rc) => rc.rc)), [rcViewsFiltradas]);
 
-  // Projetos com os mesmos filtros de plataforma/gestor/aprovador: o A emitir e o delta caixa da aba Operacional usam o BG deles
-  const projetosFiltrados = useMemo(() => {
-    let base = (parsed?.projetos ?? []).filter((p) =>
-      (!plataformaFiltro || p.n4Curta === plataformaFiltro) &&
-      (!gestorFiltro || p.gestor === gestorFiltro) &&
-      (!aprovadorFiltro || p.aprovador === aprovadorFiltro)
-    );
-    base = aplicarFiltroRubrica(base, rubricaFiltro);
-    return base;
-  }, [parsed, plataformaFiltro, gestorFiltro, aprovadorFiltro, rubricaFiltro]);
+  // O A emitir e o delta caixa da aba Operacional usam o BG dos projetos que passam no recorte
+  const projetosFiltrados = useMemo(
+    () => (parsed?.projetos ?? []).filter((p) => projetoNoRecorteComRubrica(p, recorte)),
+    [parsed, recorte]
+  );
 
-  // RCs em pagamento (NF lançada): a maioria já não tem compromisso aberto, então filtra pelos dados do pagamento
+  // RCs em pagamento (NF lançada): a maioria já não tem compromisso aberto, então a RC entra se alguma linha de pagamento passa no recorte
   const rcsPagamentoFiltradas = useMemo(() => {
-    const termo = busca.trim().toLocaleLowerCase("pt-BR");
-    const porRc = new Map<string, boolean>();
+    const porRc = new Set<string>();
     for (const p of bundle?.payments?.inPayment ?? []) {
       if (p.withoutRc || !p.rc) continue;
-      const projeto = projetoPorNome.get(p.projectName ?? "");
-      let ok = true;
-      if (plataformaFiltro && projeto?.n4Curta !== plataformaFiltro) ok = false;
-      if (gestorFiltro && projeto?.gestor !== gestorFiltro) ok = false;
-      if (aprovadorFiltro && projeto?.aprovador !== aprovadorFiltro && p.approver !== aprovadorFiltro) ok = false;
-      if (rubricaFiltro.length > 0 && (!p.rubrica || !rubricaFiltro.includes(p.rubrica))) ok = false;
-      if (termo && ![p.rc, p.nf, p.projectName].some((t) => (t ?? "").toLocaleLowerCase("pt-BR").includes(termo))) ok = false;
-      porRc.set(p.rc, (porRc.get(p.rc) ?? false) || ok);
+      if (pagamentoNoRecorte(p, recorte, projetoPorNome)) porRc.add(p.rc);
     }
-    return new Set([...porRc].filter(([, ok]) => ok).map(([rc]) => rc));
-  }, [bundle, projetoPorNome, plataformaFiltro, gestorFiltro, aprovadorFiltro, busca]);
+    return porRc;
+  }, [bundle, recorte, projetoPorNome]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-3 space-y-3">
@@ -152,17 +126,17 @@ export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curado
             <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${activeTab === "curadoria" ? "" : "hidden"}`}>
               <KpiCard
                 label={poStatusLabel("CONFIRMED", resumo.exerciseYear)}
-                value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.bgTimes], true)}
+                value={fmtBRL(somaBalde(RADAR_CARD_BUCKETS.bgTimes), true)}
                 sub="curadoria do exercício"
               />
               <KpiCard
                 label={poStatusLabel("CARRYOVER", resumo.exerciseYear)}
-                value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.carryover], true)}
+                value={fmtBRL(somaBalde(RADAR_CARD_BUCKETS.carryover), true)}
                 sub="pagamento previsto após o exercício"
               />
               <KpiCard
                 label="Sem avaliação"
-                value={fmtBRL(resumo.buckets[RADAR_CARD_BUCKETS.notCurated], true)}
+                value={fmtBRL(somaBalde(RADAR_CARD_BUCKETS.notCurated), true)}
                 sub={`${fmtNumber(rcsPendentes)} RC${rcsPendentes === 1 ? "" : "s"} pendente${rcsPendentes === 1 ? "" : "s"}`}
               />
             </div>
@@ -185,7 +159,7 @@ export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curado
                 <button
                   className="inline-flex items-center justify-between gap-2 rounded-md border border-border bg-card-alt px-3 py-1.5 text-xs text-text min-w-[150px] hover:border-accent transition-colors"
                 >
-                  {rubricaFiltro.length === 0 ? "Todas rubricas" : `Rubricas (${rubricaFiltro.length})`}
+                  {rubricas.length === 0 ? "Todas rubricas" : `Rubricas (${rubricas.length})`}
                   <span className="text-text-muted">▾</span>
                 </button>
                 <div className="absolute top-full left-0 mt-1 z-50 w-64 p-3 rounded-card border border-border bg-card shadow-lg flex flex-col gap-1 max-h-64 overflow-y-auto hidden group-focus-within/rubricas:flex group-hover/rubricas:flex custom-scrollbar">
@@ -193,10 +167,10 @@ export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curado
                     <label key={r.value} className="flex items-center gap-2 text-xs cursor-pointer text-text hover:bg-bg p-1 rounded transition-colors">
                       <input
                         type="checkbox"
-                        checked={rubricaFiltro.includes(r.value)}
+                        checked={rubricas.includes(r.value)}
                         onChange={(e) => {
-                          if (e.target.checked) setRubricaFiltro([...rubricaFiltro, r.value]);
-                          else setRubricaFiltro(rubricaFiltro.filter(x => x !== r.value));
+                          if (e.target.checked) setRubricas([...rubricas, r.value]);
+                          else setRubricas(rubricas.filter(x => x !== r.value));
                         }}
                         className="rounded border-border text-accent focus:ring-accent w-3 h-3"
                       />
@@ -205,9 +179,18 @@ export function RadarPage({ initialTab = "operacional" }: { initialTab?: "curado
                   ))}
                 </div>
               </div>
-              <Select value={plataformaFiltro} onValueChange={setPlataformaFiltro} options={opcoesFiltro.plataformas} placeholder="Plataforma" />
-              <Select value={gestorFiltro} onValueChange={setGestorFiltro} options={opcoesFiltro.gestores} placeholder="Gestor" />
-              <Select value={aprovadorFiltro} onValueChange={setAprovadorFiltro} options={opcoesFiltro.aprovadores} placeholder="1º Aprovador" />
+              <Select value={programa} onValueChange={setPrograma} options={opcoesFiltro.plataformas} placeholder="Plataforma" />
+              <Select value={gestor} onValueChange={setGestor} options={opcoesFiltro.gestores} placeholder="Gestor" />
+              <Select value={aprovador} onValueChange={setAprovador} options={opcoesFiltro.aprovadores} placeholder="1º Aprovador" />
+              {filtrosAtivos > 0 && (
+                <button
+                  type="button"
+                  onClick={limpar}
+                  className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-xs text-text-muted hover:text-text hover:border-accent transition-colors"
+                >
+                  Limpar ({filtrosAtivos})
+                </button>
+              )}
             </div>
           </Card>
 

@@ -2,8 +2,12 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import { navigate } from "../../lib/simpleRouter";
 import { usePortfolioData } from "../../hooks/usePortfolioData";
+import { projetoNoRecorte, rubricasDoRecorte, type Recorte } from "../../lib/recorte";
+import { useRecorteStore } from "../../store/recorteStore";
+import { useCuration } from "../radar/useCuration";
 import { useSaldoProjetos } from "./useSaldoProjetos";
 import { Button, Card } from "../../components/ui/primitives";
+import { RecorteAtivo } from "../../components/RecorteAtivo";
 import { Select } from "../../components/ui/select";
 import { SkeletonList } from "../../components/ui/SkeletonCard";
 import { Collapsible } from "../executivo/Collapsible";
@@ -25,11 +29,17 @@ function formatarDataBR(iso: string): string {
 export function RiscoCaixaPage() {
   const state = useSaldoProjetos();
   const { parsed } = usePortfolioData();
+  const { bundle, rcViews } = useCuration();
 
-  const [programa, setPrograma] = useState<string | null>(null);
-  const [rubricas, setRubricas] = useState<string[]>([]);
-  const [aprovador, setAprovador] = useState<string | null>(null);
-  const [busca, setBusca] = useState("");
+  const programa = useRecorteStore((s) => s.programa);
+  const rubricas = useRecorteStore((s) => s.rubricas);
+  const aprovador = useRecorteStore((s) => s.aprovador);
+  const busca = useRecorteStore((s) => s.busca);
+  const setPrograma = useRecorteStore((s) => s.setPrograma);
+  const setRubricas = useRecorteStore((s) => s.setRubricas);
+  const setAprovador = useRecorteStore((s) => s.setAprovador);
+  const setBusca = useRecorteStore((s) => s.setBusca);
+  const limpar = useRecorteStore((s) => s.limpar);
   const [todosAberto, setTodosAberto] = useState(false);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const todosRef = useRef<HTMLDivElement>(null);
@@ -58,10 +68,8 @@ export function RiscoCaixaPage() {
 
   const rubricaOptions = useMemo(
     () =>
-      Array.from(new Set(linhasBase.map((l) => l.rubrica)))
-        .sort((a, b) => a.localeCompare(b, "pt-BR"))
-        .map((r) => ({ value: r, label: r })),
-    [linhasBase],
+      rubricasDoRecorte(parsed?.projetos ?? [], rcViews, bundle?.payments?.inPayment ?? []).map((r) => ({ value: r, label: r })),
+    [parsed, rcViews, bundle],
   );
 
   const aprovadorOptions = useMemo(
@@ -72,12 +80,18 @@ export function RiscoCaixaPage() {
     [linhasBase],
   );
 
+  const recorte = useMemo<Recorte>(
+    () => ({ programa, rubricas, gestor: null, aprovador, busca }),
+    [programa, rubricas, aprovador, busca],
+  );
+
+  // Projetos do recorte (sem rubrica: a rubrica filtra só as linhas de saldo, via filterSaldoLinhas)
   const projectKeys = useMemo<ReadonlySet<string> | undefined>(() => {
-    if (!programa) return undefined;
+    if (!programa && !aprovador) return undefined;
     const keys = new Set<string>();
-    for (const p of projetos) if (p.n4Curta === programa) keys.add(p.id);
+    for (const p of projetos) if (projetoNoRecorte(p, recorte)) keys.add(p.id);
     return keys;
-  }, [programa, projetos]);
+  }, [programa, aprovador, projetos, recorte]);
 
   const rubricasFiltro = rubricas.length > 0 ? rubricas : undefined;
 
@@ -102,9 +116,9 @@ export function RiscoCaixaPage() {
   );
   const viewsRubricaChips = useMemo(() => aggregateSaldoBy(linhasSemRubrica, "rubrica"), [linhasSemRubrica]);
   const pf = useMemo(() => splitPressaoFolga(viewsProjeto, viewsRubrica), [viewsProjeto, viewsRubrica]);
-  const filtrosSecundarios = rubricas.length + (aprovador ? 1 : 0) + (busca.trim() !== "" ? 1 : 0);
+  const filtrosAtivos = (programa ? 1 : 0) + rubricas.length + (aprovador ? 1 : 0) + (busca.trim() !== "" ? 1 : 0);
   const tituloMaisFiltros =
-    filtrosSecundarios > 0 ? `Mais filtros (${filtrosSecundarios} ativo${filtrosSecundarios > 1 ? "s" : ""})` : "Mais filtros";
+    filtrosAtivos > 0 ? `Mais filtros (${filtrosAtivos} ativo${filtrosAtivos > 1 ? "s" : ""})` : "Mais filtros";
 
   const ultimaParada = useMemo(() => ultimaDataParadaPorProjeto(linhas), [linhas]);
   const metaParado = useMemo(() => {
@@ -128,17 +142,10 @@ export function RiscoCaixaPage() {
     return m;
   }, [linhas]);
 
-  const temFiltro = !!programa || rubricas.length > 0 || !!aprovador || busca.trim() !== "";
-
-  function limparFiltros() {
-    setPrograma(null);
-    setRubricas([]);
-    setAprovador(null);
-    setBusca("");
-  }
+  const temFiltro = filtrosAtivos > 0;
 
   function alternarRubrica(r: string) {
-    setRubricas((atual) => (atual.includes(r) ? atual.filter((x) => x !== r) : [...atual, r]));
+    setRubricas(rubricas.includes(r) ? rubricas.filter((x) => x !== r) : [...rubricas, r]);
   }
 
   const header = (
@@ -265,6 +272,8 @@ export function RiscoCaixaPage() {
           </div>
         </Card>
 
+        <RecorteAtivo />
+
         {!ok ? (
           <Card>
             <div className="text-sm text-risk-critico">
@@ -275,7 +284,7 @@ export function RiscoCaixaPage() {
           <Card>
             <div className="flex flex-col items-start gap-3">
               <p className="text-sm text-text-muted">Nenhum projeto corresponde aos filtros selecionados.</p>
-              <Button variant="outline" onClick={limparFiltros} disabled={!temFiltro}>
+              <Button variant="outline" onClick={limpar} disabled={!temFiltro}>
                 Limpar filtros
               </Button>
             </div>

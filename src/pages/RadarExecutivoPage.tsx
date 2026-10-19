@@ -4,7 +4,10 @@ import {
 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
-import { aplicarFiltroRubrica, rubricasDisponiveis } from "../lib/rubrica";
+import { aplicarFiltroRubrica } from "../lib/rubrica";
+import { projetoNoRecorteComRubrica, rcNoRecorte, rubricasDoRecorte, type Recorte } from "../lib/recorte";
+import { useRecorteStore } from "../store/recorteStore";
+import { usePortfolioData } from "../hooks/usePortfolioData";
 import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
 import { navigate } from "../lib/simpleRouter";
 import { useCuration } from "../features/radar/useCuration";
@@ -21,8 +24,8 @@ import {
   buildBgVivo
 } from "../features/radar/executive";
 import { buildOperationalRows } from "../features/radar/operational";
-import { normalizeKey } from "../lib/csvProcessingCore";
 import { ExecucaoPlanoCard } from "../components/ExecucaoPlanoCard";
+import { RecorteAtivo } from "../components/RecorteAtivo";
 import { SaldoPotencialCard } from "../features/saldo/SaldoPotencialCard";
 import { FluxoCaixaChart } from "../components/FluxoCaixaChart";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
@@ -67,18 +70,30 @@ export function RadarExecutivoPage({
   isLoadingCompromisso,
   dataBase,
 }: Props) {
-  const { bundle, curationMap } = useCuration();
+  const { bundle, curationMap, rcViews } = useCuration();
+  const { parsed } = usePortfolioData();
   const [panel, setPanel] = useState<Panel>(null);
   
   const [ano, setAno] = useState<2026 | 2027>(2026);
-  const [filtroPrograma, setFiltroPrograma] = useState<string | null>(null);
-  const [filtroRubrica, setFiltroRubrica] = useState<string[]>([]);
+  const programa = useRecorteStore((s) => s.programa);
+  const rubricas = useRecorteStore((s) => s.rubricas);
+  const gestor = useRecorteStore((s) => s.gestor);
+  const aprovador = useRecorteStore((s) => s.aprovador);
+  const busca = useRecorteStore((s) => s.busca);
+  const setPrograma = useRecorteStore((s) => s.setPrograma);
+  const setRubricas = useRecorteStore((s) => s.setRubricas);
+  const limpar = useRecorteStore((s) => s.limpar);
   const [showFilters, setShowFilters] = useState(false);
 
-  const listaSaldo = useMemo(() => {
-    const base = lista.filter(p => !filtroPrograma || p.n4Curta === filtroPrograma);
-    return filtroRubrica.length ? aplicarFiltroRubrica(base, filtroRubrica) : base;
-  }, [lista, filtroPrograma, filtroRubrica]);
+  // Programa e plataforma são o mesmo campo (n4Curta): a tela usa o campo único `programa` do recorte
+  const recorte = useMemo<Recorte>(
+    () => ({ programa, rubricas, gestor, aprovador, busca }),
+    [programa, rubricas, gestor, aprovador, busca]
+  );
+  const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
+  const filtrosAtivos = (programa ? 1 : 0) + (gestor ? 1 : 0) + (aprovador ? 1 : 0) + rubricas.length + (busca.trim() ? 1 : 0);
+
+  const listaSaldo = useMemo(() => lista.filter((p) => projetoNoRecorteComRubrica(p, recorte)), [lista, recorte]);
   const saldoProjectKeys = useMemo(() => new Set(listaSaldo.map(p => p.id)), [listaSaldo]);
 
   const programasOptions = useMemo(() => {
@@ -86,18 +101,21 @@ export function RadarExecutivoPage({
     return Array.from(set).sort().map(p => ({ value: p, label: p }));
   }, [lista]);
 
-  const rubricasOptions = useMemo(() => rubricasDisponiveis(lista), [lista]);
+  const rubricasOptions = useMemo(
+    () => rubricasDoRecorte(parsed?.projetos ?? [], rcViews, bundle?.payments?.inPayment ?? []),
+    [parsed, rcViews, bundle]
+  );
 
   const computed = useMemo(() => {
     if (!bundle) return null;
     const dbDate = parseDateBR(dataBase) || new Date();
     const referenceDateStr = dbDate.toISOString().slice(0, 10);
 
-    let listaFiltradaBase = lista.filter(p => !filtroPrograma || p.n4Curta === filtroPrograma);
+    let listaFiltradaBase = lista.filter((p) => projetoNoRecorteComRubrica(p, recorte));
     
-    if (filtroRubrica.length > 0) {
+    if (rubricas.length > 0) {
       // os campos de métrica (acumulados, status, ritmo) vêm calculados de cima: recalcula sobre os valores da rubrica
-      listaFiltradaBase = withParticipacaoRisco(aplicarFiltroRubrica(listaFiltradaBase, filtroRubrica).map((p) => computeMetricas(p, p.periodo)));
+      listaFiltradaBase = withParticipacaoRisco(aplicarFiltroRubrica(listaFiltradaBase, rubricas).map((p) => computeMetricas(p, p.periodo)));
     }
     
     // Lista adaptada para o ano selecionado, garantindo que métricas do período batam
@@ -115,17 +133,12 @@ export function RadarExecutivoPage({
       executado: (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0)
     }));
 
-    const validKeys = new Set(listaAno.map((p) => `${normalizeKey(p.n4)}|${normalizeKey(p.nome)}`));
+    const rcsNoRecorte = new Set(
+      rcViews.filter((rc) => rcNoRecorte(rc, recorte, projetoPorNome, bundle.exerciseYear)).map((rc) => rc.rc)
+    );
     const allOpRows = buildOperationalRows(bundle, curationMap, referenceDateStr);
     
-    let opRows = allOpRows.filter((row) => {
-      const commitments = bundle.commitments.filter((c: any) => c.rc === row.rc);
-      return commitments.some((c: any) => validKeys.has(`${normalizeKey(c.n4)}|${normalizeKey(c.projectName)}`));
-    });
-
-    if (filtroRubrica.length > 0) {
-      opRows = opRows.filter(r => r.rubricas?.some(rub => filtroRubrica.includes(rub)));
-    }
+    const opRows = allOpRows.filter((row) => rcsNoRecorte.has(row.rc));
 
     const projectBalances = buildProjectBalances(listaAno, bundle.projectActivity, dbDate);
     const balanceSummary = summarizeBalances(projectBalances);
@@ -171,7 +184,7 @@ export function RadarExecutivoPage({
       balanceSummary, projectBalances, risk, bridge, bottleneck,
       flow, listaAno, listaAno26, bgVivoSum, compromisso27
     };
-  }, [bundle, curationMap, lista, dataBase, ano, filtroPrograma, filtroRubrica]);
+  }, [bundle, curationMap, rcViews, lista, recorte, projetoPorNome, rubricas, dataBase, ano]);
 
   const handleSelectByKey = (key: string) => {
     const proj = listaAno.find(p => p.id === key);
@@ -222,9 +235,9 @@ export function RadarExecutivoPage({
             className={`flex items-center gap-2 text-xs font-semibold text-text border border-border bg-card-alt px-3 py-1.5 rounded-md hover:border-accent transition-colors ${showFilters ? "border-accent" : ""}`}
           >
             <Filter size={14} /> Filtros ▾
-            {(filtroPrograma || filtroRubrica.length > 0) && (
+            {filtrosAtivos > 0 && (
               <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] text-white">
-                {(filtroPrograma ? 1 : 0) + (filtroRubrica.length > 0 ? 1 : 0)}
+                {filtrosAtivos}
               </span>
             )}
           </button>
@@ -233,7 +246,7 @@ export function RadarExecutivoPage({
             <div className="absolute top-full right-0 mt-2 z-50 w-64 p-3 rounded-card border border-border bg-card shadow-lg flex flex-col gap-3">
               <div>
                 <label className="text-[11px] font-semibold text-text-muted mb-1 block">Programa</label>
-                <Select value={filtroPrograma} onValueChange={setFiltroPrograma} options={programasOptions} placeholder="Todos os programas" className="w-full" />
+                <Select value={programa} onValueChange={setPrograma} options={programasOptions} placeholder="Todos os programas" className="w-full" />
               </div>
               <div>
                 <label className="text-[11px] font-semibold text-text-muted mb-1 block">Rubricas</label>
@@ -242,10 +255,10 @@ export function RadarExecutivoPage({
                     <label key={r} className="flex items-center gap-2 text-xs cursor-pointer text-text hover:bg-bg p-1 rounded transition-colors">
                       <input
                         type="checkbox"
-                        checked={filtroRubrica.includes(r)}
+                        checked={rubricas.includes(r)}
                         onChange={(e) => {
-                          if (e.target.checked) setFiltroRubrica([...filtroRubrica, r]);
-                          else setFiltroRubrica(filtroRubrica.filter(x => x !== r));
+                          if (e.target.checked) setRubricas([...rubricas, r]);
+                          else setRubricas(rubricas.filter(x => x !== r));
                         }}
                         className="rounded border-border text-accent focus:ring-accent w-3 h-3"
                       />
@@ -254,10 +267,17 @@ export function RadarExecutivoPage({
                   ))}
                 </div>
               </div>
+              {filtrosAtivos > 0 && (
+                <button type="button" onClick={limpar} className="self-end text-xs font-semibold text-accent hover:underline">
+                  Limpar ({filtrosAtivos})
+                </button>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      <RecorteAtivo />
 
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
 
@@ -317,7 +337,7 @@ export function RadarExecutivoPage({
         <SaldoPotencialCard
           variant="compact"
           projectKeys={saldoProjectKeys}
-          rubricas={filtroRubrica}
+          rubricas={rubricas}
           anoSelecionado={ano}
         />
       )}

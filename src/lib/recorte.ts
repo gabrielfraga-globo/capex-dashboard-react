@@ -7,7 +7,6 @@ import { aplicarFiltroRubrica } from "./rubrica";
 export interface Recorte {
   programa: string | null;
   rubricas: string[];
-  plataforma: string | null;
   gestor: string | null;
   aprovador: string | null;
   busca: string;
@@ -18,13 +17,12 @@ export type ProjetosPorKey = Map<string, ProjetoBase>;
 
 const normalizarTermo = (texto: string) => texto.trim().toLocaleLowerCase("pt-BR");
 
-const temFiltroDeProjeto = (r: Recorte) => Boolean(r.programa || r.plataforma || r.gestor || r.aprovador);
+const temFiltroDeProjeto = (r: Recorte) => Boolean(r.programa || r.gestor || r.aprovador);
 
 const semAprovador = (r: Recorte): Recorte => ({ ...r, aprovador: null });
 
 export function projetoNoRecorte(p: ProjetoBase, r: Recorte): boolean {
   if (r.programa && p.n4Curta !== r.programa) return false;
-  if (r.plataforma && p.n4Curta !== r.plataforma) return false;
   if (r.gestor && p.gestor !== r.gestor) return false;
   if (r.aprovador && p.aprovador !== r.aprovador) return false;
   return true;
@@ -68,7 +66,7 @@ export function rcNoRecorte(rc: RcView, r: Recorte, projetosPorKey: ProjetosPorK
 /** Linha de pagamento: o aprovador também casa pelo aprovador informado na própria linha (pg.approver). */
 export function pagamentoNoRecorte(pg: PaymentRecord, r: Recorte, projetosPorKey: ProjetosPorKey): boolean {
   const projeto = projetosPorKey.get(pg.projectName ?? "");
-  const projetoOk = projeto ? projetoNoRecorte(projeto, semAprovador(r)) : !(r.programa || r.plataforma || r.gestor);
+  const projetoOk = projeto ? projetoNoRecorte(projeto, semAprovador(r)) : !(r.programa || r.gestor);
   if (!projetoOk) return false;
   if (r.aprovador && projeto?.aprovador !== r.aprovador && pg.approver !== r.aprovador) return false;
   if (r.rubricas.length > 0 && (!pg.rubrica || !r.rubricas.includes(pg.rubrica))) return false;
@@ -78,7 +76,7 @@ export function pagamentoNoRecorte(pg: PaymentRecord, r: Recorte, projetosPorKey
 }
 
 /** União das rubricas dos projetos, RCs e pagamentos: sem vazios, ordenada. */
-export function rubricasDisponiveis(projetos: ProjetoBase[], rcs: RcView[], pagamentos: PaymentRecord[]): string[] {
+export function rubricasDoRecorte(projetos: ProjetoBase[], rcs: RcView[], pagamentos: PaymentRecord[]): string[] {
   const todas = new Set<string>();
   for (const p of projetos) for (const rub of Object.keys(p.porRubrica ?? {})) todas.add(rub);
   for (const rc of rcs) for (const c of rc.commitments) todas.add(c.rubrica);
