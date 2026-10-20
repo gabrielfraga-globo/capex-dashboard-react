@@ -110,6 +110,13 @@ describe("rubricasDoRecorte", () => {
     const pagamentos = [pagamento({ rubrica: "SOLUÇÃO" }), pagamento({ rubrica: null }), pagamento({ rubrica: "" })];
     expect(rubricasDoRecorte(projetos, rcs, pagamentos)).toEqual(["MDO", "RESERVA", "SOLUÇÃO"]);
   });
+
+  it("não oferece NAO_INFORMADA como opção, em nenhuma grafia", () => {
+    const projetos = [projeto("A", { porRubrica: { NAO_INFORMADA: {} as never, MDO: {} as never } })];
+    const rcs = [rcView("RC1", [commitment({ rubrica: "Não Informada" })])];
+    const pagamentos = [pagamento({ rubrica: "NÃO INFORMADA" })];
+    expect(rubricasDoRecorte(projetos, rcs, pagamentos)).toEqual(["MDO"]);
+  });
 });
 
 describe("recorte vazio", () => {

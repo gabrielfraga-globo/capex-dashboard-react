@@ -42,6 +42,17 @@ export function aplicarFiltroRubrica<T extends ProjetoBase>(lista: T[], rubricas
   return out;
 }
 
+const chaveRubrica = (rubrica: string) =>
+  rubrica.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase().replace(/\s+/g, "_");
+
+/** Rubricas que não são oferecidas como opção de filtro (sem filtro, "Todas" continua incluindo-as). */
+export const RUBRICAS_OCULTAS: ReadonlySet<string> = new Set(["NAO_INFORMADA"]);
+
+/** Tira das opções de filtro as rubricas ocultas, mantendo a ordem. */
+export function opcoesRubricaVisiveis(rubricas: readonly string[]): string[] {
+  return rubricas.filter((r) => !RUBRICAS_OCULTAS.has(chaveRubrica(r)));
+}
+
 /** Rubricas que têm algum valor na carteira (esconde rubricas vazias, ex.: NAO_INFORMADA com tudo zero). */
 export function rubricasDisponiveis(lista: ProjetoBase[]): string[] {
   const tot = new Map<string, number>();

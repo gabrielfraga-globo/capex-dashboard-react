@@ -1,4 +1,5 @@
 import { fmtBRL } from "../../lib/format";
+import { opcoesRubricaVisiveis } from "../../lib/rubrica";
 import { cn } from "../../lib/utils";
 import type { SaldoRecorteView } from "../radar/types";
 import { saldoTotalDe } from "./saldo";
@@ -17,7 +18,8 @@ export function RubricaChips({
   selected: string[];
   onToggle: (rubrica: string) => void;
 }) {
-  const ordenadas = [...views].sort((a, b) => saldoTotalDe(a) - saldoTotalDe(b));
+  const visiveis = new Set(opcoesRubricaVisiveis(views.map((v) => v.key)));
+  const ordenadas = views.filter((v) => visiveis.has(v.key)).sort((a, b) => saldoTotalDe(a) - saldoTotalDe(b));
 
   return (
     <div className="flex flex-wrap gap-2">

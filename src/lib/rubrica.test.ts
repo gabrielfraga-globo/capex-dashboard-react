@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplicarFiltroRubrica, rubricasDisponiveis } from "./rubrica";
+import { aplicarFiltroRubrica, opcoesRubricaVisiveis, rubricasDisponiveis } from "./rubrica";
 import type { ProjetoBase } from "../types";
 
 const rub = (o26: number, r26: number, comp: number) => ({
@@ -38,3 +38,16 @@ describe("aplicarFiltroRubrica", () => {
     expect(rubricasDisponiveis(lista)).toEqual(["MDO", "SOLUÇÃO"]);
   });
 });
+
+describe("opcoesRubricaVisiveis", () => {
+  it("remove as três grafias de Não Informada e preserva a ordem do resto", () => {
+    expect(opcoesRubricaVisiveis(["MDO", "NAO_INFORMADA", "SOLUÇÃO", "Não Informada", "RESERVA", "NÃO INFORMADA"]))
+      .toEqual(["MDO", "SOLUÇÃO", "RESERVA"]);
+  });
+
+  it("aplicarFiltroRubrica sem escolha devolve a lista inteira, inclusive NAO_INFORMADA", () => {
+    const lista = [proj("A", { NAO_INFORMADA: rub(50, 0, 0) })];
+    expect(aplicarFiltroRubrica(lista, [])).toBe(lista);
+  });
+});
+

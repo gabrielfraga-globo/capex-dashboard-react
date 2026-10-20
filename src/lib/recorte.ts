@@ -2,7 +2,7 @@ import type { ProjetoBase } from "../types";
 import type { RcView } from "../features/radar/types";
 import type { PaymentRecord } from "../features/radar/payment";
 import { poStatusLabel } from "../features/radar/status";
-import { aplicarFiltroRubrica } from "./rubrica";
+import { aplicarFiltroRubrica, opcoesRubricaVisiveis } from "./rubrica";
 
 export interface Recorte {
   programa: string | null;
@@ -81,7 +81,7 @@ export function rubricasDoRecorte(projetos: ProjetoBase[], rcs: RcView[], pagame
   for (const p of projetos) for (const rub of Object.keys(p.porRubrica ?? {})) todas.add(rub);
   for (const rc of rcs) for (const c of rc.commitments) todas.add(c.rubrica);
   for (const pg of pagamentos) if (pg.rubrica) todas.add(pg.rubrica);
-  return [...todas]
+  return opcoesRubricaVisiveis([...todas])
     .filter((r) => r.trim() !== "")
     .sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
