@@ -205,7 +205,18 @@ Somente leitura — NÃO edite nenhum arquivo. Responda em tabelas curtas com ar
 Sem propor mudanças.
 ```
 
-> **Antes do E1:** cole a resposta da F0 numa nova seção "5.1 Achados da F0" deste arquivo (o Claude ajuda a ajustar os prompts se algo divergir).
+### 5.1 Achados da F0 (19/10/2026) e ajustes no plano
+
+| # | Achado | Ajuste |
+|---|---|---|
+| 1 | Navegação em `App.tsx` ~189–225. A tela **Auditoria técnica não está no menu**: só se chega por "Ver detalhes →" (Execução do Plano) e "Ver fluxo completo →", via `/auditoria` (App.tsx ~105–110). | Não há dois "Auditoria" no menu, mas o conflito de sentido continua (o link "Ver detalhes" leva a outra "Auditoria"). E1 não mexe na tela técnica. N1 continua aberta. |
+| 2 | 6 cartões 2026 em `RadarExecutivoPage.tsx` ~287–310; `SaldoPotencialCard compact` ~337; Fluxo em grid `grid-cols-[1fr_minmax(300px,360px)]` ~355–370, com coluna `w-[150px]` (Realizado/Planejado/Desvio) e `AnaliseRiscoPanel` à direita (~370–420). | E3: o Fluxo vai para a largura total e o `AnaliseRiscoPanel` desce para a linha seguinte (não sai). A coluna de 150px fica dentro do card. |
+| 3 | `buildBgVivo` (`executive.ts`:714). **Compromisso 26 = CAIXA_26 + EM_RISCO** (~726–728); Compromisso 27 = CAIXA_27 (~750–753); exclui DESCONHECIDA e RESIDUAL. `isClassificationConfirmed` em `operational.ts` ~282–291. | E6: a decomposição do 26 mostra "Em risco (incluído)" como linha própria. As somas usam o mesmo filtro de `buildBgVivo`. |
+| 4 | Fonte única das opções de rubrica: `rubricasDoRecorte` (`src/lib/recorte.ts`:79–88). `NAO_INFORMADA` nasce como fallback em `csvProcessingCore.ts`:103/136/157 e `saldoProjetosCore.ts`:18/97. **Σ = 0** na carteira e ausente do bundle. | E5 vira uma mudança só em `rubricasDoRecorte`, sem a nota "Todas inclui R$ X". |
+| 5 | Classificação: `OperationalTable.tsx` com wrapper `overflow-auto max-h-[70vh]` (:593) e `thead` já `sticky top-0` (:596); 1280px. Curadoria: `CommitmentTable.tsx`:74 com `overflow-x-auto` **sem `max-h`** (1514px): a página rola e a barra horizontal só aparece no fim da grade. | T1 cria um wrapper comum (`ScrollTable`) e aplica nas **duas** tabelas. Na Curadoria está o pior caso da barra horizontal. |
+| 6 | Curadoria em **PostgreSQL** (`api/_lib/db.ts`), tabela `commitment_curation`, migrações `db/migrations/001–004`, whitelist em `api/_lib/curationColumns.ts`:34/113/260, validação em `api/_lib/validation.ts`:88, `testDb.ts`:39 lista as migrações. **Não há runner de migração no repositório.** | C2: migração `005_rateio_exercicio.sql` (ADD COLUMN NULL) + `testDb.ts` + whitelist + `rowToCuration` + validação + tipos. **Aplicar o SQL manualmente no banco de produção antes do deploy.** |
+| 7 | Não existe código de item em nenhum CSV, DAX, JSON ou tipo. | N5 confirmada como bloqueio da C1. |
+| 8 | `n4Curta`: Captação e Produção · Metadados e Mídias · Pré-Produção · Pós-Produção e Design. `ProjetoMetricas` (`types/index.ts`:107) tem BG, realizado, em pagamento e compromisso por projeto. | E4 sem dado novo, como previsto. |
 
 ### E1 · Rótulos centralizados e renomeações
 
@@ -430,3 +441,21 @@ Aceite: carteira-processed.json idêntico ao baseline; radar-bundle.json só com
 | V6 | Classificação: cabeçalho e coluna RC visíveis ao rolar nos dois eixos; barra horizontal sempre visível; sem barra horizontal na página |
 | V7 | Rateio 50/50 numa RC de R$ 1M → Comp 26 −R$ 0,5M e Comp 27 +R$ 0,5M; soma igual |
 | V8 | Com `prefers-reduced-motion` ativo, o flip é fade |
+
+---
+
+## 8. Visão Diretoria (20/10/2026)
+
+Nova aba, mais enxuta que a Visão Executiva (que continua como está). Decisões do Gabriel:
+
+| # | Decisão |
+|---|---|
+| VD1 | Nome **"Visão Diretoria"**, rota `/diretoria`. |
+| VD2 | Topo: faixa de 3 números (BG 26 · Caixa = realizado + em pagamento, com % · Em risco) e "ver todos ▾", que expande os 6 cartões atuais. |
+| VD3 | Execução do Plano por **torres**: abre só a torre 2026 (Realizado + Em pagamento + Compromisso 26, com Em risco destacado dentro do Comp. 26, e folga/excesso vs BG 26). O botão "+ 2027" adiciona a torre 2027 (Compromisso 27, alinhado com os times pelo cadastro, vs BG 27 e saldo a contratar). |
+| VD4 | Nota de conciliação: emitido total − Comp. 26 − Comp. 27 (RCs sem classificação ou residuais) aparece quando ≥ `LIMIAR_MATERIALIDADE`. Em 20/10: R$ 61,9M − 48,2 − 9,5 = R$ 4,2M. |
+| VD5 | Abaixo: Fluxo de caixa (verso: Composição por plataforma) à esquerda; Top 3 pontos de atenção + Ritmo (só status geral) à direita. |
+
+Números de 20/10 (base 04:34): BG 26 R$ 145,2M · Realizado R$ 80,1M · Em pgto R$ 10,4M · Comp. 26 R$ 48,2M (R$ 28M em risco) · torre 2026 = 95,5% do BG, folga R$ 6,5M · BG 27 R$ 73,9M · Comp. 27 R$ 9,5M (12,9%).
+
+Etapas: D1 (extração sem mudança de comportamento) → D2 (torres: lógica + componente) → D3 (página, rota, menu).

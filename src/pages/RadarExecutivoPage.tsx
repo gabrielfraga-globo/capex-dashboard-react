@@ -1,34 +1,13 @@
 import { useState, useMemo } from "react";
-import {
-  FolderKanban, Wallet, ShieldAlert, Gauge, Filter, CheckCircle2
-} from "lucide-react";
+import { Filter, FolderKanban, Wallet, ShieldAlert, Gauge } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
-import { fmtBRL, fmtPct, formatarIsoLocal } from "../lib/format";
-import { aplicarFiltroRubrica } from "../lib/rubrica";
-import { projetoNoRecorteComRubrica, rcNoRecorte, rubricasDoRecorte, type Recorte } from "../lib/recorte";
+import { fmtBRL, fmtPct } from "../lib/format";
 import { useRecorteStore } from "../store/recorteStore";
-import { usePortfolioData } from "../hooks/usePortfolioData";
-import { computeMetricas, withParticipacaoRisco } from "../lib/metrics";
 import { navigate } from "../lib/simpleRouter";
-import { useCuration } from "../features/radar/useCuration";
-import {
-  buildProjectBalances,
-  summarizeBalances,
-  buildProjectsAtRisk,
-  buildCurationConsistency,
-  sumProvisioned,
-  buildBridge,
-  buildBottleneck,
-  buildInsights,
-  buildFlowSummary,
-  buildBgVivo
-} from "../features/radar/executive";
-import { buildOperationalRows } from "../features/radar/operational";
-import { explicarCompromissoExercicio, formatarDiaMes, fraseVirada, type ExplicacaoCompromisso } from "../features/executivo/compromissoExplicacao";
-import { RC_TO_PAYMENT_DAYS } from "../features/radar/stageConfig";
+import { useCarteiraResumo } from "../features/executivo/useCarteiraResumo";
+import { KpiRow2026 } from "../features/executivo/KpiRow2026";
 import { ExecucaoPlanoCard } from "../components/ExecucaoPlanoCard";
 import { RecorteAtivo } from "../components/RecorteAtivo";
-import { SaldoPotencialCard } from "../features/saldo/SaldoPotencialCard";
 import { FluxoCaixaChart } from "../components/FluxoCaixaChart";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { EstouroPanel } from "../features/radar/panels/EstouroPanel";
@@ -37,56 +16,9 @@ import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
 import { DistribuicaoFinanceiraPlataforma } from "../components/Diagnostics";
 import { FlipCard } from "../components/ui/FlipCard";
-import { LABELS } from "../config/labels";
-import { InfoTooltip } from "../components/ui/primitives";
 import { SectionCard } from "../components/ui/pattern/SectionCard";
 import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
 import { Select } from "../components/ui/select";
-
-function parseDateBR(value: string | null | undefined): Date | null {
-  if (!value) return null;
-  const match = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(value);
-  if (!match) return null;
-  const [, day, month, year] = match;
-  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
-  if (
-    Number.isNaN(parsed.getTime()) ||
-    parsed.getFullYear() !== Number(year) ||
-    parsed.getMonth() !== Number(month) - 1 ||
-    parsed.getDate() !== Number(day)
-  ) return null;
-  return parsed;
-}
-
-function ExplicacaoTooltipContent({
-  explicacao,
-  dataRef,
-  notaAbertura,
-}: {
-  explicacao: ExplicacaoCompromisso;
-  dataRef: Date;
-  notaAbertura?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p>
-        Classificamos cada RC pela data estimada de pagamento, a partir da etapa da esteira. Pagamento até 31/12 conta em
-        2026; depois, em 2027. A decisão do gestor na Curadoria prevalece.
-      </p>
-      <ul className="flex flex-col gap-1 tabular-nums">
-        {explicacao.linhas.map((l) => (
-          <li key={l.rotulo} className="flex items-baseline justify-between gap-3">
-            <span>{l.rotulo}</span>
-            <span className="font-semibold">{fmtBRL(l.valor, true)}</span>
-            <span className="text-text-muted whitespace-nowrap">{l.qtd === 1 ? "1 RC" : `${l.qtd} RCs`}</span>
-          </li>
-        ))}
-      </ul>
-      {notaAbertura && <p className="text-text-muted">{notaAbertura}</p>}
-      <p className="text-text-faint">Estimativa de {formatarDiaMes(dataRef)}</p>
-    </div>
-  );
-}
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -105,8 +37,6 @@ export function RadarExecutivoPage({
   isLoadingCompromisso,
   dataBase,
 }: Props) {
-  const { bundle, curationMap, rcViews } = useCuration();
-  const { parsed } = usePortfolioData();
   const [panel, setPanel] = useState<Panel>(null);
   
   const [ano, setAno] = useState<2026 | 2027>(2026);
@@ -120,112 +50,14 @@ export function RadarExecutivoPage({
   const limpar = useRecorteStore((s) => s.limpar);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Programa e plataforma são o mesmo campo (n4Curta): a tela usa o campo único `programa` do recorte
-  const recorte = useMemo<Recorte>(
-    () => ({ programa, rubricas, gestor, aprovador, busca }),
-    [programa, rubricas, gestor, aprovador, busca]
-  );
-  const projetoPorNome = useMemo(() => new Map((parsed?.projetos ?? []).map((p) => [p.nome, p])), [parsed]);
   const filtrosAtivos = (programa ? 1 : 0) + (gestor ? 1 : 0) + (aprovador ? 1 : 0) + rubricas.length + (busca.trim() ? 1 : 0);
-
-  const listaSaldo = useMemo(() => lista.filter((p) => projetoNoRecorteComRubrica(p, recorte)), [lista, recorte]);
-  const saldoProjectKeys = useMemo(() => new Set(listaSaldo.map(p => p.id)), [listaSaldo]);
 
   const programasOptions = useMemo(() => {
     const set = new Set(lista.map(p => p.n4Curta).filter(Boolean));
     return Array.from(set).sort().map(p => ({ value: p, label: p }));
   }, [lista]);
 
-  const rubricasOptions = useMemo(
-    () => rubricasDoRecorte(parsed?.projetos ?? [], rcViews, bundle?.payments?.inPayment ?? []),
-    [parsed, rcViews, bundle]
-  );
-
-  const computed = useMemo(() => {
-    if (!bundle) return null;
-    const dbDate = parseDateBR(dataBase) || new Date();
-    const referenceDateStr = formatarIsoLocal(dbDate);
-
-    let listaFiltradaBase = lista.filter((p) => projetoNoRecorteComRubrica(p, recorte));
-    
-    if (rubricas.length > 0) {
-      // os campos de métrica (acumulados, status, ritmo) vêm calculados de cima: recalcula sobre os valores da rubrica
-      listaFiltradaBase = withParticipacaoRisco(aplicarFiltroRubrica(listaFiltradaBase, rubricas).map((p) => computeMetricas(p, p.periodo)));
-    }
-    
-    // Lista adaptada para o ano selecionado, garantindo que métricas do período batam
-    const listaAno = listaFiltradaBase.map(p => ({
-      ...p,
-      orcamentoPeriodo: ano === 2026 ? p.orcamento2026 : p.orcamento2027,
-      realizadoAcumulado: ano === 2026 ? p.realizado2026 : p.realizado2027,
-      executado: ano === 2026 ? (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0) : (p.realizado2027 ?? 0) + (p.emPagamento2027 ?? 0)
-    }));
-
-    const listaAno26 = listaFiltradaBase.map(p => ({
-      ...p,
-      orcamentoPeriodo: p.orcamento2026,
-      realizadoAcumulado: p.realizado2026,
-      executado: (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0)
-    }));
-
-    const rcsNoRecorte = new Set(
-      rcViews.filter((rc) => rcNoRecorte(rc, recorte, projetoPorNome, bundle.exerciseYear)).map((rc) => rc.rc)
-    );
-    const allOpRows = buildOperationalRows(bundle, curationMap, referenceDateStr);
-    
-    const opRows = allOpRows.filter((row) => rcsNoRecorte.has(row.rc));
-
-    const projectBalances = buildProjectBalances(listaAno, bundle.projectActivity, dbDate);
-    const balanceSummary = summarizeBalances(projectBalances);
-    const risk = buildProjectsAtRisk(opRows);
-    const consistency = buildCurationConsistency(opRows, dbDate, bundle.exerciseYear);
-    const { prov26, provRisco, prov27 } = sumProvisioned(opRows);
-
-    let totalRealizado = 0, totalEmPagamento = 0, bgSistemico = 0;
-    for (const p of listaAno) {
-      totalRealizado += p.realizado2026 ?? 0;
-      totalEmPagamento += p.emPagamento2026 ?? 0;
-      bgSistemico += p.orcamento2026 ?? 0;
-    }
-
-    let residual = 0, naoOcorre = 0;
-    for (const r of opRows) {
-      if (r.stage === "RESIDUAL" || r.stage === "DESCONHECIDA") residual += r.value;
-      else if (r.classification === "NAO_OCORRE") naoOcorre += r.value;
-    }
-
-    const bridge = buildBridge({
-      bg: bgSistemico, realizado: totalRealizado, emPagamento: totalEmPagamento,
-      prov26, provRisco, prov27, residual, naoOcorre, saldoLiquido: balanceSummary.liquido,
-    });
-    const bottleneck = buildBottleneck(opRows);
-    const pendente = Math.max(0, consistency.scopeValue - opRows.filter((r) => r.isClassificationConfirmed).reduce((s, r) => s + r.value, 0));
-    buildInsights({
-      bgSistemico, projetado: totalRealizado + totalEmPagamento + prov26,
-      realizado: totalRealizado, emPagamento: totalEmPagamento,
-      projetosEmRiscoCount: risk.count, projetosEmRiscoValue: risk.totalValue, top10RiscoValue: risk.top10Value,
-      dataBase: dbDate, opRows,
-      saldoParadoValue: bundle.projectActivity ? balanceSummary.parado.value : 0,
-      curadoriaPendenteValue: consistency.scopeCount > consistency.confirmed ? pendente : 0,
-    });
-    
-    const bgVivoSum = buildBgVivo(listaAno, opRows, ano);
-    const compromisso27 = buildBgVivo(listaAno, opRows, 2027).emitido;
-
-    const flow = buildFlowSummary(listaAno);
-
-    return {
-      bgSistemico, totalRealizado, totalEmPagamento, prov26, provRisco, prov27,
-      balanceSummary, projectBalances, risk, bridge, bottleneck,
-      flow, listaAno, listaAno26, bgVivoSum, compromisso27, opRows, dbDate,
-      notaVirada: fraseVirada(dbDate, bundle.exerciseYear, RC_TO_PAYMENT_DAYS),
-    };
-  }, [bundle, curationMap, rcViews, lista, recorte, projetoPorNome, rubricas, dataBase, ano]);
-
-  const explicacaoCompromisso = useMemo(
-    () => (computed ? explicarCompromissoExercicio(computed.opRows, ano) : null),
-    [computed, ano]
-  );
+  const { data, rubricasOptions } = useCarteiraResumo(ano, { lista, dataBase });
 
   const handleSelectByKey = (key: string) => {
     const proj = listaAno.find(p => p.id === key);
@@ -238,17 +70,13 @@ export function RadarExecutivoPage({
     onSelect(proj); setPanel(null);
   };
 
-  if (!computed || !explicacaoCompromisso) {
+  if (!data) {
     return (
       <div className="h-full rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
     );
   }
 
-  const {
-    balanceSummary, risk, bridge, flow,
-    projectBalances,
-    listaAno, listaAno26, bgVivoSum, compromisso27, notaVirada, dbDate
-  } = computed;
+  const { balanceSummary, risk, bridge, flow, projectBalances, listaAno, listaAno26, bgVivoSum } = data;
 
   const fluxoCard = (
     <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px]">
@@ -301,22 +129,6 @@ export function RadarExecutivoPage({
         </div>
       )}
     </div>
-  );
-
-  const emRiscoKpi = (
-    <KpiStat
-      icon={<ShieldAlert size={16} />}
-      label="Em risco"
-      value={fmtBRL(risk.totalValue, true)}
-      tone="warn"
-      context={
-        <span className="inline-flex items-center gap-1">
-          {`${risk.count} projetos`}
-          <InfoTooltip label="Sobre o Em risco" text="Parte do Compromisso 26 que pode não virar caixa em 2026: RCs em etapas iniciais (E1–E3), atrasadas na E4 ou com previsão marcada como incerta na Curadoria. Clique para ver os projetos." />
-        </span>
-      }
-      onClick={() => setPanel("risk")}
-    />
   );
 
   return (
@@ -393,66 +205,7 @@ export function RadarExecutivoPage({
 
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
         {ano === 2026 ? (
-          <>
-            <KpiStat
-              icon={<FolderKanban size={16} />}
-              label="BG Gov 26"
-              value={fmtBRL(bgVivoSum.bgGov, true)}
-              context={`BG Vivo ${fmtBRL(bgVivoSum.bgVivo, true)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtBRL(bgVivoSum.diferencaVsGov, true)})`}
-            />
-            <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(bgVivoSum.realizado, true)} context="pago no exercício" />
-            <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(bgVivoSum.emPagamento, true)} context="etapa E7" />
-            <KpiStat
-              icon={<Wallet size={16} />}
-              label={
-                <span className="inline-flex items-center gap-1">
-                  Compromisso 26
-                  <InfoTooltip
-                    label="Como calculamos o Compromisso 26"
-                    content={<ExplicacaoTooltipContent explicacao={explicacaoCompromisso.c26} dataRef={dbDate} />}
-                  />
-                </span>
-              }
-              value={fmtBRL(bgVivoSum.emitido, true)}
-              context="emitido na carteira"
-            />
-            <KpiStat
-              icon={<Wallet size={16} />}
-              label={
-                <span className="inline-flex items-center gap-1">
-                  Compromisso 27
-                  <InfoTooltip
-                    label="Como calculamos o Compromisso 27"
-                    content={
-                      <ExplicacaoTooltipContent
-                        explicacao={explicacaoCompromisso.c27}
-                        dataRef={dbDate}
-                        notaAbertura={notaVirada}
-                      />
-                    }
-                  />
-                </span>
-              }
-              value={fmtBRL(compromisso27, true)}
-              context="RCs com caixa previsto em 2027"
-            />
-            {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" ? (
-              <FlipCard
-                compact
-                frontLabel="Em risco"
-                backLabel={LABELS.saldoParadoCard}
-                front={emRiscoKpi}
-                back={
-                  <SaldoPotencialCard
-                    variant="flip"
-                    projectKeys={saldoProjectKeys}
-                    rubricas={rubricas}
-                    anoSelecionado={ano}
-                  />
-                }
-              />
-            ) : emRiscoKpi}
-          </>
+          <KpiRow2026 data={data} rubricas={rubricas} onAbrirRisco={() => setPanel("risk")} />
         ) : (
           <>
         <KpiStat icon={<FolderKanban size={16} />} label={`BG Gov ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.bgGov, true)} context="orçamento aprovado" />
