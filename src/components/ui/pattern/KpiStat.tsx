@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 interface KpiStatProps {
   icon: ReactNode;
-  label: string;
+  label: ReactNode;
   value: string;
   context?: ReactNode;
   tone?: "neutral" | "info" | "warn" | "crit";
@@ -40,9 +40,9 @@ export function KpiStat({ icon, label, value, context, tone = "neutral", onClick
 
   if (!onClick) {
     return (
-      <button type="button" disabled title={title} className={className}>
+      <div title={title} className={className}>
         {content}
-      </button>
+      </div>
     );
   }
 

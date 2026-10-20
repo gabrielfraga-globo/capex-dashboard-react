@@ -87,12 +87,22 @@ export function RiskBadge({ status }: { status: StatusRisco }) {
 }
 
 // ----------------------------------------------------------- InfoTooltip --
-export function InfoTooltip({ text }: { text: string }) {
+export function InfoTooltip({
+  text,
+  content,
+  label,
+}: {
+  text?: string;
+  /** conteúdo rico do tooltip; tem precedência sobre `text` */
+  content?: React.ReactNode;
+  /** nome acessível do botão (aria-label); sem ele, usa `text` ou "Mais informações" */
+  label?: string;
+}) {
   return (
     <TooltipPrimitive.Provider delayDuration={150}>
       <TooltipPrimitive.Root>
         <TooltipPrimitive.Trigger asChild>
-          <button type="button" aria-label={text} className="info-icon inline-flex items-center">
+          <button type="button" aria-label={label ?? text ?? "Mais informações"} className="info-icon inline-flex items-center">
             <Info size={13} />
           </button>
         </TooltipPrimitive.Trigger>
@@ -101,7 +111,7 @@ export function InfoTooltip({ text }: { text: string }) {
             sideOffset={6}
             className="max-w-xs rounded-md border border-border bg-card-alt px-3 py-2 text-xs text-text shadow-card z-50"
           >
-            {text}
+            {content ?? text}
             <TooltipPrimitive.Arrow className="fill-card-alt" />
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
