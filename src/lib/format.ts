@@ -30,6 +30,14 @@ export function fmtDate(d: Date): string {
   return d.toLocaleDateString("pt-BR");
 }
 
+// yyyy-mm-dd pelo calendário local (toISOString usa UTC e pode virar o dia após 21h em UTC-3).
+export function formatarIsoLocal(d: Date): string {
+  const yyyy = String(d.getFullYear()).padStart(4, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export const MESES_PT = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ];

@@ -3,7 +3,7 @@ import {
   FolderKanban, Wallet, ShieldAlert, Gauge, Filter, CheckCircle2
 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
-import { fmtBRL, fmtPct } from "../lib/format";
+import { fmtBRL, fmtPct, formatarIsoLocal } from "../lib/format";
 import { aplicarFiltroRubrica } from "../lib/rubrica";
 import { projetoNoRecorteComRubrica, rcNoRecorte, rubricasDoRecorte, type Recorte } from "../lib/recorte";
 import { useRecorteStore } from "../store/recorteStore";
@@ -144,7 +144,7 @@ export function RadarExecutivoPage({
   const computed = useMemo(() => {
     if (!bundle) return null;
     const dbDate = parseDateBR(dataBase) || new Date();
-    const referenceDateStr = dbDate.toISOString().slice(0, 10);
+    const referenceDateStr = formatarIsoLocal(dbDate);
 
     let listaFiltradaBase = lista.filter((p) => projetoNoRecorteComRubrica(p, recorte));
     
