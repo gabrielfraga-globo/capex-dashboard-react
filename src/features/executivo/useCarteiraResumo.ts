@@ -144,10 +144,18 @@ export function useCarteiraResumo(ano: 2026 | 2027, { lista, dataBase }: Carteir
 
     const flow = buildFlowSummary(listaAno);
 
+    // Mesmo valor do cartão "BG Gov 27" (aba 2027): Σ orçamento 2027 da lista filtrada
+    const bgGov27 = buildBgVivo(listaFiltradaBase, opRows, 2027).bgGov;
+    // Mesmo valor do cartão "Em risco" (KpiRow2026)
+    const emRiscoCartao = risk.totalValue;
+    // Mesmo valor do "Emitido" da Execução do Plano (Σ compromisso da listaAno)
+    const emitidoCarteira = listaAno.reduce((a, p) => a + (p.compromisso ?? 0), 0);
+
     return {
       bgSistemico, totalRealizado, totalEmPagamento, prov26, provRisco, prov27,
       balanceSummary, projectBalances, risk, bridge, bottleneck,
       flow, listaAno, listaAno26, bgVivoSum, compromisso27, opRows, dbDate,
+      bgGov27, emRiscoCartao, emitidoCarteira,
       notaVirada: fraseVirada(dbDate, bundle.exerciseYear, RC_TO_PAYMENT_DAYS),
     };
   }, [bundle, curationMap, rcViews, lista, recorte, projetoPorNome, rubricas, dataBase, ano]);
@@ -162,7 +170,14 @@ export function useCarteiraResumo(ano: 2026 | 2027, { lista, dataBase }: Carteir
     : null;
   const status = data ? "ready" : "loading";
 
-  return { status, data, rubricasOptions };
+  return {
+    status,
+    data,
+    rubricasOptions,
+    bgGov27: data?.bgGov27 ?? 0,
+    emRiscoCartao: data?.emRiscoCartao ?? 0,
+    emitidoCarteira: data?.emitidoCarteira ?? 0,
+  };
 }
 
 export type CarteiraResumoData = NonNullable<ReturnType<typeof useCarteiraResumo>["data"]>;
