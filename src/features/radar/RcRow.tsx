@@ -379,14 +379,16 @@ export function RcRow({
       {expandido && temFilhosVisiveis && (
         <tr className="commitment-detail-row">
           <td colSpan={11} className="pb-2">
-            <table className="commitment-child-table commitment-grid table-fixed border-collapse text-[11px]" style={{ width: COMMITMENT_TABLE_WIDTH }}>
-              <CommitmentColGroup />
-              <tbody>
-                {rcView.commitments.map((c) => (
-                  <ChildRow key={c.commitmentKey} view={c} exerciseYear={exerciseYear} onSalvarChave={onSalvarChave} isSaving={isSavingChave(c.commitmentKey)} erro={erroDaChave(c.commitmentKey)} />
-                ))}
-              </tbody>
-            </table>
+            <div className="st-detail">
+              <table className="commitment-child-table commitment-grid table-fixed border-collapse text-[11px]" style={{ width: COMMITMENT_TABLE_WIDTH }}>
+                <CommitmentColGroup />
+                <tbody>
+                  {rcView.commitments.map((c) => (
+                    <ChildRow key={c.commitmentKey} view={c} exerciseYear={exerciseYear} onSalvarChave={onSalvarChave} isSaving={isSavingChave(c.commitmentKey)} erro={erroDaChave(c.commitmentKey)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </td>
         </tr>
       )}

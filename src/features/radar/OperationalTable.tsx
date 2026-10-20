@@ -5,6 +5,7 @@ import { buildStageCounters, buildDirectorateBreakdown, displayStage, DISPLAY_ST
 import type { OperationalRow } from "./operational";
 import type { ProjetoBase } from "../../types";
 import { OPERATIONAL_TABLE_WIDTH, OperationalColGroup } from "./tableLayout";
+import { ScrollTable } from "../../components/ui/ScrollTable";
 import type { CommitmentSourceBundle, CurationMap, RcCurationUpsertRequest, RcCurationUpsertResponse, NonOccurrenceReason } from "./types";
 import { NON_OCCURRENCE_REASONS } from "./types";
 import { fmtBRL, fmtNumber } from "../../lib/format";
@@ -26,6 +27,10 @@ const ENUM_LABELS: Record<string, string> = {
   CANCELAR: "Cancelar", REDUZIR: "Reduzir", TROCAR_FORNECEDOR: "Trocar fornecedor", ENCERRAR_SALDO: "Encerrar saldo",
 };
 
+/** Largura da coluna Crit. (OperationalColGroup), usada para fixar a coluna RC logo após ela. */
+const RC_STICKY_LEFT = 40;
+const PAYMENT_ROW_BG = "color-mix(in srgb, var(--color-card-alt) 40%, var(--color-card))";
+
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const [y, m, d] = iso.slice(0, 10).split("-");
@@ -36,8 +41,8 @@ function fmtDate(iso: string | null | undefined): string {
 function PaymentRowReadOnly({ row }: { row: OperationalRow }) {
   return (
     <tr className="bg-card-alt/40">
-      <td className="p-2 w-8 text-center align-middle"><div className="w-2.5 h-2.5 rounded-full mx-auto bg-muted-foreground/40" title="Em pagamento: sem criticidade" /></td>
-      <td className="p-2 whitespace-nowrap font-semibold">{row.rc}</td>
+      <td className="st-sticky-col p-2 w-8 text-center align-middle" style={{ left: 0, background: PAYMENT_ROW_BG }}><div className="w-2.5 h-2.5 rounded-full mx-auto bg-muted-foreground/40" title="Em pagamento: sem criticidade" /></td>
+      <td className="st-sticky-col st-sticky-edge p-2 whitespace-nowrap font-semibold" style={{ left: RC_STICKY_LEFT, background: PAYMENT_ROW_BG }}>{row.rc}</td>
       <td className="p-2 min-w-0">
         <div className="font-medium text-text truncate" title={row.projectName}>{row.projectName || "-"}</div>
         <div className="text-text-muted text-[11px] truncate" title={row.supplier}>{row.supplier || "-"}</div>
@@ -186,7 +191,7 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
   return (
     <>
       <tr className="hover:bg-muted/50 transition-colors">
-        <td className="p-2 w-8 text-center align-middle relative">
+        <td className="st-sticky-col p-2 w-8 text-center align-middle relative" style={{ left: 0 }}>
           <button 
             className="p-1 rounded hover:bg-muted/50 transition-colors inline-block"
             onClick={() => setCritPopoverOpen(!critPopoverOpen)}
@@ -207,7 +212,7 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
             </div>
           )}
         </td>
-        <td className="p-2 whitespace-nowrap">
+        <td className="st-sticky-col st-sticky-edge p-2 whitespace-nowrap" style={{ left: RC_STICKY_LEFT }}>
           <div className="flex items-center gap-1 font-semibold">
             <button onClick={togglePriority} className={`p-0.5 rounded ${row.priority === "ALTA" ? "text-accent" : "text-text-muted hover:text-text"}`}>
               <Star size={14} className={row.priority === "ALTA" ? "fill-current" : ""} />
@@ -222,7 +227,7 @@ function RcRowOperational({ row, exerciseYear, bundle, referenceDateStr, salvarR
         </td>
         <td className="p-2 min-w-0">
           <div className="font-medium text-text truncate" title={row.projectName}>{row.projectName || "-"}</div>
-          <div className="text-text-muted text-[11px] truncate">{row.supplier || "-"}</div>
+          <div className="text-text-muted text-[11px] truncate" title={row.supplier}>{row.supplier || "-"}</div>
         </td>
         <td className="p-2 text-right font-medium whitespace-nowrap">{fmtBRL(row.value)}</td>
         <td className="p-2">
@@ -590,13 +595,13 @@ export function OperationalTable({
         </label>
       </div>
 
-      <div className="overflow-auto max-h-[70vh] rounded border border-border">
-        <table className="w-full table-fixed text-left text-xs text-text border-collapse" style={{ width: OPERATIONAL_TABLE_WIDTH }}>
+      <ScrollTable ariaLabel="Tabela de RCs da classificação" className="rounded border border-border">
+        <table className="st-table-compact w-full table-fixed text-left text-xs text-text border-collapse" style={{ width: OPERATIONAL_TABLE_WIDTH }}>
           <OperationalColGroup />
-          <thead className="sticky top-0 z-10 bg-card text-text-muted border-b border-border shadow-[0_1px_0_var(--color-border)]">
+          <thead className="text-text-muted border-b border-border">
             <tr>
-              <th className="p-2 font-medium text-center">Crit.</th>
-              <th className="p-2 font-medium whitespace-nowrap">RC</th>
+              <th className="st-sticky-col p-2 font-medium text-center" style={{ left: 0 }}>Crit.</th>
+              <th className="st-sticky-col st-sticky-edge p-2 font-medium whitespace-nowrap" style={{ left: RC_STICKY_LEFT }}>RC</th>
               <th className="p-2 font-medium">Projeto / Fornecedor</th>
               <th className="p-2 font-medium text-right">Valor</th>
               <th className="p-2 font-medium">Etapa</th>
@@ -621,7 +626,7 @@ export function OperationalTable({
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </div>
   );
 }

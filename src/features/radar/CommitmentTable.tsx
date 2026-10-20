@@ -4,6 +4,7 @@ import type { CurationUpsertRequest, RcCurationUpsertRequest, RcCurationUpsertRe
 import { RcRow } from "./RcRow";
 import { NUMERIC_COLUMNS, ordenarRcViews, type SortDirection, type SortKey } from "./tableSorting";
 import { COMMITMENT_TABLE_WIDTH, CommitmentColGroup, OverflowText } from "./tableLayout";
+import { ScrollTable } from "../../components/ui/ScrollTable";
 
 function SortHeader({ label, sortKey, activeKey, direction, onSort, className = "" }: {
   label: string;
@@ -35,7 +36,7 @@ interface CommitmentTableProps {
 }
 
 export function CommitmentTable({ rcViews, exerciseYear, isSaving, erroDe, onSalvarRc, onSalvarChave }: CommitmentTableProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -54,7 +55,7 @@ export function CommitmentTable({ rcViews, exerciseYear, isSaving, erroDe, onSal
   }
 
   const focarProximaRc = useCallback((rcAtual: string) => {
-    const container = containerRef.current;
+    const container = tableRef.current;
     if (!container) return;
     const linhas = Array.from(container.querySelectorAll<HTMLElement>("[data-rc-key]"));
     const idx = linhas.findIndex((el) => el.dataset.rcKey === rcAtual);
@@ -71,8 +72,8 @@ export function CommitmentTable({ rcViews, exerciseYear, isSaving, erroDe, onSal
   }
 
   return (
-    <div ref={containerRef} className="max-w-full overflow-x-auto rounded-card border border-border">
-      <table className="commitment-table commitment-grid table-fixed text-xs" style={{ width: COMMITMENT_TABLE_WIDTH }}>
+    <ScrollTable ariaLabel="Tabela da curadoria" className="rounded-card border border-border">
+      <table ref={tableRef} className="commitment-table commitment-grid table-fixed text-xs" style={{ width: COMMITMENT_TABLE_WIDTH }}>
         <CommitmentColGroup />
         <thead>
           <tr className="border-b border-border bg-card-alt text-left text-[11px] uppercase tracking-wide text-text-muted">
@@ -106,6 +107,6 @@ export function CommitmentTable({ rcViews, exerciseYear, isSaving, erroDe, onSal
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
