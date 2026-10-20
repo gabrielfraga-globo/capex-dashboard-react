@@ -28,13 +28,12 @@ import { ExecucaoPlanoCard } from "../components/ExecucaoPlanoCard";
 import { RecorteAtivo } from "../components/RecorteAtivo";
 import { SaldoPotencialCard } from "../features/saldo/SaldoPotencialCard";
 import { FluxoCaixaChart } from "../components/FluxoCaixaChart";
-import { ComposicaoPlataformaChart } from "../features/executivo/ComposicaoPlataformaChart";
-import { buildComposicaoPlataforma } from "../features/executivo/composicao";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { EstouroPanel } from "../features/radar/panels/EstouroPanel";
 import { BalancesPanel } from "../features/radar/panels/BalancesPanel";
 import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
+import { DistribuicaoFinanceiraPlataforma } from "../components/Diagnostics";
 import { FlipCard } from "../components/ui/FlipCard";
 import { LABELS } from "../config/labels";
 import { InfoTooltip } from "../components/ui/primitives";
@@ -201,15 +200,6 @@ export function RadarExecutivoPage({
     onSelect(proj); setPanel(null);
   };
 
-  const composicaoPlataforma = useMemo(
-    () => buildComposicaoPlataforma(computed?.listaAno ?? []),
-    [computed]
-  );
-
-  const handleSelectPlataforma = (plataforma: string) => {
-    setPrograma(programa === plataforma ? null : plataforma);
-  };
-
   if (!computed) {
     return (
       <div className="h-full rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
@@ -223,7 +213,7 @@ export function RadarExecutivoPage({
   } = computed;
 
   const fluxoCard = (
-    <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 flex-1 min-h-[220px]">
+    <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px]">
       <div className="flex items-center justify-between shrink-0 mb-1 pr-8">
         <div className="flex items-center gap-3">
           <p data-flip-title className="text-[11px] font-bold uppercase tracking-[0.06em] text-text-muted">Fluxo de caixa</p>
@@ -241,8 +231,8 @@ export function RadarExecutivoPage({
           Fluxo mensal de 2027 ainda não disponível na base (orçamento só jan–mar)
         </div>
       ) : (
-        <div className="flex gap-4 items-stretch h-full">
-          <div className="flex-1 min-w-0 h-full min-h-[237px]">
+        <div className="flex flex-1 min-h-0 gap-4 items-stretch">
+          <div className="flex-1 min-w-0 flex flex-col min-h-[237px]">
             <FluxoCaixaChart
               lista={listaAno}
               dataBase={dataBase ?? null}
@@ -419,36 +409,32 @@ export function RadarExecutivoPage({
       </div>
 
       {/* ── Layout ─────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 min-h-0 flex-1">
-        
-        {/* Fluxo, Execução e Análise de risco em largura total, nesta ordem */}
-        <div className="flex flex-col gap-3 min-w-0">
+      <div className="grid grid-cols-[1fr_minmax(300px,360px)] gap-3 items-stretch min-h-0 flex-1">
+
+        {/* Coluna esquerda: Execução do Plano em cima; Fluxo de caixa (frente) / Composição por Plataforma (verso) embaixo */}
+        <div className="flex flex-col gap-3 min-w-0 min-h-0">
+          <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
+            <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
+          </SectionCard>
+
           {ano === 2026 ? (
             <FlipCard
               compact
+              className="flex-1 min-h-0 flex flex-col [&>.flip-stage]:flex-1 [&>.flip-stage]:min-h-0"
               frontLabel="Fluxo de caixa"
               backLabel="Composição por plataforma"
               front={fluxoCard}
               back={
-                <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 flex-1 min-h-[220px]">
-                  <ComposicaoPlataformaChart
-                    itens={composicaoPlataforma}
-                    onSelectPlataforma={handleSelectPlataforma}
-                    plataformaAtiva={programa}
-                    onLimparFiltros={limpar}
-                  />
+                <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px] overflow-auto">
+                  <DistribuicaoFinanceiraPlataforma lista={listaAno} />
                 </div>
               }
             />
           ) : fluxoCard}
-
-          <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
-            <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
-          </SectionCard>
         </div>
 
-        {/* Análise de risco: largura total, abaixo da Execução do Plano */}
-        <div className="flex flex-col min-w-0 relative [&>*]:flex-1">
+        {/* Coluna direita: Ritmo de execução, mesma altura da coluna esquerda */}
+        <div className="flex flex-col min-w-0 min-h-0 relative [&>*]:flex-1">
           <AnaliseRiscoPanel 
              lista={listaAno26} 
              kpisEstrategicos={kpisEstrategicos} 
