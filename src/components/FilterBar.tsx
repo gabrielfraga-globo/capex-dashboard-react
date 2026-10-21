@@ -5,10 +5,11 @@ import { useShallow } from "zustand/react/shallow";
 import { Select } from "./ui/select";
 import { Button } from "./ui/primitives";
 import type { ProjetoBase, StatusRisco } from "../types";
+import { LABELS } from "../config/labels";
 
 const STATUS_QUICK: { value: StatusRisco | null; label: string }[] = [
   { value: null, label: "Todos" },
-  { value: "Estouro", label: "🔴 Estouro" },
+  { value: "Estouro", label: `🔴 ${LABELS.acimaOrcamentoPlurianual}` },
   { value: "Risco de Não Realização", label: "🟠 Risco de Não Realização" },
   { value: "Revisar Caixa Ano", label: "🔵 Revisar Caixa Ano" },
 ];

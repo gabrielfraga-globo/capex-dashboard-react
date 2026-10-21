@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+﻿import { AlertTriangle } from "lucide-react";
 import type { SaldoTotals } from "../radar/types";
 import { Card, InfoTooltip } from "../../components/ui/primitives";
 import { fmtBRL, fmtPct } from "../../lib/format";
@@ -16,7 +16,7 @@ const buildBridgePlurianual = (t: SaldoTotals): SaldoBridgeStep[] => [
 
 const CRITERIO_BI_SALDO =
   "Critério do BI (Saldo Projetos): orçamento BG Gov (BGQ3) − caixa do exercício − compromissos de RCs aprovadas no exercício. " +
-  "Difere do KPI 'A emitir', que usa BG Vivo e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
+  "Difere do KPI 'A emitir', que usa Fechamento estimado e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
 
 const PREFIXO: Record<SaldoBridgeStep["kind"], string> = {
   base: "",

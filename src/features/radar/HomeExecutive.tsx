@@ -9,6 +9,7 @@ import { buildOperationalRows } from "./operational";
 import { SidePanel } from "../../components/ui/sidepanel";
 import type { ProjetoMetricas } from "../../types";
 import { normalizeKey } from "../../lib/csvProcessingCore";
+import { LABELS } from "../../config/labels";
 
 interface HomeExecutiveProps {
   lista: ProjetoMetricas[];
@@ -228,8 +229,8 @@ export function HomeExecutive({ lista, dataBase, onSelectProject, fluxo }: HomeE
 
         {/* KPI principal + secundários */}
         <div className="grid grid-cols-2 gap-4 shrink-0 max-lg:grid-cols-1">
-          <section aria-label="Caixa projetado 2026" className="rounded-card border border-border bg-card px-6 py-5 flex flex-col gap-3">
-            <div className="flex justify-between text-[13px] text-text-muted"><span className="font-semibold text-text">Caixa projetado 2026</span><span>tendência disponível após o snapshot semanal</span></div>
+          <section aria-label="Caixa previsto 26" className="rounded-card border border-border bg-card px-6 py-5 flex flex-col gap-3">
+            <div className="flex justify-between text-[13px] text-text-muted"><span className="font-semibold text-text">Caixa previsto 26</span><span>tendência disponível após o snapshot semanal</span></div>
             <div className="flex items-baseline gap-3 flex-wrap">
               <span className="text-[44px] leading-none font-bold tabular-nums text-text">{fmtBRL(totals.projecao, true)}</span>
               <span className="text-sm text-text-muted">{pct(totals.pctBg)} do BG · faltam {fmtBRL(faltam, true)}</span>
@@ -243,7 +244,7 @@ export function HomeExecutive({ lista, dataBase, onSelectProject, fluxo }: HomeE
               </div>
               <div className="absolute -top-2 h-[38px] border-l-2 border-text" style={{ left: `${projPos}%` }} />
               <div className="absolute -top-2 right-0 h-[38px] border-l-2 border-text" />
-              <div className="absolute -top-6 text-xs font-semibold -translate-x-1/2 whitespace-nowrap" style={{ left: `${projPos}%` }}>Projetado</div>
+              <div className="absolute -top-6 text-xs font-semibold -translate-x-1/2 whitespace-nowrap" style={{ left: `${projPos}%` }}>{LABELS.caixaPrevisto26}</div>
               <div className="absolute -top-6 right-0 text-xs font-semibold whitespace-nowrap">BG {M(totals.bgSistemico)}</div>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-muted">
@@ -252,7 +253,7 @@ export function HomeExecutive({ lista, dataBase, onSelectProject, fluxo }: HomeE
               <span><i className="inline-block w-2.5 h-2.5 bg-text-muted align-[-1px]" style={{ opacity: 0.3 }} /> Provisionado 26 {M(totals.prov26)}</span>
               <span className="text-warn"><i className="inline-block w-2.5 h-2.5 bg-warn-30 align-[-1px] shadow-[inset_0_0_0_1px_theme(colors.warn.DEFAULT)]" /> Em risco {M(totals.provRisco)}</span>
             </div>
-            <button type="button" className="text-[13px] text-info text-left hover:underline mt-auto" onClick={() => setPanelOpen("composicao")}>Ver composição (ponte do BG ao projetado) →</button>
+            <button type="button" className="text-[13px] text-info text-left hover:underline mt-auto" onClick={() => setPanelOpen("composicao")}>Ver composição (ponte do BG ao caixa previsto 26) →</button>
           </section>
 
           <div className="grid grid-cols-3 gap-4">
@@ -297,7 +298,7 @@ export function HomeExecutive({ lista, dataBase, onSelectProject, fluxo }: HomeE
       </div>
 
       {panelOpen === "composicao" && (
-        <SidePanel open={true} onOpenChange={() => setPanelOpen(null)} title="Do BG ao caixa projetado">
+        <SidePanel open={true} onOpenChange={() => setPanelOpen(null)} title="Do BG ao caixa previsto 26">
           <div className="p-4 flex flex-col gap-3">
             <p className="text-xs text-text-faint">Valores em R$ milhões, com os filtros ativos.</p>
             <table className="w-full text-sm">

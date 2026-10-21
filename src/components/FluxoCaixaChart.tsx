@@ -75,14 +75,14 @@ function CustomTooltipFluxo({ active, payload, label, compact }: { active?: bool
       <p className="font-semibold text-violet-300">Planejado: {formatCurrencyMillions(d.planejadoAcumulado)}</p>
       {d.realizadoAcumulado !== null && (
         <p className="font-semibold" style={{ color: d.banda?.cor ?? '#8B7FE8' }}>
-          Realizado: {formatCurrencyMillions(d.realizadoAcumulado)}
+          Caixa: {formatCurrencyMillions(d.realizadoAcumulado)}
         </p>
       )}
       <hr className="my-1.5 border-border-subtle" />
       <p className="text-[10px] uppercase tracking-wide text-text-muted">Incremento do mês</p>
       <p className="text-text-muted">Planejado: {formatCurrencyMillions(d.Planejado)}</p>
       {d.Realizado !== null && (
-        <p className="text-text-muted">Realizado: {formatCurrencyMillions(d.Realizado)}</p>
+        <p className="text-text-muted">Caixa: {formatCurrencyMillions(d.Realizado)}</p>
       )}
       {d.pct !== null && (
         <p className="mt-1 font-bold" style={{ color: d.banda?.cor }}>
@@ -260,7 +260,7 @@ export function FluxoCaixaChart({
               <Area
                 type="monotone"
                 dataKey="realizadoAcumulado"
-                name="Realizado (acum.)"
+                name="Caixa (acum.)"
                 stroke="none"
                 fill="url(#areaRealizado)"
                 dot={false}
@@ -319,13 +319,13 @@ export function FluxoCaixaChart({
       {!compact && (
         <div className="flex items-start justify-between gap-3 mb-2 shrink-0">
           <div>
-            <p className="text-sm font-semibold text-text">Fluxo de Caixa: Planejado × Realizado</p>
+            <p className="text-sm font-semibold text-text">Fluxo de Caixa: Planejado × Caixa</p>
           </div>
         </div>
       )}
       {compact && (
         <div className="flex items-center justify-between mb-1 shrink-0">
-          <p className="text-[12px] font-semibold text-text">Planejado x Realizado</p>
+          <p className="text-[12px] font-semibold text-text">Planejado x Caixa</p>
           <div className="flex gap-2 text-[10px] font-medium">
             <span className="flex items-center gap-1 text-text-muted"><span className="w-2 h-0 border-b border-dashed border-text-muted"></span> Plan</span>
             <span className="flex items-center gap-1 text-info"><span className="w-2 h-1 bg-info rounded-sm"></span> Real</span>

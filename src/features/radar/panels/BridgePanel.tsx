@@ -15,7 +15,7 @@ export function BridgePanel({
   bridge: Bridge;
 }) {
   return (
-    <SidePanel open={open} onOpenChange={onClose} title="Do BG ao caixa projetado">
+    <SidePanel open={open} onOpenChange={onClose} title="Do BG ao caixa previsto 26">
       <div className="p-4 flex flex-col gap-3">
         <p className="text-xs text-text-faint">Valores em R$ milhões, com os filtros ativos.</p>
         <table className="w-full text-sm">

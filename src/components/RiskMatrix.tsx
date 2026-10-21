@@ -5,6 +5,7 @@ import {
 import type { ProjetoMetricas } from "../types";
 import { fmtBRL, fmtPct } from "../lib/format";
 import { SectionHeader } from "./ui/primitives";
+import { rotuloStatus } from "../config/labels";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors } from "../lib/chartColors";
 
@@ -73,7 +74,7 @@ export function RiskMatrix({ lista, onSelect }: { lista: ProjetoMetricas[]; onSe
             {(["Estouro", "Risco de Não Realização", "Revisar Caixa Ano", "Normal"] as const).map((s) => (
               <Scatter
                 key={s}
-                name={s}
+                name={rotuloStatus(s)}
                 data={data.filter((d) => d.status === s)}
                 fill={RISK_COLORS[s]}
                 fillOpacity={0.8}

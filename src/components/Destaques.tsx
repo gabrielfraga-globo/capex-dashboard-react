@@ -20,12 +20,12 @@ export function Destaques({ lista, onSelect }: { lista: ProjetoMetricas[]; onSel
         <KpiCard
           label="Ajuste de Fluxo"
           value={formatCurrencyMillions(risco.exposicaoFinanceira)}
-          tooltip="Valor total em risco de estouro ou não realização."
+          tooltip="Valor total em risco de ficar acima do orçamento plurianual ou de não realização."
         />
         <KpiCard
           label="Projetos para Ação"
           value={String(risco.nCriticos)}
-          tooltip="Projetos em Estouro ou Risco de Não Realização."
+          tooltip="Projetos acima do orçamento plurianual ou em Risco de Não Realização."
         />
       </div>
 

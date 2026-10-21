@@ -3,6 +3,7 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Info } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { StatusRisco } from "../../types";
+import { rotuloStatus } from "../../config/labels";
 
 // ---------------------------------------------------------------- Card ----
 export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -81,7 +82,7 @@ const STATUS_ICON: Record<StatusRisco, string> = {
 export function RiskBadge({ status }: { status: StatusRisco }) {
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold", BADGE_STYLES[status])}>
-      <span aria-hidden>{STATUS_ICON[status]}</span> {status}
+      <span aria-hidden>{STATUS_ICON[status]}</span> {rotuloStatus(status)}
     </span>
   );
 }

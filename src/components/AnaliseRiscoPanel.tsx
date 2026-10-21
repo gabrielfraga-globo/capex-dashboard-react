@@ -3,10 +3,11 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { formatCurrencyMillions } from "../lib/format";
 import { generateRiskSummary } from "../lib/insights";
 import { SkeletonBlock } from "./ui/SkeletonCard";
+import { LABELS } from "../config/labels";
 import { ProjectListModal } from "./ProjectListModal";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 
-type Foco = "todos" | "dentro" | "acompanhar" | "acao" | "faltantes" | "excedentes";
+type Foco = "todos" | "dentro" | "acompanhar" | "acao" | "faltantes" | "excedentes" | "semOrcamento";
 
 function kpiSeverity(status: KPIEstrategicoCarteira["status"] | undefined): number {
   if (!status || status === "nd" || status === "verde") return 0;
@@ -20,16 +21,21 @@ export function AnaliseRiscoPanel({
   isLoadingCompromisso,
   onSelectProject,
   somenteStatus = false,
+  mostrarSemOrcamento = false,
 }: {
   lista: ProjetoMetricas[];
   kpisEstrategicos: KPIEstrategicoCarteira[];
   isLoadingCompromisso?: boolean;
   onSelectProject: (p: ProjetoMetricas) => void;
   somenteStatus?: boolean;
+  /** Mostra a 4ª linha neutra com os projetos sem orçamento 26 (status "Dados insuficientes"). */
+  mostrarSemOrcamento?: boolean;
 }) {
   const [foco, setFoco] = useState<Foco>("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalFoco, setModalFoco] = useState<Foco | null>(null);
+
+  const semOrcamento = useMemo(() => lista.filter((p) => p.status === "Dados insuficientes"), [lista]);
 
   const saude = useMemo(() => {
     const normal = lista.filter((p) => p.status === "Normal");
@@ -79,8 +85,9 @@ export function AnaliseRiscoPanel({
     if (modalFoco === "acao") return lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
     if (modalFoco === "faltantes") return lista.filter((p) => p.status === "Risco de Não Realização");
     if (modalFoco === "excedentes") return lista.filter((p) => p.status === "Estouro" || p.status === "Revisar Caixa Ano");
+    if (modalFoco === "semOrcamento") return semOrcamento;
     return lista;
-  }, [modalFoco, lista]);
+  }, [modalFoco, lista, semOrcamento]);
 
   const modalTitle = {
     todos: "Projetos",
@@ -89,6 +96,7 @@ export function AnaliseRiscoPanel({
     acao: "Abaixo do ritmo",
     faltantes: "Emissões faltantes",
     excedentes: "Emissões excedentes",
+    semOrcamento: `${LABELS.semOrcamento26}`,
   }[modalFoco ?? "todos"];
 
   const modalValorFn = (p: ProjetoMetricas): number | null => {
@@ -137,6 +145,22 @@ export function AnaliseRiscoPanel({
             </button>
           );
         })}
+        {mostrarSemOrcamento && (
+          <button
+            onClick={() => {
+              if (foco === "semOrcamento") { setFoco("todos"); setModalFoco(null); }
+              else { setFoco("semOrcamento"); setModalFoco("semOrcamento"); setModalOpen(true); }
+            }}
+            aria-pressed={foco === "semOrcamento"}
+            className={`w-full rounded-md border border-border-subtle bg-card-alt px-2.5 py-1.5 flex items-center justify-between text-[11px] ${foco === "semOrcamento" ? "ring-2 ring-accent" : ""} hover:bg-card transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+          >
+            <span className="flex items-center gap-2 font-semibold text-text-muted">
+              <span className="h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />
+              {LABELS.semOrcamento26}
+            </span>
+            <span className="text-text-muted">{semOrcamento.length} proj.</span>
+          </button>
+        )}
       </section>
 
       {!somenteStatus && (

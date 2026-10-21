@@ -20,6 +20,7 @@ import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
 import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { useMetricas } from "../domain/useMetricas";
 import { InfoTooltip } from "../components/ui/primitives";
+import { LABELS } from "../config/labels";
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -103,6 +104,10 @@ export function RadarExecutivoPage({
 
   const { balanceSummary, risk, bridge, flow, projectBalances, listaAno, listaAno26, bgVivoSum } = data;
 
+  // Universo do Ritmo = projetos ativos em 2026 (o mesmo da Aderência); sem métricas, mantém a lista inteira.
+  const idsAtivos = metricas ? new Set(metricas.projetosAtivos.map((p) => p.id)) : null;
+  const listaRitmo = idsAtivos ? listaAno26.filter((p) => idsAtivos.has(p.id)) : listaAno26;
+
   return (
     <div className="flex flex-col gap-3 max-h-[calc(100vh-10.75rem)] overflow-y-auto">
       
@@ -151,7 +156,12 @@ export function RadarExecutivoPage({
         {modoDiretoria ? (
           metricas ? (
             <>
-              <KpiStat icon={<FolderKanban size={16} />} label="BG Gov 26" value={fmtBRL(metricas.simples.total.bg, true)} context="orçamento aprovado" />
+              <KpiStat
+                icon={<FolderKanban size={16} />}
+                label="BG Gov 26"
+                value={fmtBRL(metricas.simples.total.bg, true)}
+                context={`${LABELS.bgVivoSimulado} ${fmtBRL(metricas.simples.total.provisionado + metricas.simples.total.excesso, true)} (provisionado + excesso)`}
+              />
               <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(metricas.simples.total.pago, true)} context="pago no exercício" />
               <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(metricas.simples.total.emPagamento, true)} context="etapa E7" />
               <KpiStat
@@ -189,9 +199,9 @@ export function RadarExecutivoPage({
         
         <KpiStat
           icon={<Wallet size={16} />}
-          label={`BG Vivo ${ano === 2027 ? "27" : "26"}`}
+          label={`${LABELS.fechamentoEstimado} ${ano === 2027 ? "27" : "26"}`}
           value={fmtBRL(bgVivoSum.bgVivo, true)}
-          title={`BG Vivo = Realizado + Em pagamento + Compromisso ${ano === 2027 ? "27" : "26"} + A emitir (por projeto). Fica acima do BG Gov pelo estouro dos projetos que já passaram do próprio BG.`}
+          title={`${LABELS.fechamentoEstimado} = Realizado + Em pagamento + Compromisso ${ano === 2027 ? "27" : "26"} + A emitir (por projeto). Fica acima do BG Gov pelo estouro dos projetos que já passaram do próprio BG.`}
           onClick={bgVivoSum.estouro.count > 0 ? () => setPanel("estouro") : undefined}
           context={
             <span className={`block truncate ${bgVivoSum.estouro.count > 0 ? "text-info" : ""}`}>
@@ -246,7 +256,8 @@ export function RadarExecutivoPage({
         {/* Coluna direita: Ritmo de execução, mesma altura da coluna esquerda */}
         <div className="flex flex-col min-w-0 min-h-0 relative [&>*]:flex-1">
           <AnaliseRiscoPanel 
-             lista={listaAno26} 
+             lista={listaRitmo} 
+             mostrarSemOrcamento={metricas !== null}
              kpisEstrategicos={kpisEstrategicos} 
              isLoadingCompromisso={isLoadingCompromisso} 
              onSelectProject={handleSelectProject} 

@@ -4,6 +4,8 @@ import { navigate } from "../../lib/simpleRouter";
 import { FluxoCaixaChart } from "../../components/FluxoCaixaChart";
 import { DistribuicaoFinanceiraPlataforma } from "../../components/Diagnostics";
 import { FlipCard } from "../../components/ui/FlipCard";
+import { InfoTooltip } from "../../components/ui/primitives";
+import { LABELS } from "../../config/labels";
 import type { CarteiraResumoData } from "./useCarteiraResumo";
 
 interface FluxoCaixaCardProps {
@@ -33,7 +35,7 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
             <span className="w-4 h-0 border-b border-dashed border-text-muted inline-block" /> Planejado
           </span>
           <span className="flex items-center gap-1 text-[10px] text-info font-medium">
-            <span className="inline-block w-4 h-1.5 bg-info rounded-sm" /> Realizado
+            <span className="inline-block w-4 h-1.5 bg-info rounded-sm"             /> Caixa
           </span>
         </div>
         <button type="button" className="text-[12px] text-info hover:underline" onClick={() => navigate("/auditoria")}>Ver fluxo completo →</button>
@@ -55,7 +57,10 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
           </div>
           <div className="flex flex-col justify-center gap-2 min-w-0 shrink-0 w-[150px]">
             <div>
-              <div className="text-[10px] text-text-muted mb-0.5">Realizado acumulado</div>
+              <div className="mb-0.5 flex items-center gap-1 text-[10px] text-text-muted">
+                {LABELS.caixaAcumulado}
+                <InfoTooltip text={LABELS.caixaAcumuladoInfo} label={`Sobre o ${LABELS.caixaAcumulado}`} />
+              </div>
               <div className="text-[15px] font-bold tabular-nums text-text">{fmtBRL(flow.realizadoAcumulado, true)}</div>
             </div>
             <div>

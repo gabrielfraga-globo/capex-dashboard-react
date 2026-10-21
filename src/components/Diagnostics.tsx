@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LabelList, Rectangle,
 } from "recharts";
 import type { ProjetoMetricas } from "../types";
+import { rotuloStatus } from "../config/labels";
 import { fmtBRL, formatCurrencyMillions } from "../lib/format";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors, chartTooltipStyle } from "../lib/chartColors";
@@ -185,7 +186,7 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
   const distribuicaoStatus = useMemo(() => {
     const statuses: ProjetoMetricas["status"][] = ["Estouro", "Risco de Não Realização", "Revisar Caixa Ano", "Normal"];
     return statuses
-      .map((s) => ({ status: s, qtd: lista.filter((p) => p.status === s).length, valor: lista.filter((p) => p.status === s).reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0) }))
+      .map((s) => ({ status: s, nome: rotuloStatus(s), qtd: lista.filter((p) => p.status === s).length, valor: lista.filter((p) => p.status === s).reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0) }))
       .filter((s) => s.qtd > 0);
   }, [lista]);
 
@@ -195,7 +196,7 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
       <div className="grid grid-cols-2 h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={distribuicaoStatus} dataKey="qtd" nameKey="status" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => e.qtd}>
+            <Pie data={distribuicaoStatus} dataKey="qtd" nameKey="nome" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => e.qtd}>
               {distribuicaoStatus.map((d) => <Cell key={d.status} fill={RISK_COLORS[d.status]} />)}
             </Pie>
             <Tooltip {...tooltipStyle} />
@@ -203,7 +204,7 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
         </ResponsiveContainer>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={distribuicaoStatus} dataKey="valor" nameKey="status" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => formatCurrencyMillions(e.valor)}>
+            <Pie data={distribuicaoStatus} dataKey="valor" nameKey="nome" cx="50%" cy="50%" innerRadius={40} outerRadius={70} label={(e: any) => formatCurrencyMillions(e.valor)}>
               {distribuicaoStatus.map((d) => <Cell key={d.status} fill={RISK_COLORS[d.status]} />)}
             </Pie>
             <Tooltip formatter={(v: any) => formatCurrencyMillions(Number(v))} {...tooltipStyle} />
@@ -214,7 +215,7 @@ export function StatusDistribution({ lista }: { lista: ProjetoMetricas[] }) {
         {distribuicaoStatus.map((d) => (
           <span key={d.status} className="flex items-center gap-1">
             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: RISK_COLORS[d.status] }} />
-            {d.status} ({d.qtd})
+            {d.nome} ({d.qtd})
           </span>
         ))}
       </div>

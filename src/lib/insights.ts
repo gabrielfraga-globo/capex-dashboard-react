@@ -114,7 +114,7 @@ export function generateExecutiveSummary(lista: ProjetoMetricas[]): ExecutiveSum
   const risco = generateRiskSummary(lista);
   let headline: string;
   if (risco.estouro.n > 0) {
-    headline = `🔴 ${risco.estouro.n} projetos em estouro.`;
+    headline = `🔴 ${risco.estouro.n} projetos acima do orçamento plurianual.`;
   } else if (risco.riscoNaoRealizacao.n > 0) {
     headline = `🟠 ${risco.riscoNaoRealizacao.n} projetos em risco de não realização.`;
   } else {
@@ -223,7 +223,7 @@ export function generateExecutiveInsights(lista: ProjetoMetricas[]): string[] {
   }
 
   if (risco.estouro.n > 0) {
-    out.push(`🔴 ${risco.estouro.n} projetos em estouro.`);
+    out.push(`🔴 ${risco.estouro.n} projetos acima do orçamento plurianual.`);
   }
 
   return out.slice(0, 5);
@@ -286,7 +286,7 @@ export function generateHeroNarrative(lista: ProjetoMetricas[], delta: DeltaYTDS
   let clausula = "";
 
   if (risco.estouro.n > 0) {
-    clausula = `, mas ${risco.estouro.n} projeto(s) já estão em estouro`;
+    clausula = `, mas ${risco.estouro.n} projeto(s) já estão acima do orçamento plurianual`;
   } else {
     const totalAEmitir = lista.reduce((a, p) => a + Math.max(p.aEmitir ?? 0, 0), 0);
     if (totalAEmitir > 0) {

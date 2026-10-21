@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AlertTriangle, ArrowRight, Info, ShieldAlert } from "lucide-react";
 import { Button, Card } from "../../components/ui/primitives";
@@ -42,7 +42,7 @@ function textoUltimoCompromisso(meses: number | null, exercicio: number): string
 
 const CRITERIO_BI_SALDO =
   "Critério do BI (Saldo Projetos): orçamento BG Gov (BGQ3) − caixa do exercício − compromissos de RCs aprovadas no exercício. " +
-  "Difere do KPI 'A emitir', que usa BG Vivo e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
+  "Difere do KPI 'A emitir', que usa Fechamento estimado e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
 
 /** Negativo que arredonda para zero viraria "R$ 0"; mostra "-R$ 1" para não ocultar o sinal. */
 function fmtSaldo(v: number): string {

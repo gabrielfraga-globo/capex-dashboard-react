@@ -295,7 +295,7 @@ export function buildBridge(i: BridgeInput): { steps: BridgeStep[]; projetado: n
     { label: 'Em risco', value: i.provRisco, kind: 'minus' },
   ];
   if (Math.abs(diferenca) >= 10_000) steps.push({ label: 'Diferença entre bases (compromisso da carteira × RCs)', value: diferenca, kind: 'diff' });
-  steps.push({ label: 'Caixa projetado 2026', value: projetado, kind: 'result' });
+  steps.push({ label: 'Caixa previsto 26', value: projetado, kind: 'result' });
   return { steps, projetado, diferenca };
 }
 
@@ -311,7 +311,7 @@ export function buildInsights(input: BuildInsightsInput): Insight[] {
   
   insights.push({
     kind: 'resumo',
-    text: `Caixa projetado de R$ ${formatBrl(projetado)} (${pctBg.toFixed(0)}% do BG). Faltam R$ ${faltamStr}; R$ ${formatBrl(projetosEmRiscoValue)} estão em risco, ${pctRiscoTop10.toFixed(0)}% deles em 10 projetos.`,
+    text: `Caixa previsto 26 de R$ ${formatBrl(projetado)} (${pctBg.toFixed(0)}% do BG). Faltam R$ ${faltamStr}; R$ ${formatBrl(projetosEmRiscoValue)} estão em risco, ${pctRiscoTop10.toFixed(0)}% deles em 10 projetos.`,
     value: 0,
     severity: 'neutral',
     target: 'composicao'

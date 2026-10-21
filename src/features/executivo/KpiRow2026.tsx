@@ -70,7 +70,12 @@ export function KpiRow2026({ data, rubricas, onAbrirRisco }: KpiRow2026Props) {
         icon={<FolderKanban size={16} />}
         label="BG Gov 26"
         value={fmtBRL(bgVivoSum.bgGov, true)}
-        context={`BG Vivo ${fmtBRL(bgVivoSum.bgVivo, true)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtBRL(bgVivoSum.diferencaVsGov, true)})`}
+        context={
+          <span className="inline-flex items-center gap-1">
+            {`${LABELS.fechamentoEstimado} ${fmtBRL(bgVivoSum.bgVivo, true)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtBRL(bgVivoSum.diferencaVsGov, true)})`}
+            <InfoTooltip label={`Sobre o ${LABELS.fechamentoEstimado}`} text={LABELS.fechamentoEstimadoInfo} />
+          </span>
+        }
       />
       <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(bgVivoSum.realizado, true)} context="pago no exercício" />
       <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(bgVivoSum.emPagamento, true)} context="etapa E7" />

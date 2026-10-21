@@ -9,7 +9,7 @@ type RankingKey = "menorCobertura" | "maiorAEmitir" | "maiorEstouro" | "particip
 const RANKINGS: { key: RankingKey; label: string }[] = [
   { key: "maiorAEmitir", label: "Maior Valor a Emitir" },
   { key: "menorCobertura", label: "Menor Cobertura Financeira" },
-  { key: "maiorEstouro", label: "Maior Estouro Plurianual" },
+  { key: "maiorEstouro", label: "Maior excesso plurianual" },
   { key: "participacaoRisco", label: "Maior Participação no Risco" },
 ];
 
