@@ -5,6 +5,7 @@ import { navigate } from "../lib/simpleRouter";
 import { useCarteiraResumo } from "../features/executivo/useCarteiraResumo";
 import { FluxoCaixaCard } from "../features/executivo/FluxoCaixaCard";
 import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
+import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
 import { buildTorre2026, buildTorre2027, conciliacaoEmitido } from "../features/executivo/torres";
 import { AttentionList } from "../features/executivo/AttentionList";
@@ -62,6 +63,7 @@ export function VisaoDiretoriaPage({
   dataBase,
 }: Props) {
   const [mostrar2027, setMostrar2027] = useState(false);
+  const [riscoAberto, setRiscoAberto] = useState(false);
   const rubricas = useRecorteStore((s) => s.rubricas);
   const containerRef = useRef<HTMLDivElement>(null);
   const altura = useAlturaRestante(containerRef);
@@ -145,6 +147,7 @@ export function VisaoDiretoriaPage({
             torre2027={torres.torre2027}
             mostrar2027={mostrar2027}
             onToggle2027={() => setMostrar2027((v) => !v)}
+            onOpenRisco={() => setRiscoAberto(true)}
             conciliacao={torres.conciliacao}
             comp27={data.compromisso27}
           />
@@ -181,6 +184,8 @@ export function VisaoDiretoriaPage({
           <AttentionList variante="sinais" itens={itensAtencao} onNavigate={navigate} />
         </div>
       </div>
+
+      <RiskPanel open={riscoAberto} onClose={() => setRiscoAberto(false)} risk={data.risk} />
     </div>
   );
 }
