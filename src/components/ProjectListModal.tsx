@@ -1,9 +1,15 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { X, Search, ArrowUpDown } from "lucide-react";
 import type { ProjetoMetricas } from "../types";
 import { RiskBadge } from "./ui/primitives";
 import { formatCurrencyMillions } from "../lib/format";
+
+export interface ColunaProjetoLista {
+  header: string;
+  valor: (p: ProjetoMetricas) => ReactNode;
+  alinhar?: "right";
+}
 
 export function ProjectListModal({
   open,
@@ -13,6 +19,7 @@ export function ProjectListModal({
   valorFn,
   justificativaFn,
   onSelectProject,
+  colunas,
 }: {
   open: boolean;
   onClose: () => void;
@@ -21,6 +28,8 @@ export function ProjectListModal({
   valorFn: (p: ProjetoMetricas) => number | null;
   justificativaFn?: (p: ProjetoMetricas) => string;
   onSelectProject: (p: ProjetoMetricas) => void;
+  /** Quando informado, substitui o valor/badge padrão por uma célula por coluna após o nome. */
+  colunas?: ColunaProjetoLista[];
 }) {
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"desc" | "asc">("desc");
@@ -68,6 +77,19 @@ export function ProjectListModal({
           </div>
 
           <div className="overflow-y-auto p-2 space-y-1">
+            {colunas && lista.length > 0 && (
+              <div
+                className="grid items-center gap-2 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-text-faint"
+                style={{ gridTemplateColumns: `minmax(0,1fr) repeat(${colunas.length}, auto)` }}
+              >
+                <span>Projeto</span>
+                {colunas.map((c) => (
+                  <span key={c.header} className={c.alinhar === "right" ? "text-right" : undefined}>
+                    {c.header}
+                  </span>
+                ))}
+              </div>
+            )}
             {lista.length === 0 ? (
               <p className="text-xs text-text-faint p-4 text-center">Nenhum projeto encontrado.</p>
             ) : (
@@ -75,14 +97,32 @@ export function ProjectListModal({
                 <button
                   key={p.id}
                   onClick={() => onSelectProject(p)}
-                  className="w-full flex items-center justify-between gap-2 text-left text-xs rounded-lg px-3 py-2.5 hover:bg-card-alt transition-colors border border-transparent hover:border-border"
+                  className={
+                    colunas
+                      ? "w-full grid items-center gap-2 text-left text-xs rounded-lg px-3 py-2.5 hover:bg-card-alt transition-colors border border-transparent hover:border-border"
+                      : "w-full flex items-center justify-between gap-2 text-left text-xs rounded-lg px-3 py-2.5 hover:bg-card-alt transition-colors border border-transparent hover:border-border"
+                  }
+                  style={colunas ? { gridTemplateColumns: `minmax(0,1fr) repeat(${colunas.length}, auto)` } : undefined}
                 >
-                  <div className="flex-1 min-w-0">
+                  <div className={colunas ? "min-w-0" : "flex-1 min-w-0"}>
                     <p className="text-text truncate font-medium">{p.nome}</p>
                     {justificativaFn && <p className="text-text-faint text-[11px] truncate mt-0.5">{justificativaFn(p)}</p>}
                   </div>
-                  <span className="text-text-muted font-semibold shrink-0">{formatCurrencyMillions(valorFn(p))}</span>
-                  <RiskBadge status={p.status} />
+                  {colunas ? (
+                    colunas.map((c) => (
+                      <span
+                        key={c.header}
+                        className={`text-text-muted font-semibold whitespace-nowrap ${c.alinhar === "right" ? "text-right" : ""}`}
+                      >
+                        {c.valor(p)}
+                      </span>
+                    ))
+                  ) : (
+                    <>
+                      <span className="text-text-muted font-semibold shrink-0">{formatCurrencyMillions(valorFn(p))}</span>
+                      <RiskBadge status={p.status} />
+                    </>
+                  )}
                 </button>
               ))
             )}
