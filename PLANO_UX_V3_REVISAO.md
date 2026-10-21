@@ -459,3 +459,22 @@ Nova aba, mais enxuta que a Visão Executiva (que continua como está). Decisõe
 Números de 20/10 (base 04:34): BG 26 R$ 145,2M · Realizado R$ 80,1M · Em pgto R$ 10,4M · Comp. 26 R$ 48,2M (R$ 28M em risco) · torre 2026 = 95,5% do BG, folga R$ 6,5M · BG 27 R$ 73,9M · Comp. 27 R$ 9,5M (12,9%).
 
 Etapas: D1 (extração sem mudança de comportamento) → D2 (torres: lógica + componente) → D3 (página, rota, menu).
+
+---
+
+## 9. Visão Diretoria v2: ajustes após feedback (20/10/2026, noite)
+
+Referência visual: mockup v4 (`mockup_visao_diretoria_v4.html`). Paleta original do app (azul = pago, verde = em pagamento, violeta = comprometido); vermelho = risco de não virar caixa; âmbar = antecipação.
+
+| # | Decisão |
+|---|---|
+| VD6 | Execução do plano: só a visão "Etapas do fluxo" (+ 2027). Sem texto explicativo à vista (vai para ⓘ). **Delta vs BG 26 é o número principal** (verde se ≥ 0, âmbar se < 0); 98,1% vira secundário. "Folga" → "Delta", com contorno e rótulo próprio na barra. Em risco = trecho hachurado violeta/vermelho dentro do comprometido. |
+| VD7 | Abaixo da barra: linha clicável "R$ X postergados para 2027 pelos times ›" (Comp. 27), que liga a torre 2027. |
+| VD8 | Status geral → **Aderência ao plano**: simulador de BG vivo. Horizonte **Hoje / Fim do mês / Fim do tri / Fim do ano** (tri oculto quando = ano). Ponte: Plano no horizonte (cinza) − Postergando (vermelho) + Antecipando (âmbar) = BG vivo simulado (azul); compara com BG Gov e BG Vivo dos times. Botão "considerar em risco" (padrão ligado). |
+| VD9 | Por projeto: projetado(h) = pago + em pagamento + RCs com pagamento previsto ≤ h; plano(h) = orçamento mensal acumulado até h; desvio = projetado − plano; status No ritmo / Antecipando / Postergando pela tolerância atual do Ritmo. BG vivo simulado = Σ projetado. Invariantes: Hoje = Realizado acumulado do Fluxo; Fim do ano com risco = ocupado da torre 2026. |
+| VD10 | ↻ da Aderência alterna balanço financeiro ↔ pizza da quantidade de projetos (No ritmo / Antecipando / Postergando). Clique em grupo/fatia abre a lista de projetos (responsável, plano, projetado, desvio), reusando o modal de lista do painel de Ritmo. |
+| VD11 | "O que merece atenção" → **Top 5 ofensores de caixa**: só faixa lateral (vermelho = risco de não virar caixa; âmbar = comprometido acima/antecipação), nome e valor; motivo no tooltip; sem "parado" (folga não é ofensor). |
+| VD12 | Verso do Fluxo: só o gráfico 100% de composição do orçamento por plataforma, rótulos em %, valores em R$ no tooltip. |
+| VD13 | Layout mantido: linha 1 Execução (2/3) + Aderência (1/3); linha 2 Fluxo (2/3) + Top 5 (1/3). |
+
+Etapas: P0 (investigação do Ritmo, só leitura) → V1 (lógica do simulador + testes de invariantes) → V2 (card Execução) → V3 (card Aderência) → V4 (Top 5 + verso do Fluxo) → V5 (validação final).
