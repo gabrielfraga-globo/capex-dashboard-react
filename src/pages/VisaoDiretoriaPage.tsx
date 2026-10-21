@@ -1,10 +1,8 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
-import { fmtBRL, fmtPct } from "../lib/format";
 import { useRecorteStore } from "../store/recorteStore";
 import { navigate } from "../lib/simpleRouter";
 import { useCarteiraResumo } from "../features/executivo/useCarteiraResumo";
-import { KpiRow2026 } from "../features/executivo/KpiRow2026";
 import { FluxoCaixaCard } from "../features/executivo/FluxoCaixaCard";
 import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
@@ -16,7 +14,6 @@ import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
 import { useSaldoProjetos } from "../features/saldo/useSaldoProjetos";
 import { aggregateSaldoBy, filterSaldoLinhas, ultimaDataParadaPorProjeto } from "../features/saldo/saldo";
 import { RecorteAtivo } from "../components/RecorteAtivo";
-import { RiskPanel } from "../features/radar/panels/RiskPanel";
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -28,6 +25,35 @@ interface Props {
 
 const EXERCICIO = 2026;
 const SALDO_HABILITADO = import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true";
+/** Folga entre o fim da página e o fim da janela. */
+const MARGEM_INFERIOR_PX = 12;
+
+/** Altura da página = janela − topo do container − margem; recalcula ao redimensionar a janela ou ao mudar o layout acima. */
+function useAlturaRestante(ref: RefObject<HTMLDivElement | null>): number | null {
+  const [altura, setAltura] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const medir = () => {
+      const el = ref.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setAltura(Math.max(0, window.innerHeight - top - MARGEM_INFERIOR_PX));
+    };
+    medir();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(medir) : null;
+    observer?.observe(document.body);
+    window.addEventListener("resize", medir);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", medir);
+    };
+  }, [ref]);
+
+  return altura;
+}
+
+/** Card do grid: ocupa a célula inteira e nunca cresce além dela. */
+const CELULA_CARD = "min-h-0 min-w-0 overflow-hidden [&>*]:h-full [&>*]:min-h-0 [&>*]:overflow-hidden";
 
 export function VisaoDiretoriaPage({
   lista,
@@ -35,10 +61,10 @@ export function VisaoDiretoriaPage({
   isLoadingCompromisso,
   dataBase,
 }: Props) {
-  const [riscoAberto, setRiscoAberto] = useState(false);
-  const [kpisAbertos, setKpisAbertos] = useState(false);
   const [mostrar2027, setMostrar2027] = useState(false);
   const rubricas = useRecorteStore((s) => s.rubricas);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const altura = useAlturaRestante(containerRef);
 
   const saldo = useSaldoProjetos();
   const { data, rubricasOptions } = useCarteiraResumo(EXERCICIO, { lista, dataBase });
@@ -90,52 +116,30 @@ export function VisaoDiretoriaPage({
 
   if (!data || !torres) {
     return (
-      <div className="h-full rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
+      <div ref={containerRef} style={altura !== null ? { height: altura } : undefined} className="overflow-hidden">
+        <div className="h-full rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
+      </div>
     );
   }
 
-  const { bgVivoSum, flow, listaAno, listaAno26, emRiscoCartao } = data;
-  const caixa = bgVivoSum.realizado + bgVivoSum.emPagamento;
-  const caixaPct = bgVivoSum.bgGov > 0 ? caixa / bgVivoSum.bgGov : null;
+  const { bgVivoSum, flow, listaAno, listaAno26 } = data;
 
   return (
-    <div className="flex flex-col gap-3 max-h-[calc(100vh-10.75rem)] overflow-y-auto">
+    <div
+      ref={containerRef}
+      style={altura !== null ? { height: altura } : undefined}
+      className="flex flex-col gap-3 overflow-hidden"
+    >
 
-      <div className="flex items-center justify-end shrink-0 mb-1">
+      <div className="flex items-center justify-end shrink-0">
         <FiltrosRecorte lista={lista} rubricasOptions={rubricasOptions} />
       </div>
 
       <RecorteAtivo />
 
-      {/* ── Faixa de 3 números ─────────────────────────────── */}
-      <div className="flex items-center justify-between gap-3 shrink-0 rounded-card border border-border bg-card px-3 py-2">
-        <p className="text-sm text-text min-w-0 truncate">
-          <span>BG 26 <strong className="font-semibold">{fmtBRL(bgVivoSum.bgGov, true)}</strong></span>
-          <span className="text-text-muted"> · </span>
-          <span>Caixa <strong className="font-semibold">{fmtBRL(caixa, true)}</strong> ({fmtPct(caixaPct)})</span>
-          <span className="text-text-muted"> · </span>
-          <span>Em risco <strong className="font-semibold text-warn">{fmtBRL(emRiscoCartao, true)}</strong></span>
-        </p>
-        <button
-          type="button"
-          aria-expanded={kpisAbertos}
-          aria-controls="visao-diretoria-kpis"
-          onClick={() => setKpisAbertos((v) => !v)}
-          className="shrink-0 text-xs font-semibold text-accent hover:underline"
-        >
-          ver todos <span className={`inline-block transition-transform ${kpisAbertos ? "rotate-180" : ""}`}>▾</span>
-        </button>
-      </div>
-
-      {kpisAbertos && (
-        <div id="visao-diretoria-kpis" className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
-          <KpiRow2026 data={data} rubricas={rubricas} onAbrirRisco={() => setRiscoAberto(true)} />
-        </div>
-      )}
-
-      {/* ── Execução do plano e aderência ──────────────────── */}
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-        <div className="grid min-w-0">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,1fr)] grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-3">
+        {/* ── Execução do plano ───────────────────────────── */}
+        <div className={CELULA_CARD}>
           <ExecucaoTorres
             torre2026={torres.torre2026}
             torre2027={torres.torre2027}
@@ -145,7 +149,9 @@ export function VisaoDiretoriaPage({
             comp27={data.compromisso27}
           />
         </div>
-        <div className="grid min-w-0">
+
+        {/* ── Aderência ao plano ──────────────────────────── */}
+        <div className={CELULA_CARD}>
           <AderenciaPlano
             projetos={listaAno26}
             rows={data.opRows}
@@ -156,11 +162,9 @@ export function VisaoDiretoriaPage({
             onSelectProject={onSelect}
           />
         </div>
-      </div>
 
-      {/* ── Fluxo e atenção ────────────────────────────────── */}
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-        <div className="grid min-w-0">
+        {/* ── Fluxo ───────────────────────────────────────── */}
+        <div className={CELULA_CARD}>
           <FluxoCaixaCard
             ano={2026}
             lista={listaAno}
@@ -168,14 +172,15 @@ export function VisaoDiretoriaPage({
             dataBase={dataBase}
             isLoadingCompromisso={isLoadingCompromisso}
             versoSomenteComposicao
+            preencherAltura
           />
         </div>
-        <div className="grid min-w-0">
+
+        {/* ── Top 5 ofensores ─────────────────────────────── */}
+        <div className={CELULA_CARD}>
           <AttentionList variante="sinais" itens={itensAtencao} onNavigate={navigate} />
         </div>
       </div>
-
-      <RiskPanel open={riscoAberto} onClose={() => setRiscoAberto(false)} risk={data.risk} />
     </div>
   );
 }

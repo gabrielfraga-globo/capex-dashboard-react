@@ -171,7 +171,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-bg text-text px-4 md:px-8 py-5 max-w-[1400px] mx-auto">
+    <div className={`bg-bg text-text px-4 md:px-8 pt-5 max-w-[1400px] mx-auto ${pathname === "/diretoria" ? "pb-0" : "min-h-screen pb-5"}`}>
       <header className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2.5">
           <BrandMark size={28} />
@@ -287,9 +287,11 @@ export default function App() {
         </Suspense>
       )}
 
+      {pathname !== "/diretoria" && (
       <footer className="text-center text-[11px] text-text-faint py-4">
         Performance Plataformas · Fechamento Mensal · Uso Interno
       </footer>
+      )}
 
       <ProjectSidePanel projeto={selected} comparaveis={comparaveis} onClose={handleClosePanel} />
       <Analytics />

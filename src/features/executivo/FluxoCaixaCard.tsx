@@ -14,12 +14,16 @@ interface FluxoCaixaCardProps {
   isLoadingCompromisso?: boolean;
   /** Verso mostra só o gráfico 100% de composição (usado na Visão Diretoria). */
   versoSomenteComposicao?: boolean;
+  /** Sem altura mínima fixa: o card ocupa a altura da célula que o contém (Visão Diretoria). */
+  preencherAltura?: boolean;
 }
 
 /** Card do Fluxo de caixa da Visão Executiva (frente) com a Composição por plataforma no verso (só 2026). */
-export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromisso, versoSomenteComposicao = false }: FluxoCaixaCardProps) {
+export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromisso, versoSomenteComposicao = false, preencherAltura = false }: FluxoCaixaCardProps) {
+  const minFrente = preencherAltura ? "min-h-0" : "min-h-[220px]";
+  const minGrafico = preencherAltura ? "min-h-0" : "min-h-[237px]";
   const fluxoCard = (
-    <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px]">
+    <div className={`flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full ${minFrente}`}>
       <div className="flex items-center justify-between shrink-0 mb-1 pr-8">
         <div className="flex items-center gap-3">
           <p data-flip-title className="text-[11px] font-bold uppercase tracking-[0.06em] text-text-muted">Fluxo de caixa</p>
@@ -38,7 +42,7 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
         </div>
       ) : (
         <div className="flex flex-1 min-h-0 gap-4 items-stretch">
-          <div className="flex-1 min-w-0 flex flex-col min-h-[237px]">
+          <div className={`flex-1 min-w-0 flex flex-col ${minGrafico}`}>
             <FluxoCaixaChart
               lista={lista}
               dataBase={dataBase ?? null}
@@ -81,7 +85,7 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
       backLabel="Composição por plataforma"
       front={fluxoCard}
       back={
-        <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px] overflow-auto">
+        <div className={`flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full overflow-auto ${minFrente}`}>
           <DistribuicaoFinanceiraPlataforma lista={lista} somenteComposicao={versoSomenteComposicao} />
         </div>
       }
