@@ -1,7 +1,12 @@
 import { Card, SectionHeader } from "../../components/ui/primitives";
-import { fmtBRL, formatCurrencyMillions } from "../../lib/format";
+import { formatCurrencyMillions, fmtBRL } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import type { AttentionItem, AttentionKind, AttentionSource } from "./types";
+/** Milhões sempre com 1 casa decimal ("R$ 5,0M"); abaixo de R$ 1M segue em K. */
+function fmtValorAtencao(v: number): string {
+  return Math.abs(v) >= 1_000_000 ? formatCurrencyMillions(v) : fmtBRL(v, true);
+}
+
 
 const FAIXA_SINAL: Record<AttentionKind, string> = {
   ACIMA_ORCAMENTO: "bg-warn",
@@ -53,7 +58,7 @@ export function AttentionList({
                   {it.projectName}
                 </span>
                 <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-text">
-                  {fmtBRL(it.value, true)}
+                  {fmtValorAtencao(it.value)}
                 </span>
               </button>
             </li>
@@ -83,7 +88,7 @@ export function AttentionList({
                       {it.projectName}
                     </span>
                     <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-text">
-                      {fmtBRL(it.value, true)}
+                      {fmtValorAtencao(it.value)}
                     </span>
                   </button>
                 </li>

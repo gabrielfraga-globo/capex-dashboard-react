@@ -241,12 +241,12 @@ export default function App() {
         </div>
       </header>
 
-      <ContextBar
-        parsed={parsed}
-        periodoLabel={periodoLabel}
-      />
-
-
+      {pathname !== "/diretoria" && (
+        <ContextBar
+          parsed={parsed}
+          periodoLabel={periodoLabel}
+        />
+      )}
 
       {pathname === "/diretoria" ? (
         <Suspense fallback={<SkeletonRadar />}>
@@ -256,6 +256,8 @@ export default function App() {
             onSelect={handleSelectFromRadar}
             isLoadingCompromisso={isLoadingCompromisso}
             dataBase={parsed.dataBase}
+            parsed={parsed}
+            periodoLabel={periodoLabel}
           />
         </Suspense>
       ) : viewMode === "radar" ? (

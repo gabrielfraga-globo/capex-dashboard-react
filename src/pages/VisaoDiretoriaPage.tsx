@@ -15,6 +15,8 @@ import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
 import { useSaldoProjetos } from "../features/saldo/useSaldoProjetos";
 import { aggregateSaldoBy, filterSaldoLinhas, ultimaDataParadaPorProjeto } from "../features/saldo/saldo";
 import { RecorteAtivo } from "../components/RecorteAtivo";
+import { ContextBar } from "../components/ContextBar";
+import type { RelatorioParsing } from "../types";
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -22,6 +24,8 @@ interface Props {
   onSelect: (p: ProjetoMetricas) => void;
   isLoadingCompromisso?: boolean;
   dataBase?: string | null;
+  parsed: RelatorioParsing;
+  periodoLabel: string;
 }
 
 const EXERCICIO = 2026;
@@ -61,6 +65,8 @@ export function VisaoDiretoriaPage({
   onSelect,
   isLoadingCompromisso,
   dataBase,
+  parsed,
+  periodoLabel,
 }: Props) {
   const [mostrar2027, setMostrar2027] = useState(false);
   const [riscoAberto, setRiscoAberto] = useState(false);
@@ -129,8 +135,9 @@ export function VisaoDiretoriaPage({
 
   if (!data || !torres) {
     return (
-      <div ref={containerRef} style={altura !== null ? { height: altura } : undefined} className="overflow-hidden">
-        <div className="h-full rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
+      <div ref={containerRef} style={altura !== null ? { height: altura } : undefined} className="flex flex-col gap-3 overflow-hidden">
+        <ContextBar parsed={parsed} periodoLabel={periodoLabel} className="shrink-0" />
+        <div className="min-h-0 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
       </div>
     );
   }
@@ -143,10 +150,12 @@ export function VisaoDiretoriaPage({
       style={altura !== null ? { height: altura } : undefined}
       className="flex flex-col gap-3 overflow-hidden"
     >
-
-      <div className="flex items-center justify-end shrink-0">
-        <FiltrosRecorte lista={lista} rubricasOptions={rubricasOptions} />
-      </div>
+      <ContextBar
+        parsed={parsed}
+        periodoLabel={periodoLabel}
+        className="shrink-0"
+        acoes={<FiltrosRecorte lista={lista} rubricasOptions={rubricasOptions} />}
+      />
 
       <RecorteAtivo />
 
@@ -186,6 +195,7 @@ export function VisaoDiretoriaPage({
             isLoadingCompromisso={isLoadingCompromisso}
             versoSomenteComposicao
             preencherAltura
+            desvioNeutro
           />
         </div>
 

@@ -16,10 +16,12 @@ interface FluxoCaixaCardProps {
   versoSomenteComposicao?: boolean;
   /** Sem altura mínima fixa: o card ocupa a altura da célula que o contém (Visão Diretoria). */
   preencherAltura?: boolean;
+  /** Desvio em cor neutra (text-text), sem verde/vermelho. Usado na Visão Diretoria. */
+  desvioNeutro?: boolean;
 }
 
 /** Card do Fluxo de caixa da Visão Executiva (frente) com a Composição por plataforma no verso (só 2026). */
-export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromisso, versoSomenteComposicao = false, preencherAltura = false }: FluxoCaixaCardProps) {
+export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromisso, versoSomenteComposicao = false, preencherAltura = false, desvioNeutro = false }: FluxoCaixaCardProps) {
   const minFrente = preencherAltura ? "min-h-0" : "min-h-[220px]";
   const minGrafico = preencherAltura ? "min-h-0" : "min-h-[237px]";
   const fluxoCard = (
@@ -62,7 +64,7 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
             </div>
             <div>
               <div className="text-[10px] text-text-muted mb-0.5">Desvio</div>
-              <div className={`text-[15px] font-bold tabular-nums whitespace-nowrap ${flow.desvio < 0 ? "text-crit" : "text-ok"}`}>
+              <div className={`text-[15px] font-bold tabular-nums whitespace-nowrap ${desvioNeutro ? "text-text" : flow.desvio < 0 ? "text-crit" : "text-ok"}`}>
                 {flow.desvio >= 0 ? "+" : ""}{fmtBRL(flow.desvio, true)}
                 <span className="block text-[11px] font-normal text-text-muted">
                   ({flow.desvioRel >= 0 ? "+" : ""}{fmtPct(flow.desvioRel)})

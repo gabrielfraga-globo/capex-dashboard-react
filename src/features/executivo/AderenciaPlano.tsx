@@ -186,8 +186,8 @@ export function AderenciaPlano({
                 className="grid w-full grid-cols-[12px_minmax(0,1fr)_auto_96px] items-center gap-2 rounded-md px-1 py-0.5 text-xs hover:bg-card-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               >
                 <span className={cn("h-2.5 w-2.5 rounded-full", ESTILO_STATUS[st].cor)} aria-hidden />
-                <span className="truncate text-text">{ESTILO_STATUS[st].rotulo}</span>
-                <span className="tabular-nums text-text-muted">{qtdPorStatus(st)} proj.</span>
+                <span className="truncate text-left text-text">{ESTILO_STATUS[st].rotulo}</span>
+                <span className="text-right tabular-nums text-text-muted">{qtdPorStatus(st)} proj.</span>
                 <span
                   className={cn(
                     "text-right font-semibold tabular-nums",
@@ -203,8 +203,8 @@ export function AderenciaPlano({
       </ul>
 
       <div className="mt-1 flex items-center justify-between gap-3 border-t border-border-subtle pt-1">
-        <p className="text-[11px] uppercase tracking-wide text-text-muted font-semibold">BG vivo simulado</p>
-        <p className="text-xs tabular-nums text-text-muted">
+        <p className="whitespace-nowrap text-[11px] uppercase tracking-wide text-text-muted font-semibold">BG vivo simulado</p>
+        <p className="whitespace-nowrap text-xs tabular-nums text-text-muted">
           <span className="font-semibold text-text">{formatCurrencyMillions(projetado)}</span> · {deltaMilhoes(deltaReferencia)} {textoReferencia}
         </p>
       </div>

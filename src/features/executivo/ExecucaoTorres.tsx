@@ -214,7 +214,7 @@ export function ExecucaoTorres({
   comp27 = 0,
 }: ExecucaoTorresProps) {
   return (
-    <article className="flex h-full min-h-0 flex-col justify-center gap-4 rounded-card border border-border bg-card p-4 text-text shadow-card">
+    <article className="flex h-full min-h-0 flex-col gap-4 rounded-card border border-border bg-card p-4 text-text shadow-card">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">EXECUÇÃO DO PLANO · 2026</p>
@@ -227,20 +227,22 @@ export function ExecucaoTorres({
           type="button"
           aria-pressed={mostrar2027}
           onClick={onToggle2027}
-          className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-text-muted transition-colors hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-info aria-pressed:border-info aria-pressed:bg-info-10 aria-pressed:text-info"
+          className="h-4 rounded-md border border-border px-2 py-0 text-[11px] leading-none font-semibold text-text-muted transition-colors hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-info aria-pressed:border-info aria-pressed:bg-info-10 aria-pressed:text-info"
         >
           {mostrar2027 ? "− 2027" : "+ 2027"}
         </button>
       </header>
 
-      <MetricaPrincipal2026 torre={torre2026} />
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
+        <MetricaPrincipal2026 torre={torre2026} />
 
-      <section className="flex flex-col gap-1.5">
-        <BarraTorre torre={torre2026} onOpenRisco={onOpenRisco} />
-        <LegendaTorre2026 />
-      </section>
+        <section className="flex flex-col gap-1.5">
+          <BarraTorre torre={torre2026} onOpenRisco={onOpenRisco} />
+          <LegendaTorre2026 />
+        </section>
 
-      {mostrar2027 && torre2027 && <BlocoTorre2027 torre={torre2027} />}
+        {mostrar2027 && torre2027 && <BlocoTorre2027 torre={torre2027} />}
+      </div>
     </article>
   );
 }
