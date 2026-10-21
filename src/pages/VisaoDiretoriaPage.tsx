@@ -141,6 +141,7 @@ export function VisaoDiretoriaPage({
         mostrar2027={mostrar2027}
         onToggle2027={() => setMostrar2027((v) => !v)}
         conciliacao={torres.conciliacao}
+        comp27={data.compromisso27}
       />
 
       {/* ── Layout ─────────────────────────────────────────── */}
