@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LabelList,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LabelList, Rectangle,
 } from "recharts";
 import type { ProjetoMetricas } from "../types";
 import { fmtBRL, formatCurrencyMillions } from "../lib/format";
@@ -38,6 +38,34 @@ const rotuloPct = (valor: unknown) => {
   const n = Number(valor);
   return n >= ROTULO_PCT_MIN ? `${n.toFixed(0)}%` : "";
 };
+
+/** Cores de token do Tailwind (mesmas do Pago, do Comprometido e do Plano); a cor vem por classe porque o Recharts pinta por atributo fill. */
+const FATIA_COMPOSICAO: Record<"pctRealizado" | "pctComprometido" | "pctAEmitir", { fill: string; rotulo: string }> = {
+  pctRealizado: { fill: "fill-info", rotulo: "fill-white" },
+  pctComprometido: { fill: "fill-violet-500", rotulo: "fill-white" },
+  pctAEmitir: { fill: "fill-text-muted opacity-40", rotulo: "fill-text-muted" },
+};
+
+const criarFatiaComposicao = (chave: keyof typeof FATIA_COMPOSICAO) => {
+  const Fatia = (props: any) => <Rectangle {...props} fill={undefined} className={FATIA_COMPOSICAO[chave].fill} />;
+  return Fatia;
+};
+
+const FatiaRealizado = criarFatiaComposicao("pctRealizado");
+const FatiaComprometido = criarFatiaComposicao("pctComprometido");
+const FatiaAEmitir = criarFatiaComposicao("pctAEmitir");
+
+/** Legenda com os mesmos tokens das fatias (o Legend padrão pinta pelo fill hex do Bar). */
+const LegendaComposicao = () => (
+  <ul className="flex flex-wrap justify-center gap-x-4 text-[11px] text-text-muted">
+    {(["Executado", "Emitido", "A Emitir"] as const).map((nome, i) => (
+      <li key={nome} className="flex items-center gap-1.5">
+        <span className={`inline-block h-2.5 w-2.5 rounded-sm ${["bg-info", "bg-violet-500", "bg-text-muted opacity-40"][i]}`} />
+        {nome}
+      </li>
+    ))}
+  </ul>
+);
 
 export function DistribuicaoFinanceiraPlataforma({
   lista,
@@ -94,7 +122,11 @@ export function DistribuicaoFinanceiraPlataforma({
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={composicao} layout="vertical" margin={{ left: 20 }} stackOffset="expand">
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-          <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke={colors.axis} fontSize={11} />
+          {somenteComposicao ? (
+            <XAxis type="number" hide domain={[0, 100]} />
+          ) : (
+            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke={colors.axis} fontSize={11} />
+          )}
           <YAxis type="category" dataKey="plataforma" stroke={colors.axis} fontSize={11} width={130} />
           <Tooltip
             formatter={(v, _nome, item) => {
@@ -105,15 +137,15 @@ export function DistribuicaoFinanceiraPlataforma({
             }}
             {...tooltipStyle}
           />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9">
-            {somenteComposicao && <LabelList dataKey="pctRealizado" position="center" formatter={rotuloPct} fill="#0F172A" fontSize={11} />}
+          <Legend wrapperStyle={{ fontSize: 11 }} content={somenteComposicao ? <LegendaComposicao /> : undefined} />
+          <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9" shape={somenteComposicao ? FatiaRealizado : undefined}>
+            {somenteComposicao && <LabelList dataKey="pctRealizado" position="center" formatter={rotuloPct} className={FATIA_COMPOSICAO.pctRealizado.rotulo} fontSize={11} />}
           </Bar>
-          <Bar dataKey="pctComprometido" name="Emitido" stackId="a" fill="#E0B429">
-            {somenteComposicao && <LabelList dataKey="pctComprometido" position="center" formatter={rotuloPct} fill="#0F172A" fontSize={11} />}
+          <Bar dataKey="pctComprometido" name="Emitido" stackId="a" fill="#E0B429" shape={somenteComposicao ? FatiaComprometido : undefined}>
+            {somenteComposicao && <LabelList dataKey="pctComprometido" position="center" formatter={rotuloPct} className={FATIA_COMPOSICAO.pctComprometido.rotulo} fontSize={11} />}
           </Bar>
-          <Bar dataKey="pctAEmitir" name="A Emitir" stackId="a" fill="#E0672E" radius={[0, 4, 4, 0]}>
-            {somenteComposicao && <LabelList dataKey="pctAEmitir" position="center" formatter={rotuloPct} fill="#0F172A" fontSize={11} />}
+          <Bar dataKey="pctAEmitir" name="A Emitir" stackId="a" fill="#E0672E" radius={[0, 4, 4, 0]} shape={somenteComposicao ? FatiaAEmitir : undefined}>
+            {somenteComposicao && <LabelList dataKey="pctAEmitir" position="center" formatter={rotuloPct} className={FATIA_COMPOSICAO.pctAEmitir.rotulo} fontSize={11} />}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
