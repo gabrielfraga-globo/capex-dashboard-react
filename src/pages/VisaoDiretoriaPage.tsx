@@ -65,9 +65,9 @@ export function VisaoDiretoriaPage({
     () =>
       fontesAtencao
         ? buildAttentionList(
-            { ...fontesAtencao, exerciseYear: EXERCICIO },
-            { limit: 3, quotas: { ACIMA_ORCAMENTO: 1, RCS_EM_RISCO: 1, SALDO_PARADO: 1 } },
-          )
+            { acima: fontesAtencao.acima, emRisco: fontesAtencao.emRisco, parados: [], exerciseYear: EXERCICIO },
+            { limit: 5, quotas: { ACIMA_ORCAMENTO: 0, RCS_EM_RISCO: 0 } },
+          ).sort((a, b) => b.value - a.value)
         : [],
     [fontesAtencao],
   );
@@ -167,10 +167,11 @@ export function VisaoDiretoriaPage({
             flow={flow}
             dataBase={dataBase}
             isLoadingCompromisso={isLoadingCompromisso}
+            versoSomenteComposicao
           />
         </div>
         <div className="grid min-w-0">
-          <AttentionList itens={itensAtencao} onNavigate={navigate} />
+          <AttentionList variante="sinais" itens={itensAtencao} onNavigate={navigate} />
         </div>
       </div>
 

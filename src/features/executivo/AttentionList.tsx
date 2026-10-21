@@ -9,22 +9,59 @@ const MARCADOR: Record<AttentionKind, { char: string; className: string }> = {
   SALDO_PARADO: { char: "○", className: "text-text-muted" },
 };
 
+const FAIXA_SINAL: Record<AttentionKind, string> = {
+  ACIMA_ORCAMENTO: "bg-warn",
+  RCS_EM_RISCO: "bg-crit",
+  SALDO_PARADO: "bg-text-muted",
+};
+
+const TOOLTIP_TOP5 =
+  "Vermelho: risco de não virar caixa em 2026. Âmbar: comprometido acima do orçamento (antecipação).";
+
 export function AttentionList({
   itens,
   onNavigate,
+  variante,
 }: {
   itens: AttentionItem[];
   onNavigate: (href: string) => void;
+  /** "sinais": lista compacta de ofensores (faixa de cor, nome e valor; motivo no title). */
+  variante?: "sinais";
 }) {
+  const sinais = variante === "sinais";
   return (
     <Card>
-      <SectionHeader title="O que merece atenção" />
+      {sinais ? (
+        <SectionHeader title="Top 5 ofensores de caixa" tooltip={TOOLTIP_TOP5} />
+      ) : (
+        <SectionHeader title="O que merece atenção" />
+      )}
       {itens.length === 0 ? (
         <p className="text-sm text-text-muted">Nada fora do esperado no recorte.</p>
       ) : (
         <ul className="divide-y divide-border-subtle">
           {itens.map((it) => {
             const m = MARCADOR[it.kind];
+            if (sinais) {
+              return (
+                <li key={`${it.kind}-${it.projectKey}`}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(it.href)}
+                    title={it.detail}
+                    className="flex w-full items-stretch gap-3 rounded-md py-2 pr-1 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+                  >
+                    <span aria-hidden className={cn("w-1 shrink-0 rounded-full", FAIXA_SINAL[it.kind])} />
+                    <span className="min-w-0 flex-1 truncate self-center text-sm font-semibold text-text">
+                      {it.projectName}
+                    </span>
+                    <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-text">
+                      {fmtBRL(it.value, true)}
+                    </span>
+                  </button>
+                </li>
+              );
+            }
             return (
               <li key={`${it.kind}-${it.projectKey}`}>
                 <button

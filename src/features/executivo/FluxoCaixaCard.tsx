@@ -12,10 +12,12 @@ interface FluxoCaixaCardProps {
   flow: CarteiraResumoData["flow"];
   dataBase?: string | null;
   isLoadingCompromisso?: boolean;
+  /** Verso mostra só o gráfico 100% de composição (usado na Visão Diretoria). */
+  versoSomenteComposicao?: boolean;
 }
 
 /** Card do Fluxo de caixa da Visão Executiva (frente) com a Composição por plataforma no verso (só 2026). */
-export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromisso }: FluxoCaixaCardProps) {
+export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromisso, versoSomenteComposicao = false }: FluxoCaixaCardProps) {
   const fluxoCard = (
     <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px]">
       <div className="flex items-center justify-between shrink-0 mb-1 pr-8">
@@ -80,7 +82,7 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
       front={fluxoCard}
       back={
         <div className="flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full min-h-[220px] overflow-auto">
-          <DistribuicaoFinanceiraPlataforma lista={lista} />
+          <DistribuicaoFinanceiraPlataforma lista={lista} somenteComposicao={versoSomenteComposicao} />
         </div>
       }
     />

@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LabelList,
 } from "recharts";
 import type { ProjetoMetricas } from "../types";
-import { formatCurrencyMillions } from "../lib/format";
+import { fmtBRL, formatCurrencyMillions } from "../lib/format";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors, chartTooltipStyle } from "../lib/chartColors";
 
@@ -15,7 +15,38 @@ const RISK_COLORS: Record<string, string> = {
   "Dados insuficientes": "#475569",
 };
 
-export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetricas[] }) {
+interface ComposicaoLinha {
+  plataforma: string;
+  pctRealizado: number;
+  pctComprometido: number;
+  pctAEmitir: number;
+  valorRealizado: number;
+  valorComprometido: number;
+  valorAEmitir: number;
+}
+
+const CAMPO_VALOR_POR_SERIE: Record<string, "valorRealizado" | "valorComprometido" | "valorAEmitir"> = {
+  pctRealizado: "valorRealizado",
+  pctComprometido: "valorComprometido",
+  pctAEmitir: "valorAEmitir",
+};
+
+/** Segmentos menores que isso ficam sem rótulo para não sobrepor texto. */
+const ROTULO_PCT_MIN = 3;
+
+const rotuloPct = (valor: unknown) => {
+  const n = Number(valor);
+  return n >= ROTULO_PCT_MIN ? `${n.toFixed(0)}%` : "";
+};
+
+export function DistribuicaoFinanceiraPlataforma({
+  lista,
+  somenteComposicao = false,
+}: {
+  lista: ProjetoMetricas[];
+  /** Mostra só o gráfico 100% de composição, com rótulos de % nos segmentos. */
+  somenteComposicao?: boolean;
+}) {
   const { theme } = useThemeStore();
   const colors = getChartColors(theme);
   const tooltipStyle = chartTooltipStyle(theme);
@@ -45,10 +76,52 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
           pctRealizado: p.orcamento > 0 ? (realizado / p.orcamento) * 100 : 0,
           pctComprometido: p.orcamento > 0 ? (p.compromisso / p.orcamento) * 100 : 0,
           pctAEmitir: p.orcamento > 0 ? (p.aEmitir / p.orcamento) * 100 : 0,
+          valorRealizado: realizado,
+          valorComprometido: p.compromisso,
+          valorAEmitir: p.aEmitir,
         };
       }),
     [porPlataforma, lista]
   );
+
+  const classeTituloComposicao = somenteComposicao
+    ? "text-xs font-semibold text-text-muted mb-2 pr-8"
+    : "text-xs font-semibold text-text-muted mb-2";
+
+  const graficoComposicao = (
+    <div>
+      <p className={classeTituloComposicao}>Composição do Orçamento por Plataforma (%)</p>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={composicao} layout="vertical" margin={{ left: 20 }} stackOffset="expand">
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+          <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke={colors.axis} fontSize={11} />
+          <YAxis type="category" dataKey="plataforma" stroke={colors.axis} fontSize={11} width={130} />
+          <Tooltip
+            formatter={(v, _nome, item) => {
+              if (!somenteComposicao) return `${Number(v).toFixed(0)}%`;
+              const linha = item.payload as ComposicaoLinha;
+              const campo = CAMPO_VALOR_POR_SERIE[String(item.dataKey)];
+              return `${Number(v).toFixed(1)}% · ${fmtBRL(linha[campo])}`;
+            }}
+            {...tooltipStyle}
+          />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9">
+            {somenteComposicao && <LabelList dataKey="pctRealizado" position="center" formatter={rotuloPct} fill="#0F172A" fontSize={11} />}
+          </Bar>
+          <Bar dataKey="pctComprometido" name="Emitido" stackId="a" fill="#E0B429">
+            {somenteComposicao && <LabelList dataKey="pctComprometido" position="center" formatter={rotuloPct} fill="#0F172A" fontSize={11} />}
+          </Bar>
+          <Bar dataKey="pctAEmitir" name="A Emitir" stackId="a" fill="#E0672E" radius={[0, 4, 4, 0]}>
+            {somenteComposicao && <LabelList dataKey="pctAEmitir" position="center" formatter={rotuloPct} fill="#0F172A" fontSize={11} />}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <p className="text-[11px] text-text-faint mt-1">Cada barra soma 100% do orçamento do período da plataforma.</p>
+    </div>
+  );
+
+  if (somenteComposicao) return graficoComposicao;
 
   return (
     <div className="grid lg:grid-cols-2 gap-4">
@@ -69,22 +142,7 @@ export function DistribuicaoFinanceiraPlataforma({ lista }: { lista: ProjetoMetr
         </ResponsiveContainer>
       </div>
 
-      <div>
-        <p className="text-xs font-semibold text-text-muted mb-2">Composição do Orçamento por Plataforma (%)</p>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={composicao} layout="vertical" margin={{ left: 20 }} stackOffset="expand">
-            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke={colors.axis} fontSize={11} />
-            <YAxis type="category" dataKey="plataforma" stroke={colors.axis} fontSize={11} width={130} />
-            <Tooltip formatter={(v: any) => `${Number(v).toFixed(0)}%`} {...tooltipStyle} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar dataKey="pctRealizado" name="Executado" stackId="a" fill="#7FD1B9" />
-            <Bar dataKey="pctComprometido" name="Emitido" stackId="a" fill="#E0B429" />
-            <Bar dataKey="pctAEmitir" name="A Emitir" stackId="a" fill="#E0672E" radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-        <p className="text-[11px] text-text-faint mt-1">Cada barra soma 100% do orçamento do período da plataforma.</p>
-      </div>
+      {graficoComposicao}
     </div>
   );
 }
