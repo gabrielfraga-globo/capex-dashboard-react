@@ -1,57 +1,84 @@
 import { Card, SectionHeader } from "../../components/ui/primitives";
-import { fmtBRL } from "../../lib/format";
+import { fmtBRL, formatCurrencyMillions } from "../../lib/format";
 import { cn } from "../../lib/utils";
-import type { AttentionItem, AttentionKind } from "./types";
-
-const MARCADOR: Record<AttentionKind, { char: string; className: string }> = {
-  ACIMA_ORCAMENTO: { char: "●", className: "text-risk-critico" },
-  RCS_EM_RISCO: { char: "●", className: "text-risk-medio" },
-  SALDO_PARADO: { char: "○", className: "text-text-muted" },
-};
+import type { AttentionItem, AttentionKind, AttentionSource } from "./types";
 
 const FAIXA_SINAL: Record<AttentionKind, string> = {
   ACIMA_ORCAMENTO: "bg-warn",
   RCS_EM_RISCO: "bg-crit",
-  SALDO_PARADO: "bg-text-muted",
+  SALDO_PARADO: "bg-slate-500",
 };
 
-const TOOLTIP_TOP5 =
-  "Vermelho: risco de não virar caixa em 2026. Âmbar: comprometido acima do orçamento (antecipação).";
+const TOOLTIP_PONTOS_ACAO =
+  "Vermelho: risco de não virar caixa. Âmbar: comprometido acima do orçamento. Cinza: saldo parado há 6+ meses, pode ser remanejado.";
+
+const ROTA_RISCO_CAIXA = "/risco-caixa";
+
+/** Saldos parados do recorte: total (Σ) e contagem (N) calculados sobre a mesma lista; `top` são os maiores. */
+export interface SaldosParadosResumo {
+  total: number;
+  projetos: number;
+  top: AttentionSource[];
+}
 
 export function AttentionList({
   itens,
+  parados,
   onNavigate,
-  variante,
 }: {
   itens: AttentionItem[];
+  /** `null` oculta a seção de saldos parados (saldo indisponível ou flag desligada). */
+  parados: SaldosParadosResumo | null;
   onNavigate: (href: string) => void;
-  /** "sinais": lista compacta de ofensores (faixa de cor, nome e valor; motivo no title). */
-  variante?: "sinais";
 }) {
-  const sinais = variante === "sinais";
   return (
     <Card>
-      {sinais ? (
-        <SectionHeader title="Top 5 ofensores de caixa" tooltip={TOOLTIP_TOP5} />
-      ) : (
-        <SectionHeader title="O que merece atenção" />
-      )}
+      <SectionHeader title="Pontos de ação" tooltip={TOOLTIP_PONTOS_ACAO} />
+
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">OFENSORES DE CAIXA</p>
       {itens.length === 0 ? (
-        <p className="text-sm text-text-muted">Nada fora do esperado no recorte.</p>
+        <p className="mt-1 text-sm text-text-muted">Nada fora do esperado no recorte.</p>
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {itens.map((it) => {
-            const m = MARCADOR[it.kind];
-            if (sinais) {
-              return (
-                <li key={`${it.kind}-${it.projectKey}`}>
+        <ul className="mt-1 divide-y divide-border-subtle">
+          {itens.map((it) => (
+            <li key={`${it.kind}-${it.projectKey}`}>
+              <button
+                type="button"
+                onClick={() => onNavigate(it.href)}
+                title={it.detail}
+                className="flex w-full items-stretch gap-3 rounded-md py-0.5 pr-1 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+              >
+                <span aria-hidden className={cn("w-1 shrink-0 rounded-full", FAIXA_SINAL[it.kind])} />
+                <span className="min-w-0 flex-1 truncate self-center text-sm font-semibold text-text">
+                  {it.projectName}
+                </span>
+                <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-text">
+                  {fmtBRL(it.value, true)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {parados && (
+        <div className="mt-3 border-t border-border-subtle pt-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            SALDOS PARADOS · {formatCurrencyMillions(parados.total)} EM {parados.projetos} PROJETOS
+          </p>
+          {parados.top.length === 0 ? (
+            <p className="mt-1 text-sm text-text-muted">Nenhum saldo parado no recorte.</p>
+          ) : (
+            <ul className="mt-1 divide-y divide-border-subtle">
+              {parados.top.map((it) => (
+                <li key={it.projectKey}>
                   <button
                     type="button"
-                    onClick={() => onNavigate(it.href)}
-                    title={it.detail}
-                    className="flex w-full items-stretch gap-3 rounded-md py-2 pr-1 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+                    onClick={() => onNavigate(ROTA_RISCO_CAIXA)}
+                    title={it.mesesSemCompromisso != null ? `Sem compromisso há ${it.mesesSemCompromisso} meses` : undefined}
+                    className="flex w-full items-stretch gap-3 rounded-md py-0.5 pr-1 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
                   >
-                    <span aria-hidden className={cn("w-1 shrink-0 rounded-full", FAIXA_SINAL[it.kind])} />
+                    <span aria-hidden className={cn("w-1 shrink-0 rounded-full", FAIXA_SINAL.SALDO_PARADO)} />
                     <span className="min-w-0 flex-1 truncate self-center text-sm font-semibold text-text">
                       {it.projectName}
                     </span>
@@ -60,41 +87,11 @@ export function AttentionList({
                     </span>
                   </button>
                 </li>
-              );
-            }
-            return (
-              <li key={`${it.kind}-${it.projectKey}`}>
-                <button
-                  type="button"
-                  onClick={() => onNavigate(it.href)}
-                  className="flex w-full items-center gap-3 rounded-md py-2 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
-                >
-                  <span aria-hidden className={cn("text-xs", m.className)}>
-                    {m.char}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-text" title={it.projectName}>
-                      {it.projectName}
-                    </span>
-                    <span className="block text-xs text-text-muted">{it.detail}</span>
-                    {it.owner && <span className="block text-[11px] text-text-faint">{it.owner}</span>}
-                  </span>
-                  <span className="shrink-0 text-sm font-semibold text-text" title={fmtBRL(it.value)}>
-                    {fmtBRL(it.value, true)}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
-      <button
-        type="button"
-        onClick={() => onNavigate("/risco-caixa")}
-        className="mt-3 text-sm font-medium text-accent hover:underline"
-      >
-        Ver risco de caixa →
-      </button>
     </Card>
   );
 }

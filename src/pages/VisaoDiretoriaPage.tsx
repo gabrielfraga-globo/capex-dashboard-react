@@ -8,7 +8,7 @@ import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
 import { buildTorre2026, buildTorre2027, conciliacaoEmitido } from "../features/executivo/torres";
-import { AttentionList } from "../features/executivo/AttentionList";
+import { AttentionList, type SaldosParadosResumo } from "../features/executivo/AttentionList";
 import { buildAttentionList } from "../features/executivo/attention";
 import { acimaDe, emRiscoDe, paradosDe } from "../features/executivo/adapters";
 import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
@@ -100,6 +100,17 @@ export function VisaoDiretoriaPage({
     [fontesAtencao],
   );
 
+  /** Σ, N e top 3 vêm da mesma lista de parados; sem saldo pronto a seção fica oculta. */
+  const saldosParados = useMemo<SaldosParadosResumo | null>(() => {
+    if (!fontesAtencao || !saldoPronto) return null;
+    const ordenados = [...fontesAtencao.parados].sort((a, b) => b.value - a.value);
+    return {
+      total: ordenados.reduce((soma, p) => soma + p.value, 0),
+      projetos: ordenados.length,
+      top: ordenados.slice(0, 3),
+    };
+  }, [fontesAtencao, saldoPronto]);
+
   const torres = useMemo(() => {
     if (!data) return null;
     const { bgVivoSum, compromisso27, bgGov27, emRiscoCartao, emitidoCarteira } = data;
@@ -161,7 +172,6 @@ export function VisaoDiretoriaPage({
             dataRef={data.dbDate}
             exerciseYear={EXERCICIO}
             bgGov={bgVivoSum.bgGov}
-            bgVivoTimes={bgVivoSum.bgVivo}
             onSelectProject={onSelect}
           />
         </div>
@@ -179,9 +189,9 @@ export function VisaoDiretoriaPage({
           />
         </div>
 
-        {/* ── Top 5 ofensores ─────────────────────────────── */}
+        {/* ── Pontos de ação ──────────────────────────────── */}
         <div className={CELULA_CARD}>
-          <AttentionList variante="sinais" itens={itensAtencao} onNavigate={navigate} />
+          <AttentionList itens={itensAtencao} parados={saldosParados} onNavigate={navigate} />
         </div>
       </div>
 

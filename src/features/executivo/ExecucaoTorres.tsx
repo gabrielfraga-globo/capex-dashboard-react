@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { fmtBRL, fmtPct } from "../../lib/format";
 import { InfoTooltip } from "../../components/ui/primitives";
 import type { SegmentoTorre, Torre } from "./torres";
@@ -43,6 +44,29 @@ const LIMITE_ROTULO_NOMEADO = 20;
 /** Trechos que aparecem na barra; folga e "a contratar" são vazio. */
 const CHAVES_PREENCHIDAS: SegmentoTorre["chave"][] = ["realizado", "emPagamento", "comp26Firme", "comp26Risco", "comp27"];
 
+/** Rótulo do trecho: some quando o texto é mais largo que o trecho. Fica `invisible` (e não removido) para continuar medível. */
+function RotuloTrecho({ texto }: { texto: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [cabe, setCabe] = useState(true);
+
+  useLayoutEffect(() => {
+    const span = ref.current;
+    const trecho = span?.parentElement;
+    if (!span || !trecho) return;
+    const medir = () => setCabe(span.scrollWidth <= trecho.clientWidth);
+    medir();
+    const observer = new ResizeObserver(medir);
+    observer.observe(trecho);
+    return () => observer.disconnect();
+  }, [texto]);
+
+  return (
+    <span ref={ref} className={cabe ? undefined : "invisible"}>
+      {texto}
+    </span>
+  );
+}
+
 /** Barra 100% = BG. Quando o ocupado passa do BG, a escala cresce até o ocupado e o trecho além da marca fica em âmbar. */
 function BarraTorre({ torre, onOpenRisco }: { torre: Torre; onOpenRisco?: () => void }) {
   const escala = Math.max(torre.base, torre.ocupado);
@@ -76,13 +100,13 @@ function BarraTorre({ torre, onOpenRisco }: { torre: Torre; onOpenRisco?: () => 
                   className={`${classes} cursor-pointer transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-text`}
                   style={{ width: `${pct}%` }}
                 >
-                  {rotulo}
+                  {rotulo && <RotuloTrecho texto={rotulo} />}
                 </button>
               );
             }
             return (
               <div key={seg.chave} title={titulo} className={classes} style={{ width: `${pct}%` }}>
-                {rotulo}
+                {rotulo && <RotuloTrecho texto={rotulo} />}
               </div>
             );
           })}
