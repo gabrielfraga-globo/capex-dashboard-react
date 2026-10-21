@@ -20,6 +20,7 @@ type ChaveTrecho = "pago" | "emPagamento" | "comprometido" | "risco" | "declarad
 interface TrechoBarra {
   chave: ChaveTrecho;
   valor: number;
+  titulo?: string;
 }
 
 const ESTILO_TRECHO: Record<ChaveTrecho, string> = {
@@ -95,7 +96,7 @@ function BarraTorre({
         <div className="relative flex h-12 w-full overflow-hidden rounded-md bg-card-alt">
           {visiveis.map((seg) => {
             const pct = pctDaEscala(seg.valor);
-            const titulo = `${NOME_TRECHO[seg.chave]}: ${fmtBRL(seg.valor, true)}`;
+            const titulo = seg.titulo ?? `${NOME_TRECHO[seg.chave]}: ${fmtBRL(seg.valor, true)}`;
             const rotulo = pct >= LIMITE_ROTULO_INTERNO ? fmtPct(pctDoBg(seg.valor), 0) : null;
             const classes = `flex h-full flex-none items-center justify-center overflow-hidden whitespace-nowrap text-xs font-semibold tabular-nums ${ESTILO_TRECHO[seg.chave]}`;
             if (seg.chave === "risco" && onOpenRisco) {
@@ -103,7 +104,7 @@ function BarraTorre({
                 <button
                   key={seg.chave}
                   type="button"
-                  title={`${titulo} · ver projetos em risco`}
+                  title={titulo}
                   onClick={onOpenRisco}
                   className={`${classes} cursor-pointer transition-[filter] hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-text`}
                   style={{ width: `${pct}%` }}
@@ -215,6 +216,8 @@ export function ExecucaoTorres({
   onOpenRisco,
 }: ExecucaoTorresProps) {
   const comprometidoFirme = Math.max(0, total.comprometido - total.emRiscoSinal);
+  const textoComprometidoFirme = `Comprometido com pedido: ${fmtBRL(comprometidoFirme, true)} de ${fmtBRL(total.comprometido, true)}`;
+  const textoRisco = `Comprometido sem pedido (em risco): ${fmtBRL(total.emRiscoSinal, true)}`;
   return (
     <article className="flex h-full min-h-0 flex-col gap-3 rounded-card border border-border bg-card p-4 text-text shadow-card">
       <header className="flex items-center justify-between gap-3">
@@ -244,8 +247,8 @@ export function ExecucaoTorres({
             trechos={[
               { chave: "pago", valor: total.pago },
               { chave: "emPagamento", valor: total.emPagamento },
-              { chave: "comprometido", valor: comprometidoFirme },
-              { chave: "risco", valor: total.emRiscoSinal },
+              { chave: "comprometido", valor: comprometidoFirme, titulo: textoComprometidoFirme },
+              { chave: "risco", valor: total.emRiscoSinal, titulo: textoRisco },
             ]}
             excesso={total.excesso}
             onOpenRisco={onOpenRisco}

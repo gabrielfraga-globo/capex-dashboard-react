@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { FolderKanban, Wallet, ShieldAlert, Gauge } from "lucide-react";
+import { useMemo, useState } from "react";
+import { FolderKanban, Wallet, ShieldAlert, Gauge, CheckCircle2 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtBRL } from "../lib/format";
 import { useRecorteStore } from "../store/recorteStore";
@@ -17,6 +17,9 @@ import { KpiStat } from "../components/ui/pattern/KpiStat";
 import { SectionCard } from "../components/ui/pattern/SectionCard";
 import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
 import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
+import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
+import { useMetricas } from "../domain/useMetricas";
+import { InfoTooltip } from "../components/ui/primitives";
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -27,6 +30,25 @@ interface Props {
 }
 
 type Panel = "risk" | "balances" | "bridge" | "estouro" | null;
+type Premissa = "diretoria" | "completa";
+
+const PREMISSA_STORAGE_KEY = "capex.tatica.premissa";
+
+function lerPremissa(): Premissa {
+  try {
+    return sessionStorage.getItem(PREMISSA_STORAGE_KEY) === "diretoria" ? "diretoria" : "completa";
+  } catch {
+    return "completa";
+  }
+}
+
+function gravarPremissa(premissa: Premissa) {
+  try {
+    sessionStorage.setItem(PREMISSA_STORAGE_KEY, premissa);
+  } catch {
+    // sessionStorage indisponível: a escolha vale só nesta montagem.
+  }
+}
 
 export function RadarExecutivoPage({
   lista,
@@ -38,9 +60,29 @@ export function RadarExecutivoPage({
   const [panel, setPanel] = useState<Panel>(null);
   
   const [ano, setAno] = useState<2026 | 2027>(2026);
+  const [premissa, setPremissa] = useState<Premissa>(lerPremissa);
+  const [mostrar2027, setMostrar2027] = useState(false);
   const rubricas = useRecorteStore((s) => s.rubricas);
 
   const { data, rubricasOptions } = useCarteiraResumo(ano, { lista, dataBase });
+  const metricas = useMetricas({ lista, dataBase });
+
+  const modoDiretoria = ano === 2026 && premissa === "diretoria";
+
+  const trocarPremissa = (nova: Premissa) => {
+    setPremissa(nova);
+    gravarPremissa(nova);
+  };
+
+  const bg27 = useMemo(
+    () => (metricas ? metricas.projetos.reduce((soma, p) => soma + (p.orcamento2027 ?? 0), 0) : 0),
+    [metricas],
+  );
+
+  const projetosAcima = useMemo(
+    () => (metricas ? metricas.simples.projetos.filter((p) => p.excesso > 0).length : 0),
+    [metricas],
+  );
 
   const handleSelectByKey = (key: string) => {
     const proj = listaAno.find(p => p.id === key);
@@ -66,6 +108,7 @@ export function RadarExecutivoPage({
       
       {/* ── Cabeçalho com ano e filtros ───────────────────────── */}
       <div className="flex items-center justify-between shrink-0 mb-1">
+        <div className="flex items-center gap-2">
         <div className="flex bg-card-alt rounded-lg p-1 border border-border shadow-sm">
           <button 
             onClick={() => setAno(2026)} 
@@ -80,6 +123,22 @@ export function RadarExecutivoPage({
             2027 (jan–mar)
           </button>
         </div>
+        {ano === 2026 && (
+          <div role="group" aria-label="Premissa de visão" className="flex bg-card-alt rounded-lg p-1 border border-border shadow-sm">
+            {(["diretoria", "completa"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={premissa === p}
+                onClick={() => trocarPremissa(p)}
+                className={`px-4 py-1 text-xs font-semibold rounded-md transition-colors ${premissa === p ? "bg-info text-white shadow" : "text-text-muted hover:text-text"}`}
+              >
+                {p === "diretoria" ? "Visão diretoria" : "Visão completa"}
+              </button>
+            ))}
+          </div>
+        )}
+        </div>
         
         <FiltrosRecorte lista={lista} rubricasOptions={rubricasOptions} />
       </div>
@@ -89,7 +148,40 @@ export function RadarExecutivoPage({
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
 
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
-        {ano === 2026 ? (
+        {modoDiretoria ? (
+          metricas ? (
+            <>
+              <KpiStat icon={<FolderKanban size={16} />} label="BG Gov 26" value={fmtBRL(metricas.simples.total.bg, true)} context="orçamento aprovado" />
+              <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(metricas.simples.total.pago, true)} context="pago no exercício" />
+              <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(metricas.simples.total.emPagamento, true)} context="etapa E7" />
+              <KpiStat
+                icon={<Wallet size={16} />}
+                label="Comprometido 26"
+                value={fmtBRL(metricas.simples.total.comprometido, true)}
+                context={`inclui ${fmtBRL(metricas.simples.total.emRiscoSinal, true)} em risco · ${fmtBRL(metricas.simples.total.excesso, true)} acima do orç.`}
+              />
+              <KpiStat icon={<Wallet size={16} />} label="Declarado 27" value={fmtBRL(metricas.simples.total.declarado27, true)} context="informado pelos times" />
+              <KpiStat
+                icon={<ShieldAlert size={16} />}
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    Em risco
+                    <InfoTooltip
+                      label="Sobre o Em risco"
+                      text="Emitido ainda sem pedido, limitado ao orçamento de cada projeto. O painel lista todas as RCs nessa situação."
+                    />
+                  </span>
+                }
+                value={fmtBRL(metricas.simples.total.emRiscoSinal, true)}
+                tone="warn"
+                context="sinal: emitido ainda sem pedido"
+                onClick={() => setPanel("risk")}
+              />
+            </>
+          ) : (
+            <div className="h-20 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
+          )
+        ) : ano === 2026 ? (
           <KpiRow2026 data={data} rubricas={rubricas} onAbrirRisco={() => setPanel("risk")} />
         ) : (
           <>
@@ -121,9 +213,26 @@ export function RadarExecutivoPage({
 
         {/* Coluna esquerda: Execução do Plano em cima; Fluxo de caixa (frente) / Composição por Plataforma (verso) embaixo */}
         <div className="flex flex-col gap-3 min-w-0 min-h-0">
-          <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
-            <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
-          </SectionCard>
+          {modoDiretoria ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              {metricas ? (
+                <ExecucaoTorres
+                  total={metricas.simples.total}
+                  bg27={bg27}
+                  projetosAcima={projetosAcima}
+                  mostrar2027={mostrar2027}
+                  onToggle2027={() => setMostrar2027((v) => !v)}
+                  onOpenRisco={() => setPanel("risk")}
+                />
+              ) : (
+                <div className="min-h-0 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
+              )}
+            </div>
+          ) : (
+            <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
+              <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
+            </SectionCard>
+          )}
 
           <FluxoCaixaCard
             ano={ano}

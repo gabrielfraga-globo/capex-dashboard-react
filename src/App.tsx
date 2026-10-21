@@ -209,7 +209,7 @@ export default function App() {
                 viewMode === "radar" && pathname !== "/diretoria" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
               }`}
             >
-              Visão Executiva
+              Visão Tática
             </button>
             <button
               onClick={() => navigate("/radar")}
