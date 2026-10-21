@@ -11,7 +11,7 @@ import { simularBG, triIgualAno, type Horizonte, type StatusAderencia } from "./
 export interface AderenciaPlanoProps {
   projetos: ProjetoMetricas[];
   rows: OperationalRow[];
-  ref: Date;
+  dataRef: Date;
   exerciseYear: number;
   bgGov: number;
   bgVivoTimes: number;
@@ -118,7 +118,7 @@ function LinhaPonte({
 export function AderenciaPlano({
   projetos,
   rows,
-  ref: dataRef,
+  dataRef,
   exerciseYear,
   bgGov,
   bgVivoTimes,

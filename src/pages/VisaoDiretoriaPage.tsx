@@ -7,6 +7,7 @@ import { useCarteiraResumo } from "../features/executivo/useCarteiraResumo";
 import { KpiRow2026 } from "../features/executivo/KpiRow2026";
 import { FluxoCaixaCard } from "../features/executivo/FluxoCaixaCard";
 import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
+import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
 import { buildTorre2026, buildTorre2027, conciliacaoEmitido } from "../features/executivo/torres";
 import { AttentionList } from "../features/executivo/AttentionList";
 import { buildAttentionList } from "../features/executivo/attention";
@@ -15,7 +16,6 @@ import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
 import { useSaldoProjetos } from "../features/saldo/useSaldoProjetos";
 import { aggregateSaldoBy, filterSaldoLinhas, ultimaDataParadaPorProjeto } from "../features/saldo/saldo";
 import { RecorteAtivo } from "../components/RecorteAtivo";
-import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 
 interface Props {
@@ -31,7 +31,6 @@ const SALDO_HABILITADO = import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true";
 
 export function VisaoDiretoriaPage({
   lista,
-  kpisEstrategicos,
   onSelect,
   isLoadingCompromisso,
   dataBase,
@@ -134,19 +133,34 @@ export function VisaoDiretoriaPage({
         </div>
       )}
 
-      {/* ── Execução por torre ─────────────────────────────── */}
-      <ExecucaoTorres
-        torre2026={torres.torre2026}
-        torre2027={torres.torre2027}
-        mostrar2027={mostrar2027}
-        onToggle2027={() => setMostrar2027((v) => !v)}
-        conciliacao={torres.conciliacao}
-        comp27={data.compromisso27}
-      />
+      {/* ── Execução do plano e aderência ──────────────────── */}
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+        <div className="grid min-w-0">
+          <ExecucaoTorres
+            torre2026={torres.torre2026}
+            torre2027={torres.torre2027}
+            mostrar2027={mostrar2027}
+            onToggle2027={() => setMostrar2027((v) => !v)}
+            conciliacao={torres.conciliacao}
+            comp27={data.compromisso27}
+          />
+        </div>
+        <div className="grid min-w-0">
+          <AderenciaPlano
+            projetos={listaAno26}
+            rows={data.opRows}
+            dataRef={data.dbDate}
+            exerciseYear={EXERCICIO}
+            bgGov={bgVivoSum.bgGov}
+            bgVivoTimes={bgVivoSum.bgVivo}
+            onSelectProject={onSelect}
+          />
+        </div>
+      </div>
 
-      {/* ── Layout ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-[1fr_minmax(300px,360px)] gap-3 items-stretch min-h-0 flex-1">
-        <div className="flex flex-col gap-3 min-w-0 min-h-0">
+      {/* ── Fluxo e atenção ────────────────────────────────── */}
+      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+        <div className="grid min-w-0">
           <FluxoCaixaCard
             ano={2026}
             lista={listaAno}
@@ -155,16 +169,8 @@ export function VisaoDiretoriaPage({
             isLoadingCompromisso={isLoadingCompromisso}
           />
         </div>
-
-        <div className="flex flex-col gap-3 min-w-0 min-h-0">
+        <div className="grid min-w-0">
           <AttentionList itens={itensAtencao} onNavigate={navigate} />
-          <AnaliseRiscoPanel
-            somenteStatus
-            lista={listaAno26}
-            kpisEstrategicos={kpisEstrategicos}
-            isLoadingCompromisso={isLoadingCompromisso}
-            onSelectProject={onSelect}
-          />
         </div>
       </div>
 
