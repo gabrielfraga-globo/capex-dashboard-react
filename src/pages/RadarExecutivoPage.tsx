@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { FolderKanban, Wallet, ShieldAlert, Gauge, CheckCircle2 } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
-import { fmtBRL } from "../lib/format";
+import { fmtMilhoes } from "../lib/format";
 import { useRecorteStore } from "../store/recorteStore";
 import { navigate } from "../lib/simpleRouter";
 import { useCarteiraResumo } from "../features/executivo/useCarteiraResumo";
@@ -109,7 +109,7 @@ export function RadarExecutivoPage({
   const listaRitmo = idsAtivos ? listaAno26.filter((p) => idsAtivos.has(p.id)) : listaAno26;
 
   return (
-    <div className="flex flex-col gap-3 max-h-[calc(100vh-10.75rem)] overflow-y-auto">
+    <div className="flex flex-col gap-2 h-[calc(100vh-10.5rem)] min-h-[600px]">
       
       {/* ── Cabeçalho com ano e filtros ───────────────────────── */}
       <div className="flex items-center justify-between shrink-0 mb-1">
@@ -159,18 +159,18 @@ export function RadarExecutivoPage({
               <KpiStat
                 icon={<FolderKanban size={16} />}
                 label="BG Gov 26"
-                value={fmtBRL(metricas.simples.total.bg, true)}
-                context={`${LABELS.bgVivoSimulado} ${fmtBRL(metricas.simples.total.provisionado + metricas.simples.total.excesso, true)} (provisionado + excesso)`}
+                value={fmtMilhoes(metricas.simples.total.bg)}
+                context={`${LABELS.bgVivoSimulado} ${fmtMilhoes(metricas.simples.total.provisionado + metricas.simples.total.excesso)} (provisionado + excesso)`}
               />
-              <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(metricas.simples.total.pago, true)} context="pago no exercício" />
-              <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(metricas.simples.total.emPagamento, true)} context="etapa E7" />
+              <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtMilhoes(metricas.simples.total.pago)} context="pago no exercício" />
+              <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtMilhoes(metricas.simples.total.emPagamento)} context="etapa E7" />
               <KpiStat
                 icon={<Wallet size={16} />}
                 label="Comprometido 26"
-                value={fmtBRL(metricas.simples.total.comprometido, true)}
-                context={`inclui ${fmtBRL(metricas.simples.total.emRiscoSinal, true)} em risco · ${fmtBRL(metricas.simples.total.excesso, true)} acima do orç.`}
+                value={fmtMilhoes(metricas.simples.total.comprometido)}
+                context={`inclui ${fmtMilhoes(metricas.simples.total.emRiscoSinal)} em risco · ${fmtMilhoes(metricas.simples.total.excesso)} acima do orç.`}
               />
-              <KpiStat icon={<Wallet size={16} />} label="Declarado 27" value={fmtBRL(metricas.simples.total.declarado27, true)} context="informado pelos times" />
+              <KpiStat icon={<Wallet size={16} />} label="Declarado 27" value={fmtMilhoes(metricas.simples.total.declarado27)} context="informado pelos times" />
               <KpiStat
                 icon={<ShieldAlert size={16} />}
                 label={
@@ -182,7 +182,7 @@ export function RadarExecutivoPage({
                     />
                   </span>
                 }
-                value={fmtBRL(metricas.simples.total.emRiscoSinal, true)}
+                value={fmtMilhoes(metricas.simples.total.emRiscoSinal)}
                 tone="warn"
                 context="sinal: emitido ainda sem pedido"
                 onClick={() => setPanel("risk")}
@@ -195,24 +195,24 @@ export function RadarExecutivoPage({
           <KpiRow2026 data={data} rubricas={rubricas} onAbrirRisco={() => setPanel("risk")} />
         ) : (
           <>
-        <KpiStat icon={<FolderKanban size={16} />} label={`BG Gov ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.bgGov, true)} context="orçamento aprovado" />
+        <KpiStat icon={<FolderKanban size={16} />} label={`BG Gov ${ano === 2027 ? "27" : "26"}`} value={fmtMilhoes(bgVivoSum.bgGov)} context="orçamento aprovado" />
         
         <KpiStat
           icon={<Wallet size={16} />}
           label={`${LABELS.fechamentoEstimado} ${ano === 2027 ? "27" : "26"}`}
-          value={fmtBRL(bgVivoSum.bgVivo, true)}
+          value={fmtMilhoes(bgVivoSum.bgVivo)}
           title={`${LABELS.fechamentoEstimado} = Realizado + Em pagamento + Compromisso ${ano === 2027 ? "27" : "26"} + A emitir (por projeto). Fica acima do BG Gov pelo estouro dos projetos que já passaram do próprio BG.`}
           onClick={bgVivoSum.estouro.count > 0 ? () => setPanel("estouro") : undefined}
           context={
             <span className={`block truncate ${bgVivoSum.estouro.count > 0 ? "text-info" : ""}`}>
-              {bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}{fmtBRL(bgVivoSum.diferencaVsGov, true)} vs BG Gov{bgVivoSum.estouro.count > 0 ? ` · estouro em ${bgVivoSum.estouro.count} projetos` : ""}
+              {bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}{fmtMilhoes(bgVivoSum.diferencaVsGov)} vs BG Gov{bgVivoSum.estouro.count > 0 ? ` · acima do BG Gov em ${bgVivoSum.estouro.count} projetos` : ""}
             </span>
           }
         />
         
         <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value="—" context="—" />
-        <KpiStat icon={<Wallet size={16} />} label={`Compromisso ${ano === 2027 ? "27" : "26"}`} value={fmtBRL(bgVivoSum.emitido, true)} context="emitido na carteira" />
-        <KpiStat icon={<Wallet size={16} />} label="A emitir" value={fmtBRL(bgVivoSum.aEmitir, true)} context="saldo a contratar" />
+        <KpiStat icon={<Wallet size={16} />} label={`Compromisso ${ano === 2027 ? "27" : "26"}`}         value={fmtMilhoes(bgVivoSum.emitido)} context="emitido na carteira" />
+                <KpiStat icon={<Wallet size={16} />} label="A emitir" value={fmtMilhoes(bgVivoSum.aEmitir)} context="saldo a contratar" />
         <KpiStat icon={<ShieldAlert size={16} />} label="Em risco" value="—" tone="neutral" context="—" />
           </>
         )}
@@ -246,6 +246,7 @@ export function RadarExecutivoPage({
 
           <FluxoCaixaCard
             ano={ano}
+            preencherAltura
             lista={listaAno}
             flow={flow}
             dataBase={dataBase}

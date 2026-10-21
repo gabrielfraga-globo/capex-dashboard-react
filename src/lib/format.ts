@@ -16,6 +16,12 @@ export function formatCurrencyMillions(v: number | null | undefined, decimals = 
   })}M`;
 }
 
+/** Valor monetário curto: milhões sempre com 1 casa ("R$ 6,0M"); abaixo de R$ 1M segue em K. */
+export function fmtMilhoes(v: number | null | undefined): string {
+  if (v === null || v === undefined || Number.isNaN(v)) return "N/D";
+  return Math.abs(v) >= 1_000_000 ? formatCurrencyMillions(v) : fmtBRL(v, true);
+}
+
 export function fmtPct(v: number | null | undefined, decimals = 1): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "–";
   return `${(v * 100).toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`;

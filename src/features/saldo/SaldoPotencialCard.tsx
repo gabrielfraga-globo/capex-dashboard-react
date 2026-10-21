@@ -2,7 +2,7 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AlertTriangle, ArrowRight, Info, ShieldAlert } from "lucide-react";
 import { Button, Card } from "../../components/ui/primitives";
-import { fmtBRL, fmtPct } from "../../lib/format";
+import { fmtBRL, fmtMilhoes, fmtPct } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
 import { LABELS } from "../../config/labels";
 import type { SaldoRecorteView } from "../radar/types";
@@ -47,7 +47,7 @@ const CRITERIO_BI_SALDO =
 /** Negativo que arredonda para zero viraria "R$ 0"; mostra "-R$ 1" para não ocultar o sinal. */
 function fmtSaldo(v: number): string {
   if (v < 0 && Math.round(v) === 0) return "-R$ 1";
-  return fmtBRL(v, true);
+  return fmtMilhoes(v);
 }
 
 function SaldoBar({ caixa, compromisso, saldo, orcamento, saldoPotencial }: {
@@ -184,7 +184,7 @@ export function SaldoPotencialCard({
     const n = totals.projetosComSaldo;
     return (
       <SaldoFlipView
-        valor={fmtBRL(totals.saldoPotencial, true)}
+        valor={fmtMilhoes(totals.saldoPotencial)}
         contexto={`${n} ${n === 1 ? "projeto" : "projetos"} · 6+ meses sem compromisso`}
         onOpenDetail={onOpenDetail}
         hideCta={hideCta}

@@ -1,12 +1,7 @@
 import { Card, SectionHeader } from "../../components/ui/primitives";
-import { formatCurrencyMillions, fmtBRL } from "../../lib/format";
+import { formatCurrencyMillions, fmtMilhoes } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import type { AttentionItem, AttentionKind, AttentionSource } from "./types";
-/** Milhões sempre com 1 casa decimal ("R$ 5,0M"); abaixo de R$ 1M segue em K. */
-function fmtValorAtencao(v: number): string {
-  return Math.abs(v) >= 1_000_000 ? formatCurrencyMillions(v) : fmtBRL(v, true);
-}
-
 
 const FAIXA_SINAL: Record<AttentionKind, string> = {
   ACIMA_ORCAMENTO: "bg-warn",
@@ -54,11 +49,11 @@ export function AttentionList({
                 className="flex w-full items-stretch gap-3 rounded-md py-0.5 pr-1 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
               >
                 <span aria-hidden className={cn("w-1 shrink-0 rounded-full", FAIXA_SINAL[it.kind])} />
-                <span className="min-w-0 flex-1 truncate self-center text-sm font-semibold text-text">
+                <span className="min-w-0 flex-1 truncate self-center text-sm font-normal text-text">
                   {it.projectName}
                 </span>
                 <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-text">
-                  {fmtValorAtencao(it.value)}
+                  {fmtMilhoes(it.value)}
                 </span>
               </button>
             </li>
@@ -84,11 +79,11 @@ export function AttentionList({
                     className="flex w-full items-stretch gap-3 rounded-md py-0.5 pr-1 text-left hover:bg-card-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
                   >
                     <span aria-hidden className={cn("w-1 shrink-0 rounded-full", FAIXA_SINAL.SALDO_PARADO)} />
-                    <span className="min-w-0 flex-1 truncate self-center text-sm font-semibold text-text">
+                    <span className="min-w-0 flex-1 truncate self-center text-sm font-normal text-text">
                       {it.projectName}
                     </span>
                     <span className="shrink-0 self-center text-sm font-semibold tabular-nums text-text">
-                      {fmtValorAtencao(it.value)}
+                      {fmtMilhoes(it.value)}
                     </span>
                   </button>
                 </li>

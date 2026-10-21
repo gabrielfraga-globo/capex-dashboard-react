@@ -18,7 +18,7 @@ import { aggregateSaldoBy, filterSaldoLinhas, ultimaDataParadaPorProjeto } from 
 import { RecorteAtivo } from "../components/RecorteAtivo";
 import { ContextBar } from "../components/ContextBar";
 import type { RelatorioParsing } from "../types";
-import { fmtBRL } from "../lib/format";
+import { fmtMilhoes } from "../lib/format";
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -106,7 +106,7 @@ export function VisaoDiretoriaPage({
               projectName: p.projeto,
               owner: null,
               value: p.emRiscoSinal,
-              detail: `${fmtBRL(p.emRiscoSinal, true)} comprometido em risco`,
+              detail: `${fmtMilhoes(p.emRiscoSinal)} comprometido em risco`,
               href: ATTENTION_ROUTES.RCS_EM_RISCO,
             },
           ];
@@ -118,7 +118,7 @@ export function VisaoDiretoriaPage({
             projectName: p.projeto,
             owner: null,
             value: p.excesso,
-            detail: `${fmtBRL(p.excesso, true)} acima do orçamento`,
+            detail: `${fmtMilhoes(p.excesso)} acima do orçamento`,
             href: ATTENTION_ROUTES.ACIMA_ORCAMENTO,
           },
         ];

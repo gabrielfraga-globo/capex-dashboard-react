@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { fmtBRL, fmtPct } from "../../lib/format";
+import { fmtMilhoes, fmtPct } from "../../lib/format";
 import { InfoTooltip } from "../../components/ui/primitives";
 import type { ResultadoPremissa } from "../../domain/metricas";
 
@@ -96,7 +96,7 @@ function BarraTorre({
         <div className="relative flex h-12 w-full overflow-hidden rounded-md bg-card-alt">
           {visiveis.map((seg) => {
             const pct = pctDaEscala(seg.valor);
-            const titulo = seg.titulo ?? `${NOME_TRECHO[seg.chave]}: ${fmtBRL(seg.valor, true)}`;
+            const titulo = seg.titulo ?? `${NOME_TRECHO[seg.chave]}: ${fmtMilhoes(seg.valor)}`;
             const rotulo = pct >= LIMITE_ROTULO_INTERNO ? fmtPct(pctDoBg(seg.valor), 0) : null;
             const classes = `flex h-full flex-none items-center justify-center overflow-hidden whitespace-nowrap text-xs font-semibold tabular-nums ${ESTILO_TRECHO[seg.chave]}`;
             if (seg.chave === "risco" && onOpenRisco) {
@@ -121,7 +121,7 @@ function BarraTorre({
           })}
           {excesso > 0 && (
             <div
-              title={`Acima do orçamento: ${fmtBRL(excesso, true)}`}
+              title={`Acima do orçamento: ${fmtMilhoes(excesso)}`}
               className={`absolute inset-y-0 ${ESTILO_TRECHO.excesso}`}
               style={{ left: `${pctDaEscala(inicioExcesso)}%`, width: `${pctDaEscala(excesso)}%` }}
             />
@@ -175,14 +175,14 @@ function LegendaTorre2026({ excesso }: { excesso: number }) {
 function ConteudoInfo2026({ total, projetosAcima }: { total: ResultadoPremissa; projetosAcima: number }) {
   const semEmissao = Math.max(0, total.bg - total.provisionado);
   const linhas: string[] = [
-    `Pago + em pagamento + emitido até o orçamento de cada projeto, sobre o BG 26 (${fmtBRL(total.bg, true)})`,
-    `Sem emissão: ${fmtBRL(semEmissao, true)}`,
+    `Pago + em pagamento + emitido até o orçamento de cada projeto, sobre o     BG 26 (${fmtMilhoes(total.bg)})`,
+        `Sem emissão: ${fmtMilhoes(semEmissao)}`,
   ];
   if (total.excesso > 0) {
     const plural = projetosAcima === 1 ? "projeto" : "projetos";
-    linhas.push(`Acima do orçamento: ${fmtBRL(total.excesso, true)} em ${projetosAcima} ${plural}`);
+    linhas.push(`Acima do orçamento: ${fmtMilhoes(total.excesso)} em ${projetosAcima} ${plural}`);
   }
-  linhas.push(`Declarado 2027 pelos times: ${fmtBRL(total.declarado27, true)}`);
+  linhas.push(`Declarado 2027 pelos times: ${fmtMilhoes(total.declarado27)}`);
   return (
     <ul className="flex flex-col gap-1">
       {linhas.map((linha) => (
@@ -200,7 +200,7 @@ function BlocoTorre2027({ bg27, declarado27 }: { bg27: number; declarado27: numb
       <p className="text-sm tabular-nums">
         <span className="font-bold">{fmtPct(pct)}</span>
         {" do BG 27 declarado pelos times"}
-        {excesso > 0 && <span className="text-warn">{` · ${fmtBRL(excesso, true)} acima do BG 27`}</span>}
+        {excesso > 0 && <span className="text-warn">{` · ${fmtMilhoes(excesso)} acima do BG 27`}</span>}
       </p>
       <BarraTorre base={bg27} trechos={[{ chave: "declarado27", valor: declarado27 }]} excesso={excesso} />
     </section>
@@ -216,8 +216,8 @@ export function ExecucaoTorres({
   onOpenRisco,
 }: ExecucaoTorresProps) {
   const comprometidoFirme = Math.max(0, total.comprometido - total.emRiscoSinal);
-  const textoComprometidoFirme = `Comprometido com pedido: ${fmtBRL(comprometidoFirme, true)} de ${fmtBRL(total.comprometido, true)}`;
-  const textoRisco = `Comprometido sem pedido (em risco): ${fmtBRL(total.emRiscoSinal, true)}`;
+  const textoComprometidoFirme = `Comprometido com pedido:   ${fmtMilhoes(comprometidoFirme)} de ${fmtMilhoes(total.comprometido)}`;
+    const textoRisco = `Comprometido sem pedido (em risco): ${fmtMilhoes(total.emRiscoSinal)}`;
   return (
     <article className="flex h-full min-h-0 flex-col gap-3 rounded-card border border-border bg-card p-4 text-text shadow-card">
       <header className="flex items-center justify-between gap-3">

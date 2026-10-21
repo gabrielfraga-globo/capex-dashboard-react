@@ -1,5 +1,5 @@
 import { FolderKanban, Wallet, ShieldAlert, Gauge, CheckCircle2 } from "lucide-react";
-import { fmtBRL } from "../../lib/format";
+import { fmtMilhoes } from "../../lib/format";
 import { KpiStat } from "../../components/ui/pattern/KpiStat";
 import { FlipCard } from "../../components/ui/FlipCard";
 import { LABELS } from "../../config/labels";
@@ -27,7 +27,7 @@ function ExplicacaoTooltipContent({
         {explicacao.linhas.map((l) => (
           <li key={l.rotulo} className="flex items-baseline justify-between gap-3">
             <span>{l.rotulo}</span>
-            <span className="font-semibold">{fmtBRL(l.valor, true)}</span>
+            <span className="font-semibold">{fmtMilhoes(l.valor)}</span>
             <span className="text-text-muted whitespace-nowrap">{l.qtd === 1 ? "1 RC" : `${l.qtd} RCs`}</span>
           </li>
         ))}
@@ -52,7 +52,7 @@ export function KpiRow2026({ data, rubricas, onAbrirRisco }: KpiRow2026Props) {
     <KpiStat
       icon={<ShieldAlert size={16} />}
       label="Em risco"
-      value={fmtBRL(risk.totalValue, true)}
+      value={fmtMilhoes(risk.totalValue)}
       tone="warn"
       context={
         <span className="inline-flex items-center gap-1">
@@ -69,16 +69,16 @@ export function KpiRow2026({ data, rubricas, onAbrirRisco }: KpiRow2026Props) {
       <KpiStat
         icon={<FolderKanban size={16} />}
         label="BG Gov 26"
-        value={fmtBRL(bgVivoSum.bgGov, true)}
+        value={fmtMilhoes(bgVivoSum.bgGov)}
         context={
           <span className="inline-flex items-center gap-1">
-            {`${LABELS.fechamentoEstimado} ${fmtBRL(bgVivoSum.bgVivo, true)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtBRL(bgVivoSum.diferencaVsGov, true)})`}
+            {`${LABELS.fechamentoEstimado} ${fmtMilhoes(bgVivoSum.bgVivo)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtMilhoes(bgVivoSum.diferencaVsGov)})${bgVivoSum.estouro.count > 0 ? ` · acima do BG Gov em ${bgVivoSum.estouro.count} projetos` : ""}`}
             <InfoTooltip label={`Sobre o ${LABELS.fechamentoEstimado}`} text={LABELS.fechamentoEstimadoInfo} />
           </span>
         }
       />
-      <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtBRL(bgVivoSum.realizado, true)} context="pago no exercício" />
-      <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtBRL(bgVivoSum.emPagamento, true)} context="etapa E7" />
+      <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26"       value={fmtMilhoes(bgVivoSum.realizado)} context="pago no exercício" />
+            <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtMilhoes(bgVivoSum.emPagamento)} context="etapa E7" />
       <KpiStat
         icon={<Wallet size={16} />}
         label={
@@ -90,7 +90,7 @@ export function KpiRow2026({ data, rubricas, onAbrirRisco }: KpiRow2026Props) {
             />
           </span>
         }
-        value={fmtBRL(bgVivoSum.emitido, true)}
+        value={fmtMilhoes(bgVivoSum.emitido)}
         context="emitido na carteira"
       />
       <KpiStat
@@ -110,7 +110,7 @@ export function KpiRow2026({ data, rubricas, onAbrirRisco }: KpiRow2026Props) {
             />
           </span>
         }
-        value={fmtBRL(compromisso27, true)}
+        value={fmtMilhoes(compromisso27)}
         context="RCs com caixa previsto em 2027"
       />
       {import.meta.env.VITE_FEATURE_SALDO_PROJETOS === "true" ? (

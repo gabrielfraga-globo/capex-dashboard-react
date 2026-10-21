@@ -1,5 +1,5 @@
 import type { ProjetoMetricas } from "../../types";
-import { fmtBRL, fmtPct } from "../../lib/format";
+import { fmtMilhoes, fmtPct } from "../../lib/format";
 import { navigate } from "../../lib/simpleRouter";
 import { FluxoCaixaChart } from "../../components/FluxoCaixaChart";
 import { DistribuicaoFinanceiraPlataforma } from "../../components/Diagnostics";
@@ -61,16 +61,16 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
                 {LABELS.caixaAcumulado}
                 <InfoTooltip text={LABELS.caixaAcumuladoInfo} label={`Sobre o ${LABELS.caixaAcumulado}`} />
               </div>
-              <div className="text-[15px] font-bold tabular-nums text-text">{fmtBRL(flow.realizadoAcumulado, true)}</div>
+              <div className="text-[15px] font-bold tabular-nums text-text">{fmtMilhoes(flow.realizadoAcumulado)}</div>
             </div>
             <div>
               <div className="text-[10px] text-text-muted mb-0.5">Planejado acumulado</div>
-              <div className="text-[15px] font-bold tabular-nums text-text">{fmtBRL(flow.planejadoAcumulado, true)}</div>
+              <div className="text-[15px] font-bold tabular-nums text-text">{fmtMilhoes(flow.planejadoAcumulado)}</div>
             </div>
             <div>
               <div className="text-[10px] text-text-muted mb-0.5">Desvio</div>
               <div className={`text-[15px] font-bold tabular-nums whitespace-nowrap ${desvioNeutro ? "text-text" : flow.desvio < 0 ? "text-crit" : "text-ok"}`}>
-                {flow.desvio >= 0 ? "+" : ""}{fmtBRL(flow.desvio, true)}
+                {flow.desvio >= 0 ? "+" : ""}{fmtMilhoes(flow.desvio)}
                 <span className="block text-[11px] font-normal text-text-muted">
                   ({flow.desvioRel >= 0 ? "+" : ""}{fmtPct(flow.desvioRel)})
                 </span>
@@ -87,13 +87,13 @@ export function FluxoCaixaCard({ ano, lista, flow, dataBase, isLoadingCompromiss
   return (
     <FlipCard
       compact
-      className="flex-1 min-h-0 flex flex-col [&>.flip-stage]:flex-1 [&>.flip-stage]:min-h-0"
+      className="flex-1 min-h-0 flex flex-col [&>.flip-stage]:flex-1 [&>.flip-stage]:min-h-0 [&>.flip-stage]:grid-rows-[minmax(0,1fr)]"
       frontLabel="Fluxo de caixa"
       backLabel="Composição por plataforma"
       front={fluxoCard}
       back={
         <div className={`flex flex-col rounded-card border border-border bg-card px-5 pt-4 pb-3 h-full overflow-auto ${minFrente}`}>
-          <DistribuicaoFinanceiraPlataforma lista={lista} somenteComposicao={versoSomenteComposicao} />
+          <DistribuicaoFinanceiraPlataforma lista={lista} somenteComposicao={versoSomenteComposicao} preencherAltura={preencherAltura} />
         </div>
       }
     />

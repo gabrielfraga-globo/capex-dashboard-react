@@ -1,4 +1,5 @@
 import { SidePanel } from "../../../components/ui/sidepanel";
+import { LABELS } from "../../../config/labels";
 import { fmtBRL } from "../../../lib/format";
 import type { EstouroProjeto } from "../executive";
 
@@ -12,7 +13,7 @@ export function EstouroPanel({
   estouro: { count: number; value: number; projetos: EstouroProjeto[] };
 }) {
   return (
-    <SidePanel open={open} onOpenChange={onClose} title="Projetos em estouro" className="!max-w-[min(1100px,92vw)]">
+    <SidePanel open={open} onOpenChange={onClose} title={LABELS.acimaBgGov} className="!max-w-[min(1100px,92vw)]">
       <div className="p-4 flex flex-col h-full">
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <table className="w-full text-sm text-left">
@@ -23,7 +24,7 @@ export function EstouroPanel({
                 <th className="py-2">Gestor</th>
                 <th className="py-2 text-right">BG</th>
                 <th className="py-2 text-right">Consumido</th>
-                <th className="py-2 text-right">Estouro</th>
+                <th className="py-2 text-right">{LABELS.acimaBgGov}</th>
               </tr>
             </thead>
             <tbody>
@@ -44,7 +45,7 @@ export function EstouroPanel({
           </table>
         </div>
         <div className="mt-4 border-t border-border pt-4 flex items-center justify-between">
-          <div className="font-bold text-sm text-crit">Total estourado: {fmtBRL(estouro.value)}</div>
+          <div className="font-bold text-sm text-crit">{LABELS.acimaBgGov}: {fmtBRL(estouro.value)}</div>
         </div>
       </div>
     </SidePanel>

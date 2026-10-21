@@ -9,6 +9,7 @@ export const LABELS = {
   caixaAcumulado: "Caixa acumulado",
   caixaAcumuladoInfo: "Pago + em pagamento",
   acimaOrcamentoPlurianual: "Acima do orçamento plurianual",
+  acimaBgGov: "Acima do BG Gov",
   fechamentoEstimado: "Fechamento estimado",
   fechamentoEstimadoInfo:
     "Realizado + Em pagamento + Compromisso 26 + A emitir (por projeto). Fica acima do BG Gov pelo estouro dos projetos que já passaram do próprio BG.",

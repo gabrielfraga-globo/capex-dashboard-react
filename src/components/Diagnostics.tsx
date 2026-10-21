@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import type { ProjetoMetricas } from "../types";
 import { rotuloStatus } from "../config/labels";
-import { fmtBRL, formatCurrencyMillions } from "../lib/format";
+import { fmtMilhoes, formatCurrencyMillions } from "../lib/format";
 import { useThemeStore } from "../store/themeStore";
 import { getChartColors, chartTooltipStyle } from "../lib/chartColors";
 
@@ -71,11 +71,17 @@ const LegendaComposicao = () => (
 export function DistribuicaoFinanceiraPlataforma({
   lista,
   somenteComposicao = false,
+  preencherAltura = false,
 }: {
   lista: ProjetoMetricas[];
   /** Mostra só o gráfico 100% de composição, com rótulos de % nos segmentos. */
   somenteComposicao?: boolean;
+  /** Os gráficos ocupam a altura do contêiner (que precisa ser definida) em vez de 260px fixos. */
+  preencherAltura?: boolean;
 }) {
+  const alturaGrafico = preencherAltura ? "100%" : 260;
+  const classeBloco = preencherAltura ? "flex h-full min-h-0 flex-col" : undefined;
+  const classeGrafico = preencherAltura ? "min-h-0 flex-1" : undefined;
   const { theme } = useThemeStore();
   const colors = getChartColors(theme);
   const tooltipStyle = chartTooltipStyle(theme);
@@ -118,9 +124,10 @@ export function DistribuicaoFinanceiraPlataforma({
     : "text-xs font-semibold text-text-muted mb-2";
 
   const graficoComposicao = (
-    <div>
+    <div className={classeBloco}>
       <p className={classeTituloComposicao}>Composição do Orçamento por Plataforma (%)</p>
-      <ResponsiveContainer width="100%" height={260}>
+      <div className={classeGrafico}>
+      <ResponsiveContainer width="100%" height={alturaGrafico}>
         <BarChart data={composicao} layout="vertical" margin={{ left: 20 }} stackOffset="expand">
           <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
           {somenteComposicao ? (
@@ -134,7 +141,7 @@ export function DistribuicaoFinanceiraPlataforma({
               if (!somenteComposicao) return `${Number(v).toFixed(0)}%`;
               const linha = item.payload as ComposicaoLinha;
               const campo = CAMPO_VALOR_POR_SERIE[String(item.dataKey)];
-              return `${Number(v).toFixed(1)}% · ${fmtBRL(linha[campo])}`;
+              return `${Number(v).toFixed(1)}% · ${fmtMilhoes(linha[campo])}`;
             }}
             {...tooltipStyle}
           />
@@ -150,6 +157,7 @@ export function DistribuicaoFinanceiraPlataforma({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
       <p className="text-[11px] text-text-faint mt-1">Cada barra soma 100% do orçamento do período da plataforma.</p>
     </div>
   );
@@ -157,10 +165,11 @@ export function DistribuicaoFinanceiraPlataforma({
   if (somenteComposicao) return graficoComposicao;
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
-      <div>
+    <div className={`grid lg:grid-cols-2 gap-4 ${preencherAltura ? "h-full min-h-0 grid-rows-[minmax(0,1fr)]" : ""}`}>
+      <div className={classeBloco}>
         <p className="text-xs font-semibold text-text-muted mb-2">Orçamento × Executado × Emitido × A Emitir (R$)</p>
-        <ResponsiveContainer width="100%" height={260}>
+        <div className={classeGrafico}>
+        <ResponsiveContainer width="100%" height={alturaGrafico}>
           <BarChart data={porPlataforma} layout="vertical" margin={{ left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
             <XAxis type="number" tickFormatter={(v) => formatCurrencyMillions(v)} stroke={colors.axis} fontSize={11} />
@@ -173,6 +182,7 @@ export function DistribuicaoFinanceiraPlataforma({
             <Bar dataKey="aEmitir" name="A Emitir" fill="#E0672E" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
+        </div>
       </div>
 
       {graficoComposicao}

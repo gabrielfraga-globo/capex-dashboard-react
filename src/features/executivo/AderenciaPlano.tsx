@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, InfoTooltip } from "../../components/ui/primitives";
 import { ProjectListModal, type ColunaProjetoLista } from "../../components/ProjectListModal";
-import { fmtBRL, fmtPct, formatCurrencyMillions } from "../../lib/format";
+import { fmtMilhoes, fmtPct, formatCurrencyMillions } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import type { ProjetoMetricas } from "../../types";
 import type { OperationalRow } from "../radar/operational";
@@ -45,7 +45,7 @@ function deltaMilhoes(v: number): string {
 }
 
 function deltaCompacto(v: number): string {
-  return `${v > 0 ? "+" : ""}${fmtBRL(v, true)}`;
+  return `${v > 0 ? "+" : ""}${fmtMilhoes(v)}`;
 }
 
 function corDesvio(v: number | undefined): string {
@@ -95,8 +95,8 @@ export function AderenciaPlano({
   const colunas = useMemo<ColunaProjetoLista[]>(
     () => [
       { header: "Responsável", valor: (p) => p.gestor ?? "–" },
-      { header: "Plano", valor: (p) => fmtBRL(itemPorId.get(p.id)?.plano, true), alinhar: "right" },
-      { header: "Projetado", valor: (p) => fmtBRL(itemPorId.get(p.id)?.projetado, true), alinhar: "right" },
+      { header: "Plano", valor: (p) =>       fmtMilhoes(itemPorId.get(p.id)?.plano), alinhar: "right" },
+            { header: "Projetado", valor: (p) => fmtMilhoes(itemPorId.get(p.id)?.projetado), alinhar: "right" },
       {
         header: "Desvio",
         valor: (p) => {
