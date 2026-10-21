@@ -1,48 +1,48 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { fmtBRL, fmtPct } from "../../lib/format";
 import { InfoTooltip } from "../../components/ui/primitives";
-import type { SegmentoTorre, Torre } from "./torres";
+import type { ResultadoPremissa } from "../../domain/metricas";
 
 interface ExecucaoTorresProps {
-  torre2026: Torre;
-  torre2027: Torre | null;
+  /** Total da premissa simples (carteira no recorte). */
+  total: ResultadoPremissa;
+  /** Σ orçamento 2027 da carteira no recorte. */
+  bg27: number;
+  /** Projetos com excesso sobre o orçamento 2026. */
+  projetosAcima: number;
   mostrar2027: boolean;
   onToggle2027: () => void;
   onOpenRisco?: () => void;
-  conciliacao?: { valor: number; material: boolean };
-  comp27?: number;
 }
 
-const ESTILO_SEGMENTO: Record<SegmentoTorre["chave"], string> = {
-  realizado: "bg-blue-600 text-white",
+type ChaveTrecho = "pago" | "emPagamento" | "comprometido" | "risco" | "declarado27" | "excesso";
+
+interface TrechoBarra {
+  chave: ChaveTrecho;
+  valor: number;
+}
+
+const ESTILO_TRECHO: Record<ChaveTrecho, string> = {
+  pago: "bg-blue-600 text-white",
   emPagamento: "bg-blue-400 text-white",
-  comp26Firme: "bg-blue-200 text-blue-900",
-  comp26Risco:
+  comprometido: "bg-blue-200 text-blue-900",
+  risco:
     "bg-crit-10 bg-[repeating-linear-gradient(135deg,theme(colors.crit.DEFAULT)_0_5px,transparent_5px_10px)] text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]",
-  comp27: "bg-blue-200 text-blue-900",
-  folga: "",
-  aContratar: "",
+  declarado27: "bg-blue-200 text-blue-900",
   excesso: "bg-warn",
 };
 
-const NOME_SEGMENTO: Record<SegmentoTorre["chave"], string> = {
-  realizado: "Pago",
+const NOME_TRECHO: Record<ChaveTrecho, string> = {
+  pago: "Pago",
   emPagamento: "Em pagamento",
-  comp26Firme: "Comprometido",
-  comp26Risco: "Em risco",
-  comp27: "Comprometido 27",
-  folga: "Folga",
-  aContratar: "A contratar",
-  excesso: "Acima do BG",
+  comprometido: "Comprometido",
+  risco: "Em risco",
+  declarado27: "Declarado 2027",
+  excesso: "Acima do orçamento",
 };
 
 /** Largura mínima (% da barra) para exibir o rótulo dentro do trecho. */
 const LIMITE_ROTULO_INTERNO = 8;
-/** Largura mínima (% da barra) para o rótulo trazer o nome do segmento, p.ex. "Em risco 10%". */
-const LIMITE_ROTULO_NOMEADO = 20;
-
-/** Trechos que aparecem na barra; folga e "a contratar" são vazio. */
-const CHAVES_PREENCHIDAS: SegmentoTorre["chave"][] = ["realizado", "emPagamento", "comp26Firme", "comp26Risco", "comp27"];
 
 /** Rótulo do trecho: some quando o texto é mais largo que o trecho. Fica `invisible` (e não removido) para continuar medível. */
 function RotuloTrecho({ texto }: { texto: string }) {
@@ -67,30 +67,38 @@ function RotuloTrecho({ texto }: { texto: string }) {
   );
 }
 
-/** Barra 100% = BG. Quando o ocupado passa do BG, a escala cresce até o ocupado e o trecho além da marca fica em âmbar. */
-function BarraTorre({ torre, onOpenRisco }: { torre: Torre; onOpenRisco?: () => void }) {
-  const escala = Math.max(torre.base, torre.ocupado);
+/**
+ * Barra: Pago | Em pagamento | Comprometido (com o trecho em risco hachurado no fim) | vazio até a marca do BG | excesso em âmbar além da marca.
+ */
+function BarraTorre({
+  base,
+  trechos,
+  excesso = 0,
+  onOpenRisco,
+}: {
+  base: number;
+  trechos: TrechoBarra[];
+  excesso?: number;
+  onOpenRisco?: () => void;
+}) {
+  const ocupado = trechos.reduce((soma, t) => soma + t.valor, 0);
+  const inicioExcesso = Math.max(base, ocupado);
+  const escala = inicioExcesso + excesso;
   const pctDaEscala = (valor: number) => (escala > 0 ? (valor / escala) * 100 : 0);
-  const pctDoBg = (valor: number) => (torre.base > 0 ? valor / torre.base : 0);
-  const marca = pctDaEscala(torre.base);
-  const segmentos = torre.segmentos.filter((s) => CHAVES_PREENCHIDAS.includes(s.chave) && s.valor > 0);
+  const pctDoBg = (valor: number) => (base > 0 ? valor / base : 0);
+  const marca = pctDaEscala(base);
+  const visiveis = trechos.filter((t) => t.valor > 0);
 
   return (
     <div className="relative w-full">
       <div className="relative">
         <div className="relative flex h-12 w-full overflow-hidden rounded-md bg-card-alt">
-          {segmentos.map((seg) => {
+          {visiveis.map((seg) => {
             const pct = pctDaEscala(seg.valor);
-            const titulo = `${NOME_SEGMENTO[seg.chave]}: ${fmtBRL(seg.valor, true)}`;
-            const rotuloPct = fmtPct(pctDoBg(seg.valor), 0);
-            const rotulo =
-              pct >= LIMITE_ROTULO_INTERNO
-                ? (seg.chave === "realizado" || seg.chave === "comp26Risco") && pct >= LIMITE_ROTULO_NOMEADO
-                  ? `${NOME_SEGMENTO[seg.chave]} ${rotuloPct}`
-                  : rotuloPct
-                : null;
-            const classes = `flex h-full flex-none items-center justify-center overflow-hidden whitespace-nowrap text-xs font-semibold tabular-nums ${ESTILO_SEGMENTO[seg.chave]}`;
-            if (seg.chave === "comp26Risco" && onOpenRisco) {
+            const titulo = `${NOME_TRECHO[seg.chave]}: ${fmtBRL(seg.valor, true)}`;
+            const rotulo = pct >= LIMITE_ROTULO_INTERNO ? fmtPct(pctDoBg(seg.valor), 0) : null;
+            const classes = `flex h-full flex-none items-center justify-center overflow-hidden whitespace-nowrap text-xs font-semibold tabular-nums ${ESTILO_TRECHO[seg.chave]}`;
+            if (seg.chave === "risco" && onOpenRisco) {
               return (
                 <button
                   key={seg.chave}
@@ -110,15 +118,15 @@ function BarraTorre({ torre, onOpenRisco }: { torre: Torre; onOpenRisco?: () => 
               </div>
             );
           })}
-          {torre.excesso > 0 && (
+          {excesso > 0 && (
             <div
-              title={`Acima do BG: ${fmtBRL(torre.excesso, true)}`}
-              className={`absolute inset-y-0 right-0 ${ESTILO_SEGMENTO.excesso}`}
-              style={{ width: `${pctDaEscala(torre.excesso)}%` }}
+              title={`Acima do orçamento: ${fmtBRL(excesso, true)}`}
+              className={`absolute inset-y-0 ${ESTILO_TRECHO.excesso}`}
+              style={{ left: `${pctDaEscala(inicioExcesso)}%`, width: `${pctDaEscala(excesso)}%` }}
             />
           )}
         </div>
-        {torre.base > 0 && (
+        {base > 0 && (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -inset-y-0.5 w-0.5 bg-text"
@@ -130,30 +138,32 @@ function BarraTorre({ torre, onOpenRisco }: { torre: Torre; onOpenRisco?: () => 
   );
 }
 
-function MetricaPrincipal2026({ torre }: { torre: Torre }) {
-  const acimaDoBg = (torre.pctOcupado ?? 0) > 1;
+
+function MetricaPrincipal2026({ total }: { total: ResultadoPremissa }) {
+  const acimaDoBg = total.pctBG > 1;
   return (
     <div className="flex flex-col">
       <p className={`text-[48px] font-extrabold leading-none tabular-nums ${acimaDoBg ? "text-warn" : ""}`}>
-        {fmtPct(torre.pctOcupado)}
+        {fmtPct(total.pctBG)}
       </p>
-      <p className="text-sm text-text-muted">do BG 26 provisionado</p>
+      <p className="text-sm text-text-muted">do BG 26 coberto</p>
     </div>
   );
 }
 
-function LegendaTorre2026() {
-  const itens: { chave: SegmentoTorre["chave"]; rotulo: string }[] = [
-    { chave: "realizado", rotulo: "Pago" },
+function LegendaTorre2026({ excesso }: { excesso: number }) {
+  const itens: { chave: ChaveTrecho; rotulo: string }[] = [
+    { chave: "pago", rotulo: "Pago" },
     { chave: "emPagamento", rotulo: "Em pagamento" },
-    { chave: "comp26Firme", rotulo: "Comprometido" },
-    { chave: "comp26Risco", rotulo: "Em risco" },
+    { chave: "comprometido", rotulo: "Comprometido" },
+    { chave: "risco", rotulo: "Em risco" },
   ];
+  if (excesso > 0) itens.push({ chave: "excesso", rotulo: "Acima do orçamento" });
   return (
     <ul className="flex flex-nowrap items-center gap-3 whitespace-nowrap text-[11px] text-text-muted">
       {itens.map((item) => (
         <li key={item.chave} className="flex items-center gap-1">
-          <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-sm ${ESTILO_SEGMENTO[item.chave]}`} />
+          <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-sm ${ESTILO_TRECHO[item.chave]}`} />
           {item.rotulo}
         </li>
       ))}
@@ -161,25 +171,17 @@ function LegendaTorre2026() {
   );
 }
 
-function ConteudoInfo2026({
-  torre,
-  comp27,
-  conciliacao,
-}: {
-  torre: Torre;
-  comp27: number;
-  conciliacao?: { valor: number; material: boolean };
-}) {
+function ConteudoInfo2026({ total, projetosAcima }: { total: ResultadoPremissa; projetosAcima: number }) {
+  const semEmissao = Math.max(0, total.bg - total.provisionado);
   const linhas: string[] = [
-    `Pago + Em pagamento + Comprometido 26 sobre o BG 26 (${fmtBRL(torre.base, true)})`,
-    torre.excesso > 0
-      ? `Acima do BG: ${fmtBRL(torre.excesso, true)}`
-      : `Folga até o BG: ${fmtBRL(torre.folga, true)}`,
+    `Pago + em pagamento + emitido até o orçamento de cada projeto, sobre o BG 26 (${fmtBRL(total.bg, true)})`,
+    `Sem emissão: ${fmtBRL(semEmissao, true)}`,
   ];
-  if (comp27 > 0) linhas.push(`${fmtBRL(comp27, true)} postergados para 2027 pelos times`);
-  if (conciliacao?.material && conciliacao.valor > 0) {
-    linhas.push(`${fmtBRL(conciliacao.valor, true)} emitidos sem classificação 26/27`);
+  if (total.excesso > 0) {
+    const plural = projetosAcima === 1 ? "projeto" : "projetos";
+    linhas.push(`Acima do orçamento: ${fmtBRL(total.excesso, true)} em ${projetosAcima} ${plural}`);
   }
+  linhas.push(`Declarado 2027 pelos times: ${fmtBRL(total.declarado27, true)}`);
   return (
     <ul className="flex flex-col gap-1">
       {linhas.map((linha) => (
@@ -189,38 +191,38 @@ function ConteudoInfo2026({
   );
 }
 
-function BlocoTorre2027({ torre }: { torre: Torre }) {
+function BlocoTorre2027({ bg27, declarado27 }: { bg27: number; declarado27: number }) {
+  const pct = bg27 > 0 ? declarado27 / bg27 : 0;
+  const excesso = Math.max(0, declarado27 - bg27);
   return (
     <section className="flex flex-col gap-1.5">
       <p className="text-sm tabular-nums">
-        <span className="font-bold">{fmtPct(torre.pctOcupado)}</span>
-        {" do BG 27 comprometido"}
-        {torre.excessoMaterial && (
-          <span className="text-warn">{` · ${fmtBRL(torre.excesso, true)} acima do BG 27`}</span>
-        )}
+        <span className="font-bold">{fmtPct(pct)}</span>
+        {" do BG 27 declarado pelos times"}
+        {excesso > 0 && <span className="text-warn">{` · ${fmtBRL(excesso, true)} acima do BG 27`}</span>}
       </p>
-      <BarraTorre torre={torre} />
+      <BarraTorre base={bg27} trechos={[{ chave: "declarado27", valor: declarado27 }]} excesso={excesso} />
     </section>
   );
 }
 
 export function ExecucaoTorres({
-  torre2026,
-  torre2027,
+  total,
+  bg27,
+  projetosAcima,
   mostrar2027,
   onToggle2027,
   onOpenRisco,
-  conciliacao,
-  comp27 = 0,
 }: ExecucaoTorresProps) {
+  const comprometidoFirme = Math.max(0, total.comprometido - total.emRiscoSinal);
   return (
-    <article className="flex h-full min-h-0 flex-col gap-4 rounded-card border border-border bg-card p-4 text-text shadow-card">
+    <article className="flex h-full min-h-0 flex-col gap-3 rounded-card border border-border bg-card p-4 text-text shadow-card">
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">EXECUÇÃO DO PLANO · 2026</p>
           <InfoTooltip
             label="Como é calculada a execução do plano"
-            content={<ConteudoInfo2026 torre={torre2026} comp27={comp27} conciliacao={conciliacao} />}
+            content={<ConteudoInfo2026 total={total} projetosAcima={projetosAcima} />}
           />
         </div>
         <button
@@ -233,16 +235,27 @@ export function ExecucaoTorres({
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
-        <MetricaPrincipal2026 torre={torre2026} />
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3">
+        <MetricaPrincipal2026 total={total} />
 
         <section className="flex flex-col gap-1.5">
-          <BarraTorre torre={torre2026} onOpenRisco={onOpenRisco} />
-          <LegendaTorre2026 />
+          <BarraTorre
+            base={total.bg}
+            trechos={[
+              { chave: "pago", valor: total.pago },
+              { chave: "emPagamento", valor: total.emPagamento },
+              { chave: "comprometido", valor: comprometidoFirme },
+              { chave: "risco", valor: total.emRiscoSinal },
+            ]}
+            excesso={total.excesso}
+            onOpenRisco={onOpenRisco}
+          />
+          <LegendaTorre2026 excesso={total.excesso} />
         </section>
 
-        {mostrar2027 && torre2027 && <BlocoTorre2027 torre={torre2027} />}
+        {mostrar2027 && <BlocoTorre2027 bg27={bg27} declarado27={total.declarado27} />}
       </div>
     </article>
   );
 }
+

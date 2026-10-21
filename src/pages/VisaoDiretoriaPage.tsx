@@ -3,20 +3,22 @@ import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { useRecorteStore } from "../store/recorteStore";
 import { navigate } from "../lib/simpleRouter";
 import { useCarteiraResumo } from "../features/executivo/useCarteiraResumo";
+import { useMetricas } from "../domain/useMetricas";
 import { FluxoCaixaCard } from "../features/executivo/FluxoCaixaCard";
 import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
-import { buildTorre2026, buildTorre2027, conciliacaoEmitido } from "../features/executivo/torres";
 import { AttentionList, type SaldosParadosResumo } from "../features/executivo/AttentionList";
-import { buildAttentionList } from "../features/executivo/attention";
-import { acimaDe, emRiscoDe, paradosDe } from "../features/executivo/adapters";
+import { ATTENTION_ROUTES } from "../features/executivo/config";
+import type { AttentionItem, AttentionSource } from "../features/executivo/types";
+import { paradosDe } from "../features/executivo/adapters";
 import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
 import { useSaldoProjetos } from "../features/saldo/useSaldoProjetos";
 import { aggregateSaldoBy, filterSaldoLinhas, ultimaDataParadaPorProjeto } from "../features/saldo/saldo";
 import { RecorteAtivo } from "../components/RecorteAtivo";
 import { ContextBar } from "../components/ContextBar";
 import type { RelatorioParsing } from "../types";
+import { fmtBRL } from "../lib/format";
 
 interface Props {
   lista: ProjetoMetricas[];
@@ -76,64 +78,70 @@ export function VisaoDiretoriaPage({
 
   const saldo = useSaldoProjetos();
   const { data, rubricasOptions } = useCarteiraResumo(EXERCICIO, { lista, dataBase });
+  const metricas = useMetricas({ lista, dataBase });
 
   const saldoPronto = useMemo(() => {
     if (!SALDO_HABILITADO || saldo.status !== "ready" || saldo.section.exerciseYear !== EXERCICIO) return null;
     return saldo.section;
   }, [saldo]);
 
-  const fontesAtencao = useMemo(() => {
-    if (!data) return null;
-    const emRisco = emRiscoDe(data.risk.projects, data.listaAno26);
-    if (!saldoPronto) return { acima: [], emRisco, parados: [] };
+  const parados = useMemo<AttentionSource[] | null>(() => {
+    if (!data || !saldoPronto) return null;
     const linhas = filterSaldoLinhas(saldoPronto.linhas, { projectKeys: data.saldoProjectKeys, rubricas });
     const views = aggregateSaldoBy(linhas, "projeto");
-    return {
-      acima: acimaDe(views),
-      emRisco,
-      parados: paradosDe(views, ultimaDataParadaPorProjeto(linhas), saldoPronto.dataReferencia),
-    };
+    return paradosDe(views, ultimaDataParadaPorProjeto(linhas), saldoPronto.dataReferencia);
   }, [data, saldoPronto, rubricas]);
 
-  const itensAtencao = useMemo(
-    () =>
-      fontesAtencao
-        ? buildAttentionList(
-            { acima: fontesAtencao.acima, emRisco: fontesAtencao.emRisco, parados: [], exerciseYear: EXERCICIO },
-            { limit: 5, quotas: { ACIMA_ORCAMENTO: 0, RCS_EM_RISCO: 0 } },
-          ).sort((a, b) => b.value - a.value)
-        : [],
-    [fontesAtencao],
-  );
+  /** Vermelho: maior comprometido em risco por projeto. Âmbar: maior excesso sobre o orçamento por projeto. Top 5 pelo valor. */
+  const itensAtencao = useMemo<AttentionItem[]>(() => {
+    if (!metricas) return [];
+    const vermelhos: AttentionItem[] = metricas.simples.projetos
+      .filter((p) => p.emRiscoSinal > 0)
+      .map((p) => ({
+        kind: "RCS_EM_RISCO",
+        projectKey: p.projeto,
+        projectName: p.projeto,
+        owner: null,
+        value: p.emRiscoSinal,
+        detail: `${fmtBRL(p.emRiscoSinal, true)} comprometido em risco`,
+        href: ATTENTION_ROUTES.RCS_EM_RISCO,
+      }));
+    const ambares: AttentionItem[] = metricas.simples.projetos
+      .filter((p) => p.excesso > 0)
+      .map((p) => ({
+        kind: "ACIMA_ORCAMENTO",
+        projectKey: p.projeto,
+        projectName: p.projeto,
+        owner: null,
+        value: p.excesso,
+        detail: `${fmtBRL(p.excesso, true)} acima do orçamento`,
+        href: ATTENTION_ROUTES.ACIMA_ORCAMENTO,
+      }));
+    return [...vermelhos, ...ambares].sort((a, b) => b.value - a.value).slice(0, 5);
+  }, [metricas]);
 
   /** Σ, N e top 3 vêm da mesma lista de parados; sem saldo pronto a seção fica oculta. */
   const saldosParados = useMemo<SaldosParadosResumo | null>(() => {
-    if (!fontesAtencao || !saldoPronto) return null;
-    const ordenados = [...fontesAtencao.parados].sort((a, b) => b.value - a.value);
+    if (!parados || !saldoPronto) return null;
+    const ordenados = [...parados].sort((a, b) => b.value - a.value);
     return {
       total: ordenados.reduce((soma, p) => soma + p.value, 0),
       projetos: ordenados.length,
       top: ordenados.slice(0, 3),
     };
-  }, [fontesAtencao, saldoPronto]);
+  }, [parados, saldoPronto]);
 
-  const torres = useMemo(() => {
-    if (!data) return null;
-    const { bgVivoSum, compromisso27, bgGov27, emRiscoCartao, emitidoCarteira } = data;
-    return {
-      torre2026: buildTorre2026({
-        bg: bgVivoSum.bgGov,
-        realizado: bgVivoSum.realizado,
-        emPagamento: bgVivoSum.emPagamento,
-        comp26: bgVivoSum.emitido,
-        emRisco: emRiscoCartao,
-      }),
-      torre2027: mostrar2027 ? buildTorre2027({ bg: bgGov27, comp27: compromisso27 }) : null,
-      conciliacao: conciliacaoEmitido({ emitidoCarteira, comp26: bgVivoSum.emitido, comp27: compromisso27 }),
-    };
-  }, [data, mostrar2027]);
+  const bg27 = useMemo(
+    () => (metricas ? metricas.projetos.reduce((soma, p) => soma + (p.orcamento2027 ?? 0), 0) : 0),
+    [metricas],
+  );
 
-  if (!data || !torres) {
+  const projetosAcima = useMemo(
+    () => (metricas ? metricas.simples.projetos.filter((p) => p.excesso > 0).length : 0),
+    [metricas],
+  );
+
+  if (!data || !metricas) {
     return (
       <div ref={containerRef} style={altura !== null ? { height: altura } : undefined} className="flex flex-col gap-3 overflow-hidden">
         <ContextBar parsed={parsed} periodoLabel={periodoLabel} className="shrink-0" />
@@ -163,13 +171,12 @@ export function VisaoDiretoriaPage({
         {/* ── Execução do plano ───────────────────────────── */}
         <div className={CELULA_CARD}>
           <ExecucaoTorres
-            torre2026={torres.torre2026}
-            torre2027={torres.torre2027}
+            total={metricas.simples.total}
+            bg27={bg27}
+            projetosAcima={projetosAcima}
             mostrar2027={mostrar2027}
             onToggle2027={() => setMostrar2027((v) => !v)}
             onOpenRisco={() => setRiscoAberto(true)}
-            conciliacao={torres.conciliacao}
-            comp27={data.compromisso27}
           />
         </div>
 

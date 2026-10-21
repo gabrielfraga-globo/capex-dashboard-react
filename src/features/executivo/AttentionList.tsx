@@ -15,7 +15,7 @@ const FAIXA_SINAL: Record<AttentionKind, string> = {
 };
 
 const TOOLTIP_PONTOS_ACAO =
-  "Vermelho: risco de não virar caixa. Âmbar: comprometido acima do orçamento. Cinza: saldo parado há 6+ meses, pode ser remanejado.";
+  "Vermelho: comprometido em risco de não virar caixa, por projeto. Âmbar: excesso sobre o orçamento, por projeto. Cinza: saldo parado há 6+ meses, pode ser remanejado.";
 
 const ROTA_RISCO_CAIXA = "/risco-caixa";
 

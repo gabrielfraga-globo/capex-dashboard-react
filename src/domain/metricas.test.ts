@@ -57,12 +57,18 @@ describe("projetoAtivo2026", () => {
     expect(projetoAtivo2026(mkProjeto("X", 0, 0, 5), [])).toBe(true);
   });
 
-  it("é ativo só com emissão em 2026 (CAIXA_26 ou EM_RISCO)", () => {
+  it("é ativo com qualquer emissão elegível em 2026 (inclui CAIXA_27 automática)", () => {
     const p = mkProjeto("X", 0, 0, 0);
     expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "CAIXA_26")])).toBe(true);
     expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E1", "EM_RISCO")])).toBe(true);
-    expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "CAIXA_27")])).toBe(false);
+    expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "CAIXA_27")])).toBe(true);
     expect(projetoAtivo2026(p, [])).toBe(false);
+  });
+
+  it("não é ativo só com emissão excluída por decisão (CAIXA_27 confirmada ou NAO_OCORRE)", () => {
+    const p = mkProjeto("X", 0, 0, 0);
+    expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "CAIXA_27", { isClassificationConfirmed: true })])).toBe(false);
+    expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "NAO_OCORRE")])).toBe(false);
   });
 });
 

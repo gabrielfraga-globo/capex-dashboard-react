@@ -128,14 +128,14 @@ function somarResultados(itens: ResultadoPremissa[]): ResultadoPremissa {
   return { ...soma, pctBG: soma.bg > 0 ? soma.provisionado / soma.bg : 0 };
 }
 
-/** Projeto com orçamento, realizado, em pagamento ou emissão em 2026 (CAIXA_26 + EM_RISCO). */
+/** Projeto com orçamento, realizado, em pagamento ou qualquer emissão elegível (inclui CAIXA_27 automática). */
 export function projetoAtivo2026(p: ProjetoBase, linhas: OperationalRow[]): boolean {
   if ((p.orcamento2026 ?? 0) > 0 || (p.realizado2026 ?? 0) > 0 || (p.emPagamento2026 ?? 0) > 0) return true;
   const nome = normalizarNome(p.nome);
   return linhas.some(
     (linha) =>
       ehPendenteDeCaixa(linha) &&
-      (linha.classification === "CAIXA_26" || linha.classification === "EM_RISCO") &&
+      !ehDecisaoExcludente(linha) &&
       repartirPorProjeto(linha).some(([chave, valor]) => chave === nome && valor > 0)
   );
 }
