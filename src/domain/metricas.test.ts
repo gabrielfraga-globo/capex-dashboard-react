@@ -70,6 +70,12 @@ describe("projetoAtivo2026", () => {
     expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "CAIXA_27", { isClassificationConfirmed: true })])).toBe(false);
     expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "NAO_OCORRE")])).toBe(false);
   });
+
+  it("não é ativo quando realizado e em pagamento se anulam e não há emissão (projetado 0 e plano 0)", () => {
+    expect(projetoAtivo2026(mkProjeto("X", 0, 6550, -6550), [])).toBe(false);
+    const p = mkProjeto("X", 0, 0, 0);
+    expect(projetoAtivo2026(p, [mkLinha({ X: 10 }, "E6", "CAIXA_26"), mkLinha({ X: -10 }, "E6", "CAIXA_26")])).toBe(false);
+  });
 });
 
 describe("premissaSimples — invariantes", () => {

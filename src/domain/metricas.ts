@@ -32,18 +32,18 @@ export interface PremissaCompleta {
   comp27: number;
 }
 
-const normalizarNome = (nome: string) => nome.trim().toLocaleLowerCase("pt-BR");
+export const normalizarNome = (nome: string) => nome.trim().toLocaleLowerCase("pt-BR");
 
-const ehPendenteDeCaixa = (linha: OperationalRow) => linha.stage !== "DESCONHECIDA" && linha.stage !== "RESIDUAL";
+export const ehPendenteDeCaixa = (linha: OperationalRow) => linha.stage !== "DESCONHECIDA" && linha.stage !== "RESIDUAL";
 
 /** Decisão do gestor que tira a linha do elegível: NAO_OCORRE ou CAIXA_27 confirmada. */
-const ehDecisaoExcludente = (linha: OperationalRow) =>
+export const ehDecisaoExcludente = (linha: OperationalRow) =>
   linha.classification === "NAO_OCORRE" || (linha.classification === "CAIXA_27" && linha.isClassificationConfirmed);
 
 const ehDecisaoCaixa27 = (linha: OperationalRow) =>
   linha.classification === "CAIXA_27" && linha.isClassificationConfirmed;
 
-const ehEmRiscoSinal = (linha: OperationalRow) =>
+export const ehEmRiscoSinal = (linha: OperationalRow) =>
   linha.stage === "E1" || linha.stage === "E2" || linha.stage === "E3" || linha.subState === "E4_ATRASADO";
 
 /** Quebra o valor da linha por projeto (nome normalizado). */
@@ -128,16 +128,19 @@ function somarResultados(itens: ResultadoPremissa[]): ResultadoPremissa {
   return { ...soma, pctBG: soma.bg > 0 ? soma.provisionado / soma.bg : 0 };
 }
 
-/** Projeto com orçamento, realizado, em pagamento ou qualquer emissão elegível (inclui CAIXA_27 automática). */
+/** Projeto com orçamento ou com projetado diferente de zero (realizado + em pagamento + emissões elegíveis, como no simulador). Inclui CAIXA_27 automática. */
 export function projetoAtivo2026(p: ProjetoBase, linhas: OperationalRow[]): boolean {
-  if ((p.orcamento2026 ?? 0) > 0 || (p.realizado2026 ?? 0) > 0 || (p.emPagamento2026 ?? 0) > 0) return true;
+  if ((p.orcamento2026 ?? 0) > 0) return true;
   const nome = normalizarNome(p.nome);
-  return linhas.some(
-    (linha) =>
-      ehPendenteDeCaixa(linha) &&
-      !ehDecisaoExcludente(linha) &&
-      repartirPorProjeto(linha).some(([chave, valor]) => chave === nome && valor > 0)
-  );
+  let futuroLiquido = 0;
+  for (const linha of linhas) {
+    if (!ehPendenteDeCaixa(linha) || ehDecisaoExcludente(linha)) continue;
+    for (const [chave, valor] of repartirPorProjeto(linha)) {
+      if (chave === nome) futuroLiquido += valor;
+    }
+  }
+  const executado = (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0);
+  return Math.abs(executado + futuroLiquido) > 0.005;
 }
 
 export function premissaSimples(projetos: ProjetoBase[], linhas: OperationalRow[]): PremissaSimples {

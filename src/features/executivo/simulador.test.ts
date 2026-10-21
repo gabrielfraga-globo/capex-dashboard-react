@@ -118,6 +118,101 @@ const item = (s: ReturnType<typeof sim>, nome: string) => {
   return achado;
 };
 
+// Premissa simples. Alfa: orçamento 10M, pago 2M + em pagamento 1M (executado 3M). Beta: orçamento 5M, sem execução.
+const projetosSimples: ProjetoMetricas[] = [
+  mkProjeto({ id: "alfa", nome: "Alfa", orcamento2026: 10_000_000, realizado2026: 2_000_000, emPagamento2026: 1_000_000 }),
+  mkProjeto({ id: "beta", nome: "Beta", orcamento2026: 5_000_000 }),
+];
+
+const rowsSimples: OperationalRow[] = [
+  // elegível: E4 com previsão no exercício
+  mkRow({ rc: "S1", projectName: "Alfa", value: 3_000_000, forecastPaymentDate: "2026-11-10" }),
+  // elegível: CAIXA_27 automática (sem confirmação do gestor)
+  mkRow({ rc: "S2", projectName: "Alfa", value: 4_000_000, classification: "CAIXA_27", suggestedPaymentDate: "2026-12-20" }),
+  // elegível e em risco: E2
+  mkRow({ rc: "S3", projectName: "Alfa", value: 2_000_000, stage: "E2", suggestedPaymentDate: "2026-09-01" }),
+  // elegível e em risco: E4 atrasado, sem data → 31/12
+  mkRow({ rc: "S4", projectName: "Beta", value: 2_000_000, subState: "E4_ATRASADO" }),
+  // elegível: data depois do exercício → 31/12
+  mkRow({ rc: "S5", projectName: "Alfa", value: 1_000_000, suggestedPaymentDate: "2027-02-01" }),
+  // elegível: EM_RISCO só pela classificação não é risco na premissa simples
+  mkRow({ rc: "S6", projectName: "Beta", value: 1_500_000, classification: "EM_RISCO", suggestedPaymentDate: "2026-10-30" }),
+  // fora: CAIXA_27 confirmada pelo gestor
+  mkRow({
+    rc: "S7",
+    projectName: "Alfa",
+    value: 1_000_000,
+    classification: "CAIXA_27",
+    isClassificationConfirmed: true,
+    suggestedPaymentDate: "2026-12-01",
+  }),
+  // fora: NAO_OCORRE
+  mkRow({ rc: "S8", projectName: "Beta", value: 500_000, classification: "NAO_OCORRE", suggestedPaymentDate: "2026-09-01" }),
+  // fora: RESIDUAL e DESCONHECIDA
+  mkRow({ rc: "S9", projectName: "Beta", value: 700_000, stage: "RESIDUAL", suggestedPaymentDate: "2026-09-01" }),
+  mkRow({ rc: "S10", projectName: "Beta", value: 800_000, stage: "DESCONHECIDA", suggestedPaymentDate: "2026-09-01" }),
+];
+
+const simSimples = (h: Horizonte, incluirRisco = true, ref: Date = REF) =>
+  simularBG({ projetos: projetosSimples, rows: rowsSimples, h, ref, exerciseYear: EXERCICIO, incluirRisco, premissa: "simples" });
+
+const simCompletaFixture = (h: Horizonte, incluirRisco = true, ref: Date = REF) =>
+  simularBG({ projetos: projetosSimples, rows: rowsSimples, h, ref, exerciseYear: EXERCICIO, incluirRisco, premissa: "completa" });
+
+describe("simularBG — premissa simples", () => {
+  it("fim do ano com risco = pago + em pagamento + Σ elegível (3M + 13,5M)", () => {
+    const s = simSimples("ano", true);
+    expect(s.projetado).toBe(16_500_000);
+    expect(s.semData.qtd).toBe(0);
+    expect(s.orfas.qtd).toBe(0);
+  });
+
+  it("fim do ano sem risco tira E1–E3 e E4 atrasado (12,5M)", () => {
+    expect(simSimples("ano", false).projetado).toBe(12_500_000);
+  });
+
+  it("hoje é igual à completa (plano e projetado por projeto)", () => {
+    const s = simSimples("hoje");
+    const c = simCompletaFixture("hoje");
+    expect(s.itens.map((i) => [i.nome, i.plano, i.projetado])).toEqual(c.itens.map((i) => [i.nome, i.plano, i.projetado]));
+  });
+
+  it("sem virada entre hoje e hoje+1: plano e projetado do Hoje não mudam", () => {
+    const hoje = simSimples("hoje", true, REF);
+    const amanha = simSimples("hoje", true, new Date(2026, 9, 21));
+    expect(amanha.plano).toBe(hoje.plano);
+    expect(amanha.projetado).toBe(hoje.projetado);
+  });
+
+  it("provisionado + excesso = projetado; Alfa excede o orçamento em 3M, Beta cabe", () => {
+    const s = simSimples("ano", true);
+    // Alfa: espaço 10M − 3M = 7M, futuro 10M → excesso 3M. Beta: futuro 3,5M cabe em 5M.
+    expect(s.provisionado).toBe(13_500_000);
+    expect(s.excesso).toBe(3_000_000);
+    expect(s.provisionado + s.excesso).toBe(s.projetado);
+  });
+
+  it("sem virada no fim do ano: E1–E3 com previsão em 21/10 ou 22/10 dá o mesmo BG vivo e status", () => {
+    const linhasRisco: OperationalRow[] = [
+      mkRow({ rc: "V1", projectName: "Alfa", value: 2_000_000, stage: "E1", forecastPaymentDate: "2026-10-21" }),
+      mkRow({ rc: "V2", projectName: "Beta", value: 3_000_000, stage: "E3", forecastPaymentDate: "2026-10-22" }),
+    ];
+    const rodar = (ref: Date) =>
+      simularBG({ projetos: projetosSimples, rows: linhasRisco, h: "ano", ref, exerciseYear: EXERCICIO, incluirRisco: true, premissa: "simples" });
+    const dia21 = rodar(new Date(2026, 9, 21));
+    const dia22 = rodar(new Date(2026, 9, 22));
+    expect(dia22.provisionado + dia22.excesso).toBe(dia21.provisionado + dia21.excesso);
+    expect(dia22.projetado).toBe(dia21.projetado);
+    expect(dia22.itens.map((i) => i.status)).toEqual(dia21.itens.map((i) => i.status));
+  });
+
+  it("premissa padrão continua sendo a completa", () => {
+    expect(simularBG({ projetos: projetosSimples, rows: rowsSimples, h: "ano", ref: REF, exerciseYear: EXERCICIO, incluirRisco: true })).toEqual(
+      simCompletaFixture("ano", true)
+    );
+  });
+});
+
 describe("horizonte", () => {
   it("hoje: meses fechados pela regra M-1 (out → 9) e fim = ref", () => {
     expect(horizonte("hoje", REF, EXERCICIO)).toMatchObject({ fim: "2026-10-20", mesesPlano: 9 });

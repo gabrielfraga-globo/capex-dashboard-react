@@ -1,6 +1,7 @@
 import type { ProjetoMetricas } from "../../types";
 import type { OperationalRow } from "../radar/operational";
 import { LIMIAR_MATERIALIDADE } from "../../lib/metrics";
+import { ehDecisaoExcludente, ehEmRiscoSinal, ehPendenteDeCaixa, normalizarNome } from "../../domain/metricas";
 
 export type Horizonte = "hoje" | "mes" | "tri" | "ano";
 
@@ -105,6 +106,10 @@ export interface SimulacaoBG {
   label: string;
   plano: number;
   projetado: number;
+  /** Parte do projetado que cabe no orçamento (realizado + em pagamento + futuro até o espaço do orçamento). */
+  provisionado: number;
+  /** Parte do projetado acima do orçamento. provisionado + excesso = projetado. */
+  excesso: number;
   grupos: {
     noRitmo: GrupoSimulacao;
     antecipando: GrupoSimulacao;
@@ -115,6 +120,8 @@ export interface SimulacaoBG {
   itens: ItemSimulacao[];
 }
 
+export type Premissa = "simples" | "completa";
+
 export interface SimulacaoBGInput {
   projetos: ProjetoMetricas[];
   rows: OperationalRow[];
@@ -122,9 +129,9 @@ export interface SimulacaoBGInput {
   ref: Date;
   exerciseYear: number;
   incluirRisco: boolean;
+  /** "completa" (padrão): regra atual. "simples": todas as linhas elegíveis da premissaSimples, datas limitadas a 31/12. */
+  premissa?: Premissa;
 }
-
-const normalizaNome = (nome: string) => nome.trim().toLowerCase();
 
 /** Mesma repartição por projeto usada por partesPorProjeto em radar/executive.ts (função privada). */
 function partesPorProjeto(r: OperationalRow): Array<[string, number]> {
@@ -147,10 +154,11 @@ function statusDoDesvio(desvio: number, tol: number): StatusAderencia {
 }
 
 export function simularBG(input: SimulacaoBGInput): SimulacaoBG {
-  const { projetos, rows, h, ref, exerciseYear, incluirRisco } = input;
+  const { projetos, rows, h, ref, exerciseYear, incluirRisco, premissa = "completa" } = input;
   const { fim, mesesPlano, label } = horizonte(h, ref, exerciseYear);
+  const fimDoAno = `${exerciseYear}-12-31`;
 
-  const chaves = new Set(projetos.map((p) => normalizaNome(p.nome)));
+  const chaves = new Set(projetos.map((p) => normalizarNome(p.nome)));
   const futuroPorProjeto = new Map<string, number>();
   const semDataRows = new Set<number>();
   const orfasRows = new Set<number>();
@@ -160,16 +168,27 @@ export function simularBG(input: SimulacaoBGInput): SimulacaoBG {
   // Hoje: só o realizado conta, nenhuma RC futura entra (e semData/orfas ficam zerados).
   if (h !== "hoje") {
     rows.forEach((r, idx) => {
-      // mesmo filtro de estágio de buildBgVivo (radar/executive.ts, linhas 725-727)
-      if (r.stage === "DESCONHECIDA" || r.stage === "RESIDUAL") return;
-      if (r.classification === "NAO_OCORRE" || r.classification === "CAIXA_27") return;
-      if (!incluirRisco && r.classification === "EM_RISCO") return;
+      let dataIso: string | null;
+      if (premissa === "simples") {
+        // mesmo recorte de premissaSimples (metricas.ts): elegível = pendente de caixa e não excluída pelo gestor
+        if (!ehPendenteDeCaixa(r) || ehDecisaoExcludente(r)) return;
+        if (!incluirRisco && ehEmRiscoSinal(r)) return;
+        const data = r.forecastPaymentDate ?? r.suggestedPaymentDate;
+        dataIso = data ? data.slice(0, 10) : null;
+        // sem data ou depois do exercício: cai em 31/12, para o fim do ano fechar com Σ elegível
+        if (dataIso === null || dataIso > fimDoAno) dataIso = fimDoAno;
+      } else {
+        // mesmo filtro de estágio de buildBgVivo (radar/executive.ts, linhas 725-727)
+        if (r.stage === "DESCONHECIDA" || r.stage === "RESIDUAL") return;
+        if (r.classification === "NAO_OCORRE" || r.classification === "CAIXA_27") return;
+        if (!incluirRisco && r.classification === "EM_RISCO") return;
 
-      const data = r.forecastPaymentDate ?? r.suggestedPaymentDate;
-      const dataIso = data ? data.slice(0, 10) : null;
+        const data = r.forecastPaymentDate ?? r.suggestedPaymentDate;
+        dataIso = data ? data.slice(0, 10) : null;
+      }
 
       for (const [nome, valor] of partesPorProjeto(r)) {
-        const chave = normalizaNome(nome);
+        const chave = normalizarNome(nome);
         if (dataIso === null) {
           if (chaves.has(chave)) {
             semDataRows.add(idx);
@@ -188,10 +207,17 @@ export function simularBG(input: SimulacaoBGInput): SimulacaoBG {
     });
   }
 
+  let provisionado = 0;
+  let excesso = 0;
   const itens: ItemSimulacao[] = projetos.map((p) => {
     const plano = planoAteMes(p, mesesPlano);
     const executado = (p.realizado2026 ?? 0) + (p.emPagamento2026 ?? 0);
-    const projetado = executado + (futuroPorProjeto.get(normalizaNome(p.nome)) ?? 0);
+    const futuro = futuroPorProjeto.get(normalizarNome(p.nome)) ?? 0;
+    const espaco = Math.max(0, (p.orcamento2026 ?? 0) - executado);
+    const comprometido = Math.min(futuro, espaco);
+    provisionado += executado + comprometido;
+    excesso += futuro - comprometido;
+    const projetado = executado + futuro;
     const desvio = projetado - plano;
     return {
       id: p.id,
@@ -222,6 +248,8 @@ export function simularBG(input: SimulacaoBGInput): SimulacaoBG {
     label,
     plano: itens.reduce((s, it) => s + it.plano, 0),
     projetado: itens.reduce((s, it) => s + it.projetado, 0),
+    provisionado,
+    excesso,
     grupos,
     semData: { qtd: semDataRows.size, valor: semDataValor },
     orfas: { qtd: orfasRows.size, valor: orfasValor },

@@ -92,32 +92,39 @@ export function VisaoDiretoriaPage({
     return paradosDe(views, ultimaDataParadaPorProjeto(linhas), saldoPronto.dataReferencia);
   }, [data, saldoPronto, rubricas]);
 
-  /** Vermelho: maior comprometido em risco por projeto. Âmbar: maior excesso sobre o orçamento por projeto. Top 5 pelo valor. */
+  /** Uma linha por projeto: vale o maior entre comprometido em risco e excesso (cor e valor). Top 5 pelo valor. */
   const itensAtencao = useMemo<AttentionItem[]>(() => {
     if (!metricas) return [];
-    const vermelhos: AttentionItem[] = metricas.simples.projetos
-      .filter((p) => p.emRiscoSinal > 0)
-      .map((p) => ({
-        kind: "RCS_EM_RISCO",
-        projectKey: p.projeto,
-        projectName: p.projeto,
-        owner: null,
-        value: p.emRiscoSinal,
-        detail: `${fmtBRL(p.emRiscoSinal, true)} comprometido em risco`,
-        href: ATTENTION_ROUTES.RCS_EM_RISCO,
-      }));
-    const ambares: AttentionItem[] = metricas.simples.projetos
-      .filter((p) => p.excesso > 0)
-      .map((p) => ({
-        kind: "ACIMA_ORCAMENTO",
-        projectKey: p.projeto,
-        projectName: p.projeto,
-        owner: null,
-        value: p.excesso,
-        detail: `${fmtBRL(p.excesso, true)} acima do orçamento`,
-        href: ATTENTION_ROUTES.ACIMA_ORCAMENTO,
-      }));
-    return [...vermelhos, ...ambares].sort((a, b) => b.value - a.value).slice(0, 5);
+    return metricas.simples.projetos
+      .flatMap((p): AttentionItem[] => {
+        if (p.emRiscoSinal <= 0 && p.excesso <= 0) return [];
+        if (p.emRiscoSinal >= p.excesso) {
+          return [
+            {
+              kind: "RCS_EM_RISCO",
+              projectKey: p.projeto,
+              projectName: p.projeto,
+              owner: null,
+              value: p.emRiscoSinal,
+              detail: `${fmtBRL(p.emRiscoSinal, true)} comprometido em risco`,
+              href: ATTENTION_ROUTES.RCS_EM_RISCO,
+            },
+          ];
+        }
+        return [
+          {
+            kind: "ACIMA_ORCAMENTO",
+            projectKey: p.projeto,
+            projectName: p.projeto,
+            owner: null,
+            value: p.excesso,
+            detail: `${fmtBRL(p.excesso, true)} acima do orçamento`,
+            href: ATTENTION_ROUTES.ACIMA_ORCAMENTO,
+          },
+        ];
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
   }, [metricas]);
 
   /** Σ, N e top 3 vêm da mesma lista de parados; sem saldo pronto a seção fica oculta. */
@@ -150,7 +157,7 @@ export function VisaoDiretoriaPage({
     );
   }
 
-  const { bgVivoSum, flow, listaAno, listaAno26 } = data;
+  const { flow, listaAno } = data;
 
   return (
     <div
@@ -183,11 +190,11 @@ export function VisaoDiretoriaPage({
         {/* ── Aderência ao plano ──────────────────────────── */}
         <div className={CELULA_CARD}>
           <AderenciaPlano
-            projetos={listaAno26}
-            rows={data.opRows}
+            projetos={metricas.projetosAtivos}
+            rows={metricas.linhas}
             dataRef={data.dbDate}
             exerciseYear={EXERCICIO}
-            bgGov={bgVivoSum.bgGov}
+            bgRef={metricas.simples.total.bg}
             onSelectProject={onSelect}
           />
         </div>

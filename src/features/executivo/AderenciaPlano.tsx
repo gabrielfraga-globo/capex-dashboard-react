@@ -8,11 +8,13 @@ import type { OperationalRow } from "../radar/operational";
 import { simularBG, triIgualAno, type Horizonte, type StatusAderencia } from "./simulador";
 
 export interface AderenciaPlanoProps {
+  /** Universo da Diretoria: projetos com projetoAtivo2026 (vem de useMetricas.projetosAtivos). */
   projetos: ProjetoMetricas[];
   rows: OperationalRow[];
   dataRef: Date;
   exerciseYear: number;
-  bgGov: number;
+  /** BG da premissa simples no universo, usado como referência do horizonte Fim do ano. */
+  bgRef: number;
   onSelectProject: (p: ProjetoMetricas) => void;
 }
 
@@ -51,12 +53,18 @@ function corDesvio(v: number | undefined): string {
   return v > 0 ? "text-warn" : "text-crit";
 }
 
+/** Data ISO (yyyy-mm-dd) em dd/mm/aaaa. */
+function dataBR(iso: string): string {
+  const [ano, mes, dia] = iso.slice(0, 10).split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
 export function AderenciaPlano({
   projetos,
   rows,
   dataRef,
   exerciseYear,
-  bgGov,
+  bgRef,
   onSelectProject,
 }: AderenciaPlanoProps) {
   const [horizonteSel, setHorizonteSel] = useState<Horizonte>("ano");
@@ -67,7 +75,7 @@ export function AderenciaPlano({
   const h: Horizonte = horizonteSel === "tri" && !temTri ? "ano" : horizonteSel;
 
   const sim = useMemo(
-    () => simularBG({ projetos, rows, h, ref: dataRef, exerciseYear, incluirRisco }),
+    () => simularBG({ projetos, rows, h, ref: dataRef, exerciseYear, incluirRisco, premissa: "simples" }),
     [projetos, rows, h, dataRef, exerciseYear, incluirRisco]
   );
 
@@ -101,15 +109,19 @@ export function AderenciaPlano({
     [itemPorId]
   );
 
-  const { plano, projetado, grupos } = sim;
+  const { plano, projetado, grupos, provisionado, excesso, fim } = sim;
   const total = sim.itens.length;
   const qtdPorStatus = (st: StatusAderencia) => grupos[CHAVE_GRUPO[st]].qtd;
   const desvioPorStatus = (st: StatusAderencia) => grupos[CHAVE_GRUPO[st]].desvio;
   const percentualNoRitmo = total > 0 ? fmtPct(qtdPorStatus("NO_RITMO") / total, 0) : "–";
 
-  const bgReferencia = h === "hoje" ? plano : bgGov;
+  const bgReferencia = h === "hoje" ? plano : bgRef;
   const deltaReferencia = projetado - bgReferencia;
   const textoReferencia = h === "hoje" ? "vs plano até hoje" : "vs BG";
+  const textoComposicaoBG =
+    h === "ano"
+      ? `BG vivo simulado = provisionado (${formatCurrencyMillions(provisionado)}) + emitido acima do orçamento (${formatCurrencyMillions(excesso)})`
+      : `BG vivo simulado = pago + em pagamento + emissões previstas até ${dataBR(fim)}`;
 
   return (
     <Card>
@@ -151,6 +163,7 @@ export function AderenciaPlano({
         <span className="text-[40px] font-bold leading-none tabular-nums text-text">{percentualNoRitmo}</span>
         <span className="text-xs text-text-muted">dos projetos no ritmo</span>
       </div>
+      <p className="text-[11px] text-text-muted">de {projetos.length} projetos ativos</p>
 
       <div
         role="img"
@@ -203,7 +216,10 @@ export function AderenciaPlano({
       </ul>
 
       <div className="mt-1 flex items-center justify-between gap-3 border-t border-border-subtle pt-1">
-        <p className="whitespace-nowrap text-[11px] uppercase tracking-wide text-text-muted font-semibold">BG vivo simulado</p>
+        <p className="flex items-center gap-1 whitespace-nowrap text-[11px] uppercase tracking-wide text-text-muted font-semibold">
+          BG vivo simulado
+          <InfoTooltip text={textoComposicaoBG} label="Como é composto o BG vivo simulado" />
+        </p>
         <p className="whitespace-nowrap text-xs tabular-nums text-text-muted">
           <span className="font-semibold text-text">{formatCurrencyMillions(projetado)}</span> · {deltaMilhoes(deltaReferencia)} {textoReferencia}
         </p>
