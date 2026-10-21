@@ -87,7 +87,7 @@ export function FlipCard({
 
       <div
         data-flipped={virado}
-        className="flip-stage grid motion-safe:transition-transform motion-safe:duration-[400ms]"
+        className="flip-stage grid grid-cols-[minmax(0,1fr)] motion-safe:transition-transform motion-safe:duration-[400ms]"
       >
         <div
           ref={frenteRef}
@@ -95,7 +95,7 @@ export function FlipCard({
           aria-hidden={frenteOculta}
           inert={frenteOculta}
           className={cn(
-            "flip-face motion-reduce:transition-opacity motion-reduce:duration-150",
+            "flip-face min-w-0 overflow-hidden motion-reduce:transition-opacity motion-reduce:duration-150",
             !compact && "px-4 pb-4",
             frenteOculta && "motion-reduce:opacity-0"
           )}
@@ -108,7 +108,7 @@ export function FlipCard({
           aria-hidden={versoOculto}
           inert={versoOculto}
           className={cn(
-            "flip-face flip-face-back motion-reduce:transition-opacity motion-reduce:duration-150",
+            "flip-face flip-face-back min-w-0 overflow-hidden motion-reduce:transition-opacity motion-reduce:duration-150",
             !compact && "px-4 pb-4",
             versoOculto && "motion-reduce:opacity-0"
           )}

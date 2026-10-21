@@ -15,9 +15,8 @@ export interface ResumoRubrica {
 
 const ORDEM_RUBRICAS = ["SOLUCAO", "MDO", "INSTALACAO", "RESERVA"];
 
-const chaveRubrica = (rubrica: string) =>
+export const chaveRubrica = (rubrica: string) =>
   rubrica.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase().replace(/\s+/g, "_");
-
 function ordenar(a: string, b: string): number {
   const ia = ORDEM_RUBRICAS.indexOf(chaveRubrica(a));
   const ib = ORDEM_RUBRICAS.indexOf(chaveRubrica(b));

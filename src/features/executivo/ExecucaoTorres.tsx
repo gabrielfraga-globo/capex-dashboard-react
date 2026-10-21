@@ -196,7 +196,7 @@ function BlocoTorre2027({ bg27, declarado27 }: { bg27: number; declarado27: numb
   const pct = bg27 > 0 ? declarado27 / bg27 : 0;
   const excesso = Math.max(0, declarado27 - bg27);
   return (
-    <section className="flex flex-col gap-1.5">
+    <section className="mt-auto flex flex-col gap-1.5">
       <p className="text-sm tabular-nums">
         <span className="font-bold">{fmtPct(pct)}</span>
         {" do BG 27 declarado pelos times"}
