@@ -9,6 +9,8 @@ import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { RiskPanel } from "../features/radar/panels/RiskPanel";
 import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
 import { AttentionList, type SaldosParadosResumo } from "../features/executivo/AttentionList";
+import { RubricasVerso } from "../features/executivo/RubricasVerso";
+import { FlipCard } from "../components/ui/FlipCard";
 import { ATTENTION_ROUTES } from "../features/executivo/config";
 import type { AttentionItem, AttentionSource } from "../features/executivo/types";
 import { paradosDe } from "../features/executivo/adapters";
@@ -215,7 +217,14 @@ export function VisaoDiretoriaPage({
 
         {/* ── Pontos de ação ──────────────────────────────── */}
         <div className={CELULA_CARD}>
-          <AttentionList itens={itensAtencao} parados={saldosParados} onNavigate={navigate} />
+          <FlipCard
+            compact
+            className="flex-1 min-h-0 flex flex-col [&>.flip-stage]:flex-1 [&>.flip-stage]:min-h-0 [&>.flip-stage]:grid-rows-[minmax(0,1fr)]"
+            frontLabel="Pontos de ação"
+            backLabel="Rubricas"
+            front={<AttentionList itens={itensAtencao} parados={saldosParados} onNavigate={navigate} />}
+            back={<RubricasVerso projetos={metricas.projetos} linhas={metricas.linhas} rubricas={rubricas} />}
+          />
         </div>
       </div>
 

@@ -22,7 +22,7 @@ function clamp01(v: number | null): number {
 }
 
 /** Quantos meses de um exercício já decorreram, com base na data real de hoje. */
-function mesesDecorridos(ano: number, totalMesesDoExercicio: number): number {
+export function mesesDecorridos(ano: number, totalMesesDoExercicio: number): number {
   if (ANO_ATUAL > ano) return totalMesesDoExercicio; // exercício já encerrado
   if (ANO_ATUAL < ano) return 0; // exercício ainda não começou
   return Math.min(MES_ATUAL, totalMesesDoExercicio);

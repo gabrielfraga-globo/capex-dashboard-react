@@ -31,6 +31,8 @@ export interface OperationalRow {
   value: number;
   /** valor da RC repartido por projeto (uma RC pode atender mais de um projeto) */
   valueByProject?: Record<string, number>;
+  /** valor da RC repartido por rubrica (só linhas com rubrica informada no compromisso) */
+  valueByRubrica?: Record<string, number>;
   lineCount: number;
   ocCount: number;
   daysInStage: number | null;
@@ -186,6 +188,7 @@ export function buildOperationalRows(
     let dominantCommitment: any = null;
     let totalValue = 0;
     const valueByProject: Record<string, number> = {};
+    const valueByRubrica: Record<string, number> = {};
     let lineCount = 0;
     const ocs = new Set<string>();
     const rubricas = new Set<string>();
@@ -196,6 +199,7 @@ export function buildOperationalRows(
         lineCount++;
         totalValue += line.valorCompromisso ?? 0;
         if (c.projectName) valueByProject[c.projectName] = (valueByProject[c.projectName] ?? 0) + (line.valorCompromisso ?? 0);
+        if (c.rubrica) valueByRubrica[c.rubrica] = (valueByRubrica[c.rubrica] ?? 0) + (line.valorCompromisso ?? 0);
         if (line.ordemCompra && line.ordemCompra !== "PENDING") {
           ocs.add(line.ordemCompra);
         }
@@ -260,6 +264,7 @@ export function buildOperationalRows(
       stage: dominantStage,
       value: totalValue,
       valueByProject,
+      valueByRubrica,
       lineCount,
       ocCount: ocs.size,
       daysInStage,
