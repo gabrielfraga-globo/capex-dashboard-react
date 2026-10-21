@@ -28,6 +28,10 @@ const RiscoCaixaPage = lazy(() =>
   import("./features/saldo/RiscoCaixaPage").then((m) => ({ default: m.RiscoCaixaPage }))
 );
 
+const VisaoDiretoriaPage = lazy(() =>
+  import("./pages/VisaoDiretoriaPage").then((m) => ({ default: m.VisaoDiretoriaPage }))
+);
+
 type ViewMode = "radar" | "auditoria";
 
 const _MESES_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -187,10 +191,22 @@ export default function App() {
           {/* Abas de navegação */}
           <nav className="flex gap-6 mt-1" aria-label="Navegação principal">
             <button
-              onClick={() => setViewMode("radar")}
-              aria-pressed={viewMode === "radar"}
+              onClick={() => navigate("/diretoria")}
+              aria-current={pathname === "/diretoria" ? "page" : undefined}
               className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
-                viewMode === "radar" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
+                pathname === "/diretoria" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
+              }`}
+            >
+              {LABELS.visaoDiretoriaNav}
+            </button>
+            <button
+              onClick={() => {
+                setViewMode("radar");
+                if (pathname === "/diretoria") navigate("/");
+              }}
+              aria-pressed={viewMode === "radar" && pathname !== "/diretoria"}
+              className={`pb-1 text-[13px] font-semibold transition-colors focus-visible:outline-none ${
+                viewMode === "radar" && pathname !== "/diretoria" ? "text-text border-b-2 border-info" : "text-text-muted hover:text-text border-b-2 border-transparent"
               }`}
             >
               Visão Executiva
@@ -232,7 +248,17 @@ export default function App() {
 
 
 
-      {viewMode === "radar" ? (
+      {pathname === "/diretoria" ? (
+        <Suspense fallback={<SkeletonRadar />}>
+          <VisaoDiretoriaPage
+            lista={metricasFiltradas}
+            kpisEstrategicos={kpisEstrategicos}
+            onSelect={handleSelectFromRadar}
+            isLoadingCompromisso={isLoadingCompromisso}
+            dataBase={parsed.dataBase}
+          />
+        </Suspense>
+      ) : viewMode === "radar" ? (
         <RadarExecutivoPage
           lista={metricasFiltradas}
           kpisEstrategicos={kpisEstrategicos}

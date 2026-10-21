@@ -19,11 +19,13 @@ export function AnaliseRiscoPanel({
   kpisEstrategicos,
   isLoadingCompromisso,
   onSelectProject,
+  somenteStatus = false,
 }: {
   lista: ProjetoMetricas[];
   kpisEstrategicos: KPIEstrategicoCarteira[];
   isLoadingCompromisso?: boolean;
   onSelectProject: (p: ProjetoMetricas) => void;
+  somenteStatus?: boolean;
 }) {
   const [foco, setFoco] = useState<Foco>("todos");
   const [modalOpen, setModalOpen] = useState(false);
@@ -137,6 +139,7 @@ export function AnaliseRiscoPanel({
         })}
       </section>
 
+      {!somenteStatus && (
       <section className="space-y-1">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Principal Alerta</p>
         {principalAlerta.tipo === "alert" ? (
@@ -155,7 +158,9 @@ export function AnaliseRiscoPanel({
           </div>
         )}
       </section>
+      )}
 
+      {!somenteStatus && (
       <section className="space-y-1 min-h-0">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Top Ofensores</p>
         <div className="grid grid-cols-1 gap-1.5">
@@ -208,6 +213,7 @@ export function AnaliseRiscoPanel({
           </button>
         </div>
       </section>
+      )}
 
       <ProjectListModal
         open={modalOpen}
