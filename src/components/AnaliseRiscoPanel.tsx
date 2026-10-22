@@ -9,6 +9,13 @@ import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 
 type Foco = "todos" | "dentro" | "acompanhar" | "acao" | "faltantes" | "excedentes" | "semOrcamento";
 
+type ChaveRitmo = "dentro" | "acompanhar" | "acao";
+
+const ROTULOS_RITMO: Record<"padrao" | "tatica", Record<ChaveRitmo, string>> = {
+  padrao: { dentro: "No ritmo", acompanhar: "Acompanhar", acao: "Abaixo do ritmo" },
+  tatica: { dentro: "Sem alerta", acompanhar: "Acompanhar", acao: "Ação necessária" },
+};
+
 function kpiSeverity(status: KPIEstrategicoCarteira["status"] | undefined): number {
   if (!status || status === "nd" || status === "verde") return 0;
   if (status === "amarelo") return 1;
@@ -22,6 +29,7 @@ export function AnaliseRiscoPanel({
   onSelectProject,
   somenteStatus = false,
   mostrarSemOrcamento = false,
+  variante = "padrao",
 }: {
   lista: ProjetoMetricas[];
   kpisEstrategicos: KPIEstrategicoCarteira[];
@@ -30,10 +38,13 @@ export function AnaliseRiscoPanel({
   somenteStatus?: boolean;
   /** Mostra a 4ª linha neutra com os projetos sem orçamento 26 (status "Dados insuficientes"). */
   mostrarSemOrcamento?: boolean;
+  /** "tatica" usa os rótulos Sem alerta / Acompanhar / Ação necessária. */
+  variante?: "padrao" | "tatica";
 }) {
   const [foco, setFoco] = useState<Foco>("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [modalFoco, setModalFoco] = useState<Foco | null>(null);
+  const rotulos = ROTULOS_RITMO[variante];
 
   const semOrcamento = useMemo(() => lista.filter((p) => p.status === "Dados insuficientes"), [lista]);
 
@@ -43,9 +54,9 @@ export function AnaliseRiscoPanel({
     const acao = lista.filter((p) => p.status === "Estouro" || p.status === "Risco de Não Realização");
     const sum = (arr: ProjetoMetricas[]) => arr.reduce((a, p) => a + (p.orcamentoPeriodo ?? 0), 0);
     return {
-      "No ritmo": { n: normal.length, valor: sum(normal) },
-      "Acompanhar": { n: acompanhar.length, valor: sum(acompanhar) },
-      "Abaixo do ritmo": { n: acao.length, valor: sum(acao) },
+      dentro: { n: normal.length, valor: sum(normal) },
+      acompanhar: { n: acompanhar.length, valor: sum(acompanhar) },
+      acao: { n: acao.length, valor: sum(acao) },
     };
   }, [lista]);
 
@@ -91,9 +102,9 @@ export function AnaliseRiscoPanel({
 
   const modalTitle = {
     todos: "Projetos",
-    dentro: "No ritmo",
-    acompanhar: "Acompanhar",
-    acao: "Abaixo do ritmo",
+    dentro: rotulos.dentro,
+    acompanhar: rotulos.acompanhar,
+    acao: rotulos.acao,
     faltantes: "Emissões faltantes",
     excedentes: "Emissões excedentes",
     semOrcamento: `${LABELS.semOrcamento26}`,
@@ -119,24 +130,23 @@ export function AnaliseRiscoPanel({
 
       <section className="space-y-1">
         <p className="text-xs font-semibold text-text">Status Geral</p>
-        {(["No ritmo", "Acompanhar", "Abaixo do ritmo"] as const).map((s) => {
+        {(["dentro", "acompanhar", "acao"] as const).map((s) => {
           const b = saude[s];
-          const focoAlvo: Foco = s === "Abaixo do ritmo" ? "acao" : s === "Acompanhar" ? "acompanhar" : "dentro";
-          const ativo = foco === focoAlvo;
-          const dotColor = s === "No ritmo" ? "bg-emerald-500" : s === "Acompanhar" ? "bg-amber-500" : "bg-red-500";
+          const ativo = foco === s;
+          const dotColor = s === "dentro" ? "bg-emerald-500" : s === "acompanhar" ? "bg-amber-500" : "bg-red-500";
           return (
             <button
               key={s}
               onClick={() => {
-                if (foco === focoAlvo) { setFoco("todos"); setModalFoco(null); }
-                else { setFoco(focoAlvo); setModalFoco(focoAlvo); setModalOpen(true); }
+                if (foco === s) { setFoco("todos"); setModalFoco(null); }
+                else { setFoco(s); setModalFoco(s); setModalOpen(true); }
               }}
               aria-pressed={ativo}
               className={`w-full rounded-md border border-border-subtle bg-card-alt px-2.5 py-1.5 flex items-center justify-between text-[11px] ${ativo ? "ring-2 ring-accent" : ""} hover:bg-card transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
             >
               <span className="flex items-center gap-2 font-semibold text-text">
                 <span className={`h-2 w-2 rounded-full ${dotColor}`} aria-hidden="true" />
-                {s}
+                {rotulos[s]}
               </span>
               <span className="flex items-center gap-2 text-text-muted">
                 <span>{b.n} proj.</span>

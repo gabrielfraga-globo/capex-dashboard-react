@@ -16,6 +16,7 @@ import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
 import { SectionCard } from "../components/ui/pattern/SectionCard";
 import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
+import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
 import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
 import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { useMetricas } from "../domain/useMetricas";
@@ -34,6 +35,7 @@ type Panel = "risk" | "balances" | "bridge" | "estouro" | null;
 type Premissa = "diretoria" | "completa";
 
 const PREMISSA_STORAGE_KEY = "capex.tatica.premissa";
+const CELULA_CARD = "min-h-0 min-w-0 overflow-hidden [&>*]:h-full [&>*]:min-h-0 [&>*]:overflow-hidden";
 
 function lerPremissa(): Premissa {
   try {
@@ -247,6 +249,7 @@ export function RadarExecutivoPage({
           <FluxoCaixaCard
             ano={ano}
             preencherAltura
+            desvioNeutro
             lista={listaAno}
             flow={flow}
             dataBase={dataBase}
@@ -254,21 +257,39 @@ export function RadarExecutivoPage({
           />
         </div>
 
-        {/* Coluna direita: Ritmo de execução, mesma altura da coluna esquerda */}
-        <div className="flex flex-col min-w-0 min-h-0 relative [&>*]:flex-1">
-          <AnaliseRiscoPanel 
-             lista={listaRitmo} 
-             mostrarSemOrcamento={metricas !== null}
-             kpisEstrategicos={kpisEstrategicos} 
-             isLoadingCompromisso={isLoadingCompromisso} 
-             onSelectProject={handleSelectProject} 
-          />
-          {ano === 2027 && (
-            <div className="absolute top-2 right-2 bg-bg px-2 py-0.5 rounded text-[10px] text-text-muted border border-border">
-              Referente a 2026
-            </div>
-          )}
-        </div>
+        {/* Coluna direita: Diretoria mostra Aderência ao plano; Visão completa mostra Ritmo de execução */}
+        {modoDiretoria ? (
+          <div className={CELULA_CARD}>
+            {metricas ? (
+              <AderenciaPlano
+                projetos={metricas.projetosAtivos}
+                rows={metricas.linhas}
+                dataRef={data.dbDate}
+                exerciseYear={2026}
+                bgRef={metricas.simples.total.bg}
+                onSelectProject={handleSelectProject}
+              />
+            ) : (
+              <div className="min-h-0 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col min-w-0 min-h-0 relative [&>*]:flex-1">
+            <AnaliseRiscoPanel
+               variante="tatica"
+               lista={listaRitmo}
+               mostrarSemOrcamento={metricas !== null}
+               kpisEstrategicos={kpisEstrategicos}
+               isLoadingCompromisso={isLoadingCompromisso}
+               onSelectProject={handleSelectProject}
+            />
+            {ano === 2027 && (
+              <div className="absolute top-2 right-2 bg-bg px-2 py-0.5 rounded text-[10px] text-text-muted border border-border">
+                Referente a 2026
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 

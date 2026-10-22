@@ -5,6 +5,7 @@ interface Segment {
   label: string;
   pct: number; // 0..100
   color: string; // Tailwind bg class
+  textClass?: string; // Tailwind text class do percentual dentro da fatia
 }
 
 interface SegmentedBarProps {
@@ -24,7 +25,7 @@ export function SegmentedBar({ parts }: SegmentedBarProps) {
               title={`${seg.label}: ${fmtPct(seg.pct / 100)}`}
             >
               {seg.pct >= 6 && (
-                <span className="text-[10px] font-bold text-white/90">
+                <span className={`text-[10px] font-bold ${seg.textClass ?? "text-white/90"}`}>
                   {Math.round(seg.pct)}%
                 </span>
               )}

@@ -13,6 +13,13 @@ const BREAKDOWN_COLORS: Record<string, { bg: string; text: string; colorHex: str
   naoEmitido:  { bg: "bg-slate-500",   text: "text-slate-900",   colorHex: "#64748b" },
 };
 
+const BREAKDOWN_BARE: Record<string, { bg: string; textClass: string }> = {
+  realizado:   { bg: "bg-[#2563eb]", textClass: "text-white" },
+  emPagamento: { bg: "bg-[#60a5fa]", textClass: "text-slate-900" },
+  emitido:     { bg: "bg-[#bfdbfe]", textClass: "text-slate-900" },
+  naoEmitido:  { bg: "bg-slate-500", textClass: "text-white" },
+};
+
 export function ExecucaoPlanoCard({ 
   lista, 
   noGradient, 
@@ -106,11 +113,13 @@ export function ExecucaoPlanoCard({
             <p
               aria-label={`${fmtPct(pctVsPlano)} do plano YTD realizado`}
               className={`text-[2.2rem] leading-none font-extrabold tabular-nums ${
-                Math.abs(pctVsPlano - 1) <= 0.05
-                  ? bare ? "text-ok" : "text-emerald-300"
+                bare
+                  ? pctVsPlano > 1 ? "text-warn" : "text-text"
+                  : Math.abs(pctVsPlano - 1) <= 0.05
+                  ? "text-emerald-300"
                   : Math.abs(pctVsPlano - 1) <= 0.15
-                  ? bare ? "text-warn" : "text-amber-300"
-                  : bare ? "text-crit" : "text-red-300"
+                  ? "text-amber-300"
+                  : "text-red-300"
               }`}
             >
               {fmtPct(pctVsPlano)}
@@ -124,7 +133,8 @@ export function ExecucaoPlanoCard({
               key: seg.key,
               label: `${seg.label} (${formatCurrencyMillions(seg.valor)})`,
               pct: seg.pct,
-              color: seg.bg
+              color: bare ? BREAKDOWN_BARE[seg.key].bg : seg.bg,
+              textClass: bare ? BREAKDOWN_BARE[seg.key].textClass : undefined,
             }))}
           />
         </div>
