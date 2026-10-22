@@ -133,7 +133,7 @@ export function AnaliseRiscoPanel({
         {(["dentro", "acompanhar", "acao"] as const).map((s) => {
           const b = saude[s];
           const ativo = foco === s;
-          const dotColor = s === "dentro" ? "bg-emerald-500" : s === "acompanhar" ? "bg-amber-500" : "bg-red-500";
+          const dotColor = s === "dentro" ? (variante === "tatica" ? "bg-slate-400" : "bg-emerald-500") : s === "acompanhar" ? "bg-amber-500" : "bg-red-500";
           return (
             <button
               key={s}
@@ -184,8 +184,8 @@ export function AnaliseRiscoPanel({
             </p>
           </div>
         ) : (
-          <div className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-2">
-            <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+          <div className={`rounded-md border px-2.5 py-2 ${variante === "tatica" ? "border-slate-400/40 bg-slate-500/10" : "border-emerald-400/40 bg-emerald-500/10"}`}>
+            <p className={`flex items-center gap-2 text-sm font-semibold ${variante === "tatica" ? "text-slate-700 dark:text-slate-300" : "text-emerald-700 dark:text-emerald-300"}`}>
               <CheckCircle2 size={14} aria-hidden="true" />
               Nenhum alerta ativo
             </p>

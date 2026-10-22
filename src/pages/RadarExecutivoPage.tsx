@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { FolderKanban, Wallet, ShieldAlert, Gauge, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { FolderKanban, Wallet, ShieldAlert, Gauge } from "lucide-react";
 import type { KPIEstrategicoCarteira, ProjetoMetricas } from "../types";
 import { fmtMilhoes } from "../lib/format";
 import { useRecorteStore } from "../store/recorteStore";
@@ -16,11 +16,8 @@ import { BridgePanel } from "../features/radar/panels/BridgePanel";
 import { KpiStat } from "../components/ui/pattern/KpiStat";
 import { SectionCard } from "../components/ui/pattern/SectionCard";
 import { AnaliseRiscoPanel } from "../components/AnaliseRiscoPanel";
-import { AderenciaPlano } from "../features/executivo/AderenciaPlano";
 import { FiltrosRecorte } from "../features/executivo/FiltrosRecorte";
-import { ExecucaoTorres } from "../features/executivo/ExecucaoTorres";
 import { useMetricas } from "../domain/useMetricas";
-import { InfoTooltip } from "../components/ui/primitives";
 import { LABELS } from "../config/labels";
 
 interface Props {
@@ -32,26 +29,6 @@ interface Props {
 }
 
 type Panel = "risk" | "balances" | "bridge" | "estouro" | null;
-type Premissa = "diretoria" | "completa";
-
-const PREMISSA_STORAGE_KEY = "capex.tatica.premissa";
-const CELULA_CARD = "min-h-0 min-w-0 overflow-hidden [&>*]:h-full [&>*]:min-h-0 [&>*]:overflow-hidden";
-
-function lerPremissa(): Premissa {
-  try {
-    return sessionStorage.getItem(PREMISSA_STORAGE_KEY) === "diretoria" ? "diretoria" : "completa";
-  } catch {
-    return "completa";
-  }
-}
-
-function gravarPremissa(premissa: Premissa) {
-  try {
-    sessionStorage.setItem(PREMISSA_STORAGE_KEY, premissa);
-  } catch {
-    // sessionStorage indisponível: a escolha vale só nesta montagem.
-  }
-}
 
 export function RadarExecutivoPage({
   lista,
@@ -63,29 +40,10 @@ export function RadarExecutivoPage({
   const [panel, setPanel] = useState<Panel>(null);
   
   const [ano, setAno] = useState<2026 | 2027>(2026);
-  const [premissa, setPremissa] = useState<Premissa>(lerPremissa);
-  const [mostrar2027, setMostrar2027] = useState(false);
   const rubricas = useRecorteStore((s) => s.rubricas);
 
   const { data, rubricasOptions } = useCarteiraResumo(ano, { lista, dataBase });
   const metricas = useMetricas({ lista, dataBase });
-
-  const modoDiretoria = ano === 2026 && premissa === "diretoria";
-
-  const trocarPremissa = (nova: Premissa) => {
-    setPremissa(nova);
-    gravarPremissa(nova);
-  };
-
-  const bg27 = useMemo(
-    () => (metricas ? metricas.projetos.reduce((soma, p) => soma + (p.orcamento2027 ?? 0), 0) : 0),
-    [metricas],
-  );
-
-  const projetosAcima = useMemo(
-    () => (metricas ? metricas.simples.projetos.filter((p) => p.excesso > 0).length : 0),
-    [metricas],
-  );
 
   const handleSelectByKey = (key: string) => {
     const proj = listaAno.find(p => p.id === key);
@@ -130,21 +88,6 @@ export function RadarExecutivoPage({
             2027 (jan–mar)
           </button>
         </div>
-        {ano === 2026 && (
-          <div role="group" aria-label="Premissa de visão" className="flex bg-card-alt rounded-lg p-1 border border-border shadow-sm">
-            {(["diretoria", "completa"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                aria-pressed={premissa === p}
-                onClick={() => trocarPremissa(p)}
-                className={`px-4 py-1 text-xs font-semibold rounded-md transition-colors ${premissa === p ? "bg-info text-white shadow" : "text-text-muted hover:text-text"}`}
-              >
-                {p === "diretoria" ? "Visão diretoria" : "Visão completa"}
-              </button>
-            ))}
-          </div>
-        )}
         </div>
         
         <FiltrosRecorte lista={lista} rubricasOptions={rubricasOptions} />
@@ -155,45 +98,7 @@ export function RadarExecutivoPage({
       {/* ── Faixa KPI ─────────────────────────────────────────── */}
 
       <div className="flex gap-2 shrink-0 max-lg:flex-wrap items-stretch">
-        {modoDiretoria ? (
-          metricas ? (
-            <>
-              <KpiStat
-                icon={<FolderKanban size={16} />}
-                label="BG Gov 26"
-                value={fmtMilhoes(metricas.simples.total.bg)}
-                context={`${LABELS.bgVivoSimulado} ${fmtMilhoes(metricas.simples.total.provisionado + metricas.simples.total.excesso)} (provisionado + excesso)`}
-              />
-              <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26" value={fmtMilhoes(metricas.simples.total.pago)} context="pago no exercício" />
-              <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtMilhoes(metricas.simples.total.emPagamento)} context="etapa E7" />
-              <KpiStat
-                icon={<Wallet size={16} />}
-                label="Comprometido 26"
-                value={fmtMilhoes(metricas.simples.total.comprometido)}
-                context={`inclui ${fmtMilhoes(metricas.simples.total.emRiscoSinal)} em risco · ${fmtMilhoes(metricas.simples.total.excesso)} acima do orç.`}
-              />
-              <KpiStat icon={<Wallet size={16} />} label="Declarado 27" value={fmtMilhoes(metricas.simples.total.declarado27)} context="informado pelos times" />
-              <KpiStat
-                icon={<ShieldAlert size={16} />}
-                label={
-                  <span className="inline-flex items-center gap-1">
-                    Em risco
-                    <InfoTooltip
-                      label="Sobre o Em risco"
-                      text="Emitido ainda sem pedido, limitado ao orçamento de cada projeto. O painel lista todas as RCs nessa situação."
-                    />
-                  </span>
-                }
-                value={fmtMilhoes(metricas.simples.total.emRiscoSinal)}
-                tone="warn"
-                context="sinal: emitido ainda sem pedido"
-                onClick={() => setPanel("risk")}
-              />
-            </>
-          ) : (
-            <div className="h-20 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
-          )
-        ) : ano === 2026 ? (
+        {ano === 2026 ? (
           <KpiRow2026 data={data} rubricas={rubricas} onAbrirRisco={() => setPanel("risk")} />
         ) : (
           <>
@@ -225,26 +130,9 @@ export function RadarExecutivoPage({
 
         {/* Coluna esquerda: Execução do Plano em cima; Fluxo de caixa (frente) / Composição por Plataforma (verso) embaixo */}
         <div className="flex flex-col gap-3 min-w-0 min-h-0">
-          {modoDiretoria ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-              {metricas ? (
-                <ExecucaoTorres
-                  total={metricas.simples.total}
-                  bg27={bg27}
-                  projetosAcima={projetosAcima}
-                  mostrar2027={mostrar2027}
-                  onToggle2027={() => setMostrar2027((v) => !v)}
-                  onOpenRisco={() => setPanel("risk")}
-                />
-              ) : (
-                <div className="min-h-0 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
-              )}
-            </div>
-          ) : (
-            <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
-              <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
-            </SectionCard>
-          )}
+          <SectionCard title="Execução do Plano" action={{ label: "Ver detalhes →", onClick: () => navigate("/auditoria") }}>
+            <ExecucaoPlanoCard lista={listaAno} bare ano={ano} emitidoOverride={ano === 2027 ? bgVivoSum.emitido : undefined} />
+          </SectionCard>
 
           <FluxoCaixaCard
             ano={ano}
@@ -257,39 +145,22 @@ export function RadarExecutivoPage({
           />
         </div>
 
-        {/* Coluna direita: Diretoria mostra Aderência ao plano; Visão completa mostra Ritmo de execução */}
-        {modoDiretoria ? (
-          <div className={CELULA_CARD}>
-            {metricas ? (
-              <AderenciaPlano
-                projetos={metricas.projetosAtivos}
-                rows={metricas.linhas}
-                dataRef={data.dbDate}
-                exerciseYear={2026}
-                bgRef={metricas.simples.total.bg}
-                onSelectProject={handleSelectProject}
-              />
-            ) : (
-              <div className="min-h-0 flex-1 rounded-card border border-border bg-card-alt animate-pulse" aria-label="Carregando…" />
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col min-w-0 min-h-0 relative [&>*]:flex-1">
-            <AnaliseRiscoPanel
-               variante="tatica"
-               lista={listaRitmo}
-               mostrarSemOrcamento={metricas !== null}
-               kpisEstrategicos={kpisEstrategicos}
-               isLoadingCompromisso={isLoadingCompromisso}
-               onSelectProject={handleSelectProject}
-            />
-            {ano === 2027 && (
-              <div className="absolute top-2 right-2 bg-bg px-2 py-0.5 rounded text-[10px] text-text-muted border border-border">
-                Referente a 2026
-              </div>
-            )}
-          </div>
-        )}
+        {/* Coluna direita: Ritmo de execução */}
+        <div className="flex flex-col min-w-0 min-h-0 relative [&>*]:flex-1">
+          <AnaliseRiscoPanel
+             variante="tatica"
+             lista={listaRitmo}
+             mostrarSemOrcamento={metricas !== null}
+             kpisEstrategicos={kpisEstrategicos}
+             isLoadingCompromisso={isLoadingCompromisso}
+             onSelectProject={handleSelectProject}
+          />
+          {ano === 2027 && (
+            <div className="absolute top-2 right-2 bg-bg px-2 py-0.5 rounded text-[10px] text-text-muted border border-border">
+              Referente a 2026
+            </div>
+          )}
+        </div>
 
       </div>
 

@@ -71,12 +71,24 @@ export function KpiRow2026({ data, rubricas, onAbrirRisco }: KpiRow2026Props) {
         label="BG Gov 26"
         value={fmtMilhoes(bgVivoSum.bgGov)}
         context={
-          <span className="inline-flex items-center gap-1">
-            {`${LABELS.fechamentoEstimado} ${fmtMilhoes(bgVivoSum.bgVivo)} (${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtMilhoes(bgVivoSum.diferencaVsGov)})${bgVivoSum.estouro.count > 0 ? ` · acima do BG Gov em ${bgVivoSum.estouro.count} projetos` : ""}`}
-            <InfoTooltip label={`Sobre o ${LABELS.fechamentoEstimado}`} text={LABELS.fechamentoEstimadoInfo} />
+          <span className="flex items-center gap-1 min-w-0">
+            <span className="truncate">{`Fechamento est. ${fmtMilhoes(bgVivoSum.bgVivo)}`}</span>
+            <InfoTooltip
+              label={`Sobre o ${LABELS.fechamentoEstimado}`}
+              content={
+                <div className="flex flex-col gap-2">
+                  <p className="tabular-nums">
+                    {`${bgVivoSum.diferencaVsGov >= 0 ? "+" : ""}${fmtMilhoes(bgVivoSum.diferencaVsGov)} vs BG Gov`}
+                    {bgVivoSum.estouro.count > 0 ? ` · acima do BG Gov em ${bgVivoSum.estouro.count} projetos` : ""}
+                  </p>
+                  <p>{LABELS.fechamentoEstimadoInfo}</p>
+                </div>
+              }
+            />
           </span>
         }
       />
+
       <KpiStat icon={<CheckCircle2 size={16} />} label="Realizado 26"       value={fmtMilhoes(bgVivoSum.realizado)} context="pago no exercício" />
             <KpiStat icon={<Gauge size={16} />} label="Em pagamento" value={fmtMilhoes(bgVivoSum.emPagamento)} context="etapa E7" />
       <KpiStat
