@@ -12,6 +12,14 @@ export interface ResultadoPremissa {
   comprometido: number;
   excesso: number;
   emRiscoSinal: number;
+  /** pago + emPagamento + elegível: o mesmo projetado do simulador (BG vivo, fim do ano, com risco). */
+  projetado: number;
+  /** Parte do BG 26 ainda sem nenhuma emissão: max(0, bg − projetado). */
+  semEmissao: number;
+  /** Parte do projetado acima do BG 26, inclusive pagamentos acima do orçamento: max(0, projetado − bg). */
+  antecipado: number;
+  /** Parte do BG 26 coberta pelo projetado: bg − semEmissao. */
+  coberto: number;
   declarado27: number;
 }
 
@@ -96,16 +104,24 @@ function resultadoProjeto(p: ProjetoBase, acc: AcumuladoProjeto | undefined): Re
   const excesso = elegivel - comprometido;
   const provisionado = pago + emPagamento + comprometido;
   const emRiscoSinal = elegivel > 0 ? comprometido * ((acc?.emRiscoElegivel ?? 0) / elegivel) : 0;
+  const projetado = pago + emPagamento + elegivel;
+  const semEmissao = Math.max(0, bg - projetado);
+  const antecipado = Math.max(0, projetado - bg);
+  const coberto = bg - semEmissao;
   return {
     bg,
     pago,
     emPagamento,
     elegivel,
     provisionado,
-    pctBG: bg > 0 ? provisionado / bg : 0,
+    pctBG: bg > 0 ? coberto / bg : 0,
     comprometido,
     excesso,
     emRiscoSinal,
+    projetado,
+    semEmissao,
+    antecipado,
+    coberto,
     declarado27: acc?.declarado27 ?? 0,
   };
 }
@@ -121,11 +137,18 @@ function somarResultados(itens: ResultadoPremissa[]): ResultadoPremissa {
       comprometido: t.comprometido + r.comprometido,
       excesso: t.excesso + r.excesso,
       emRiscoSinal: t.emRiscoSinal + r.emRiscoSinal,
+      projetado: t.projetado + r.projetado,
+      semEmissao: t.semEmissao + r.semEmissao,
+      antecipado: t.antecipado + r.antecipado,
+      coberto: t.coberto + r.coberto,
       declarado27: t.declarado27 + r.declarado27,
     }),
-    { bg: 0, pago: 0, emPagamento: 0, elegivel: 0, provisionado: 0, comprometido: 0, excesso: 0, emRiscoSinal: 0, declarado27: 0 }
+    {
+      bg: 0, pago: 0, emPagamento: 0, elegivel: 0, provisionado: 0, comprometido: 0, excesso: 0, emRiscoSinal: 0,
+      projetado: 0, semEmissao: 0, antecipado: 0, coberto: 0, declarado27: 0,
+    }
   );
-  return { ...soma, pctBG: soma.bg > 0 ? soma.provisionado / soma.bg : 0 };
+  return { ...soma, pctBG: soma.bg > 0 ? soma.coberto / soma.bg : 0 };
 }
 
 /** Projeto com orçamento ou com projetado diferente de zero (realizado + em pagamento + emissões elegíveis, como no simulador). Inclui CAIXA_27 automática. */

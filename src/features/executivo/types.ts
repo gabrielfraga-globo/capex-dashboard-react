@@ -1,4 +1,4 @@
-export type AttentionKind = "ACIMA_ORCAMENTO" | "RCS_EM_RISCO" | "SALDO_PARADO";
+export type AttentionKind = "SEM_EMISSAO" | "RCS_EM_RISCO" | "SALDO_PARADO";
 
 /** Entrada normalizada pelos adaptadores de cada fonte. */
 export interface AttentionSource {

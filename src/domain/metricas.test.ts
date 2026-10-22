@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import type { ProjetoBase } from "../types/index";
+import type { ProjetoBase, ProjetoMetricas } from "../types/index";
 import type { OperationalRow } from "../features/radar/operational";
 import { premissaSimples, premissaCompleta, projetoAtivo2026 } from "./metricas";
+import { simularBG } from "../features/executivo/simulador";
 
 const mkProjeto = (nome: string, orc26: number, real26: number, emPag: number): ProjetoBase => ({
   id: nome, nome, n4: "", n4Curta: "",
@@ -107,6 +108,66 @@ describe("premissaSimples — invariantes", () => {
   it("CAIXA_27 automática por data entra no elegível", () => {
     const alfa = r.projetos.find((p) => p.projeto === "Alfa")!;
     expect(alfa.elegivel).toBe(400 + 300 + 500);
+  });
+});
+
+describe("premissaSimples — sem emissão e antecipado (base: projetado = pago + em pagamento + elegível)", () => {
+  const r = premissaSimples(projetos, linhasBase);
+  const porNome = (nome: string) => r.projetos.find((p) => p.projeto === nome)!;
+
+  it("Gama: projetado 150 < BG 200 → sem emissão 50, antecipado 0", () => {
+    const gama = porNome("Gama");
+    expect(gama.projetado).toBeCloseTo(150, 6);
+    expect(gama.semEmissao).toBeCloseTo(50, 6);
+    expect(gama.antecipado).toBe(0);
+  });
+
+  it("Alfa e Beta: projetado acima do BG → antecipado, sem emissão zero", () => {
+    expect(porNome("Alfa").antecipado).toBeCloseTo(600, 6);
+    expect(porNome("Beta").antecipado).toBeCloseTo(150, 6);
+    expect(porNome("Alfa").semEmissao).toBe(0);
+    expect(porNome("Beta").semEmissao).toBe(0);
+  });
+
+  it("um projeto nunca tem sem emissão e antecipado ao mesmo tempo, e coberto + sem emissão = BG", () => {
+    for (const p of r.projetos) {
+      expect(p.semEmissao === 0 || p.antecipado === 0).toBe(true);
+      expect(p.coberto + p.semEmissao).toBeCloseTo(p.bg, 6);
+    }
+  });
+
+  it("totais são somas dos projetos e pctBG = Σcoberto / ΣBG (1650 / 1700)", () => {
+    const soma = (k: "semEmissao" | "antecipado" | "projetado" | "coberto") =>
+      r.projetos.reduce((s, p) => s + p[k], 0);
+    expect(r.total.semEmissao).toBeCloseTo(soma("semEmissao"), 6);
+    expect(r.total.antecipado).toBeCloseTo(soma("antecipado"), 6);
+    expect(r.total.projetado).toBeCloseTo(soma("projetado"), 6);
+    expect(r.total.semEmissao).toBeCloseTo(50, 6);
+    expect(r.total.antecipado).toBeCloseTo(750, 6);
+    expect(r.total.pctBG).toBeCloseTo(1650 / 1700, 6);
+  });
+
+  it("projeto com pago acima do BG: antecipado = pago − BG, sem emissão zero, cobertura limitada a 100%", () => {
+    const delta = [mkProjeto("Delta", 100, 150, 0)];
+    const rd = premissaSimples(delta, []);
+    expect(rd.total.antecipado).toBeCloseTo(50, 6);
+    expect(rd.total.semEmissao).toBe(0);
+    expect(rd.total.coberto).toBeCloseTo(100, 6);
+    expect(rd.total.pctBG).toBeCloseTo(1, 6);
+  });
+
+  it("identidade com o BG vivo: Σantecipado − Σsem. emissão = projetado − BG (simularBG, fim do ano, com risco)", () => {
+    const sim = simularBG({
+      projetos: projetos as ProjetoMetricas[],
+      rows: linhasBase,
+      h: "ano",
+      ref: new Date("2026-06-30T12:00:00"),
+      exerciseYear: 2026,
+      incluirRisco: true,
+      premissa: "simples",
+    });
+    expect(r.total.antecipado - r.total.semEmissao).toBeCloseTo(sim.projetado - r.total.bg, 6);
+    expect(sim.projetado).toBeCloseTo(r.total.projetado, 6);
   });
 });
 

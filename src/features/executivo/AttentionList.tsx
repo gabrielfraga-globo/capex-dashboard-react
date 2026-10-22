@@ -4,14 +4,13 @@ import { cn } from "../../lib/utils";
 import type { AttentionItem, AttentionKind, AttentionSource } from "./types";
 
 const FAIXA_SINAL: Record<AttentionKind, string> = {
-  ACIMA_ORCAMENTO: "bg-warn",
-  RCS_EM_RISCO: "bg-crit",
+  SEM_EMISSAO: "bg-crit",
+  RCS_EM_RISCO: "bg-warn",
   SALDO_PARADO: "bg-slate-500",
 };
 
 const TOOLTIP_PONTOS_ACAO =
-  "Vermelho: comprometido em risco de não virar caixa, por projeto. Âmbar: excesso sobre o orçamento, por projeto. Cinza: saldo parado há 6+ meses, pode ser remanejado.";
-
+  "Vermelho: orçamento 26 ainda sem emissão. Âmbar: emitido sem pedido. Cinza: saldo parado."
 const ROTA_RISCO_CAIXA = "/risco-caixa";
 
 /** Saldos parados do recorte: total (Σ) e contagem (N) calculados sobre a mesma lista; `top` são os maiores. */
@@ -32,7 +31,7 @@ export function AttentionList({
   onNavigate: (href: string) => void;
 }) {
   return (
-    <Card>
+    <Card className="h-full">
       <SectionHeader title="Pontos de ação" tooltip={TOOLTIP_PONTOS_ACAO} />
 
       <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">OFENSORES DE CAIXA</p>

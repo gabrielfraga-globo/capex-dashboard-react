@@ -94,39 +94,39 @@ export function VisaoDiretoriaPage({
     return paradosDe(views, ultimaDataParadaPorProjeto(linhas), saldoPronto.dataReferencia);
   }, [data, saldoPronto, rubricas]);
 
-  /** Uma linha por projeto: vale o maior entre comprometido em risco e excesso (cor e valor). Top 5 pelo valor. */
+  /** Até 3 vermelhos (maior sem emissão) e depois completa até 5 com âmbar (maior emitido sem pedido). Um projeto aparece uma vez só. */
   const itensAtencao = useMemo<AttentionItem[]>(() => {
     if (!metricas) return [];
-    return metricas.simples.projetos
-      .flatMap((p): AttentionItem[] => {
-        if (p.emRiscoSinal <= 0 && p.excesso <= 0) return [];
-        if (p.emRiscoSinal >= p.excesso) {
-          return [
-            {
-              kind: "RCS_EM_RISCO",
-              projectKey: p.projeto,
-              projectName: p.projeto,
-              owner: null,
-              value: p.emRiscoSinal,
-              detail: `${fmtMilhoes(p.emRiscoSinal)} comprometido em risco`,
-              href: ATTENTION_ROUTES.RCS_EM_RISCO,
-            },
-          ];
-        }
-        return [
-          {
-            kind: "ACIMA_ORCAMENTO",
-            projectKey: p.projeto,
-            projectName: p.projeto,
-            owner: null,
-            value: p.excesso,
-            detail: `${fmtMilhoes(p.excesso)} acima do orçamento`,
-            href: ATTENTION_ROUTES.ACIMA_ORCAMENTO,
-          },
-        ];
-      })
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+    const projetos = metricas.simples.projetos;
+    const vermelhos = projetos
+      .filter((p) => p.semEmissao > 0)
+      .sort((a, b) => b.semEmissao - a.semEmissao)
+      .slice(0, 3);
+    const jaListados = new Set(vermelhos.map((p) => p.projeto));
+    const ambar = projetos
+      .filter((p) => p.emRiscoSinal > 0 && !jaListados.has(p.projeto))
+      .sort((a, b) => b.emRiscoSinal - a.emRiscoSinal)
+      .slice(0, 5 - vermelhos.length);
+    return [
+      ...vermelhos.map((p): AttentionItem => ({
+        kind: "SEM_EMISSAO",
+        projectKey: p.projeto,
+        projectName: p.projeto,
+        owner: null,
+        value: p.semEmissao,
+        detail: `${fmtMilhoes(p.semEmissao)} do BG 26 sem emissão`,
+        href: ATTENTION_ROUTES.SEM_EMISSAO,
+      })),
+      ...ambar.map((p): AttentionItem => ({
+        kind: "RCS_EM_RISCO",
+        projectKey: p.projeto,
+        projectName: p.projeto,
+        owner: null,
+        value: p.emRiscoSinal,
+        detail: `${fmtMilhoes(p.emRiscoSinal)} emitido sem pedido`,
+        href: ATTENTION_ROUTES.RCS_EM_RISCO,
+      })),
+    ];
   }, [metricas]);
 
   /** Σ, N e top 3 vêm da mesma lista de parados; sem saldo pronto a seção fica oculta. */
@@ -146,7 +146,7 @@ export function VisaoDiretoriaPage({
   );
 
   const projetosAcima = useMemo(
-    () => (metricas ? metricas.simples.projetos.filter((p) => p.excesso > 0).length : 0),
+    () => (metricas ? metricas.simples.projetos.filter((p) => p.antecipado > 0).length : 0),
     [metricas],
   );
 

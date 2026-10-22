@@ -15,7 +15,7 @@ interface ExecucaoTorresProps {
   onOpenRisco?: () => void;
 }
 
-type ChaveTrecho = "pago" | "emPagamento" | "comprometido" | "risco" | "declarado27" | "excesso";
+type ChaveTrecho = "pago" | "emPagamento" | "comprometido" | "risco" | "semEmissao" | "declarado27" | "excesso";
 
 interface TrechoBarra {
   chave: ChaveTrecho;
@@ -28,22 +28,34 @@ const ESTILO_TRECHO: Record<ChaveTrecho, string> = {
   emPagamento: "bg-blue-400 text-white",
   comprometido: "bg-blue-200 text-blue-900",
   risco:
-    "bg-crit-10 bg-[repeating-linear-gradient(135deg,theme(colors.crit.DEFAULT)_0_5px,transparent_5px_10px)] text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]",
+    "bg-warn-10 bg-[repeating-linear-gradient(135deg,theme(colors.warn.DEFAULT)_0_5px,transparent_5px_10px)] text-text [text-shadow:0_1px_2px_rgb(0_0_0/0.4)]",
+  semEmissao: "border border-dashed border-[#ef4444] bg-[rgba(239,68,68,0.18)] text-text",
   declarado27: "bg-blue-200 text-blue-900",
-  excesso: "bg-warn",
+  excesso: "bg-[#64748b] text-white",
 };
 
 const NOME_TRECHO: Record<ChaveTrecho, string> = {
   pago: "Pago",
   emPagamento: "Em pagamento",
   comprometido: "Comprometido",
-  risco: "Em risco",
+  risco: "Sem pedido",
+  semEmissao: "Sem emissão",
   declarado27: "Declarado 2027",
-  excesso: "Acima do orçamento",
+  excesso: "Antecipado",
 };
 
 /** Largura mínima (% da barra) para exibir o rótulo dentro do trecho. */
 const LIMITE_ROTULO_INTERNO = 8;
+
+/** Encaixa os trechos até a marca do BG. O que passa da marca não é desenhado aqui: é o antecipado, desenhado à parte. */
+function recortarAteBg(trechos: TrechoBarra[], base: number): TrechoBarra[] {
+  let restante = Math.max(0, base);
+  return trechos.map((t) => {
+    const valor = Math.min(t.valor, restante);
+    restante -= valor;
+    return { ...t, valor };
+  });
+}
 
 /** Rótulo do trecho: some quando o texto é mais largo que o trecho. Fica `invisible` (e não removido) para continuar medível. */
 function RotuloTrecho({ texto }: { texto: string }) {
@@ -93,7 +105,7 @@ function BarraTorre({
   return (
     <div className="relative w-full">
       <div className="relative">
-        <div className="relative flex h-12 w-full overflow-hidden rounded-md bg-card-alt">
+        <div className="relative flex h-14 w-full overflow-hidden rounded-md bg-card-alt">
           {visiveis.map((seg) => {
             const pct = pctDaEscala(seg.valor);
             const titulo = seg.titulo ?? `${NOME_TRECHO[seg.chave]}: ${fmtMilhoes(seg.valor)}`;
@@ -121,7 +133,7 @@ function BarraTorre({
           })}
           {excesso > 0 && (
             <div
-              title={`Acima do orçamento: ${fmtMilhoes(excesso)}`}
+              title={`Antecipado (acima do BG 26): ${fmtMilhoes(excesso)}`}
               className={`absolute inset-y-0 ${ESTILO_TRECHO.excesso}`}
               style={{ left: `${pctDaEscala(inicioExcesso)}%`, width: `${pctDaEscala(excesso)}%` }}
             />
@@ -141,29 +153,27 @@ function BarraTorre({
 
 
 function MetricaPrincipal2026({ total }: { total: ResultadoPremissa }) {
-  const acimaDoBg = total.pctBG > 1;
   return (
     <div className="flex flex-col">
-      <p className={`text-[48px] font-extrabold leading-none tabular-nums ${acimaDoBg ? "text-warn" : ""}`}>
-        {fmtPct(total.pctBG)}
-      </p>
+      <p className="text-[48px] font-extrabold leading-none tabular-nums">{fmtPct(total.pctBG)}</p>
       <p className="text-sm text-text-muted">do BG 26 coberto</p>
     </div>
   );
 }
 
-function LegendaTorre2026({ excesso }: { excesso: number }) {
+function LegendaTorre2026({ antecipado }: { antecipado: number }) {
   const itens: { chave: ChaveTrecho; rotulo: string }[] = [
     { chave: "pago", rotulo: "Pago" },
     { chave: "emPagamento", rotulo: "Em pagamento" },
     { chave: "comprometido", rotulo: "Comprometido" },
-    { chave: "risco", rotulo: "Em risco" },
+    { chave: "risco", rotulo: "Sem pedido" },
+    { chave: "semEmissao", rotulo: "Sem emissão" },
   ];
-  if (excesso > 0) itens.push({ chave: "excesso", rotulo: "Acima do orçamento" });
+  if (antecipado > 0) itens.push({ chave: "excesso", rotulo: "Antecipado" });
   return (
-    <ul className="flex flex-nowrap items-center gap-3 whitespace-nowrap text-[11px] text-text-muted">
+    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
       {itens.map((item) => (
-        <li key={item.chave} className="flex items-center gap-1">
+        <li key={item.chave} className="flex items-center gap-1 whitespace-nowrap">
           <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-sm ${ESTILO_TRECHO[item.chave]}`} />
           {item.rotulo}
         </li>
@@ -172,16 +182,32 @@ function LegendaTorre2026({ excesso }: { excesso: number }) {
   );
 }
 
+function SaldoTorre2026({ total }: { total: ResultadoPremissa }) {
+  const saldo = total.antecipado - total.semEmissao;
+  const sinal = saldo >= 0 ? "+" : "−";
+  return (
+    <p className="text-xs tabular-nums text-text-muted">
+      <span className="text-crit">{`Sem emissão ${fmtMilhoes(total.semEmissao)}`}</span>
+      {" · "}
+      <span className="text-text">{`Antecipado ${fmtMilhoes(total.antecipado)}`}</span>
+      {` · Saldo ${sinal}${fmtMilhoes(Math.abs(saldo))}`}
+    </p>
+  );
+}
+
 function ConteudoInfo2026({ total, projetosAcima }: { total: ResultadoPremissa; projetosAcima: number }) {
-  const semEmissao = Math.max(0, total.bg - total.provisionado);
   const linhas: string[] = [
-    `Pago + em pagamento + emitido até o orçamento de cada projeto, sobre o     BG 26 (${fmtMilhoes(total.bg)})`,
-        `Sem emissão: ${fmtMilhoes(semEmissao)}`,
+    `Pago + em pagamento + elegível (comprometido ou não), limitado ao BG 26 de cada projeto. Cobertura = BG coberto / BG 26 (${fmtMilhoes(total.bg)})`,
+    `Sem pedido: ${fmtMilhoes(total.emRiscoSinal)}, parte do comprometido ainda sem pedido de compra`,
+    `Sem emissão: ${fmtMilhoes(total.semEmissao)}, parte do BG 26 sem nenhuma emissão ou pagamento`,
   ];
-  if (total.excesso > 0) {
+  if (total.antecipado > 0) {
     const plural = projetosAcima === 1 ? "projeto" : "projetos";
-    linhas.push(`Acima do orçamento: ${fmtMilhoes(total.excesso)} em ${projetosAcima} ${plural}`);
+    linhas.push(
+      `Antecipado: ${fmtMilhoes(total.antecipado)} em ${projetosAcima} ${plural}, acima do BG 26. Inclui pagamentos já feitos acima do orçamento`
+    );
   }
+  linhas.push(`Saldo = antecipado − sem emissão, comparado ao BG 26`);
   linhas.push(`Declarado 2027 pelos times: ${fmtMilhoes(total.declarado27)}`);
   return (
     <ul className="flex flex-col gap-1">
@@ -217,7 +243,8 @@ export function ExecucaoTorres({
 }: ExecucaoTorresProps) {
   const comprometidoFirme = Math.max(0, total.comprometido - total.emRiscoSinal);
   const textoComprometidoFirme = `Comprometido com pedido:   ${fmtMilhoes(comprometidoFirme)} de ${fmtMilhoes(total.comprometido)}`;
-    const textoRisco = `Comprometido sem pedido (em risco): ${fmtMilhoes(total.emRiscoSinal)}`;
+  const textoRisco = `Sem pedido (comprometido em risco): ${fmtMilhoes(total.emRiscoSinal)}`;
+  const textoSemEmissao = `Sem emissão: ${fmtMilhoes(total.semEmissao)}`;
   return (
     <article className="flex h-full min-h-0 flex-col gap-3 rounded-card border border-border bg-card p-4 text-text shadow-card">
       <header className="flex items-center justify-between gap-3">
@@ -244,16 +271,21 @@ export function ExecucaoTorres({
         <section className="flex flex-col gap-1.5">
           <BarraTorre
             base={total.bg}
-            trechos={[
-              { chave: "pago", valor: total.pago },
-              { chave: "emPagamento", valor: total.emPagamento },
-              { chave: "comprometido", valor: comprometidoFirme, titulo: textoComprometidoFirme },
-              { chave: "risco", valor: total.emRiscoSinal, titulo: textoRisco },
-            ]}
-            excesso={total.excesso}
+            trechos={recortarAteBg(
+              [
+                { chave: "pago", valor: total.pago, titulo: `Pago: ${fmtMilhoes(total.pago)}` },
+                { chave: "emPagamento", valor: total.emPagamento, titulo: `Em pagamento: ${fmtMilhoes(total.emPagamento)}` },
+                { chave: "comprometido", valor: comprometidoFirme, titulo: textoComprometidoFirme },
+                { chave: "risco", valor: total.emRiscoSinal, titulo: textoRisco },
+                { chave: "semEmissao", valor: total.semEmissao, titulo: textoSemEmissao },
+              ],
+              total.bg
+            )}
+            excesso={total.antecipado}
             onOpenRisco={onOpenRisco}
           />
-          <LegendaTorre2026 excesso={total.excesso} />
+          <LegendaTorre2026 antecipado={total.antecipado} />
+          <SaldoTorre2026 total={total} />
         </section>
 
         {mostrar2027 && <BlocoTorre2027 bg27={bg27} declarado27={total.declarado27} />}
