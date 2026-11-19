@@ -91,9 +91,20 @@ const MONTH_INDEX: Record<string, number> = {
   julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
 };
 
+// Coluna de cenário do orçamento (BG_Q3, BG_Q4, ...) detectada pelo cabeçalho,
+// para que a virada de ciclo exija mudar só as consultas DAX.
+export function detectarColunaCenario(records: Record<string, string>[]): string {
+  const cols = Object.keys(records[0] ?? {}).filter((c) => /^BG_?Q\d$/i.test(c.trim()));
+  if (cols.length !== 1) {
+  throw new Error(`orcamento.csv: esperada 1 coluna de cenário BG_Qn, encontradas: ${cols.join(", ") || "nenhuma"}`);
+  }
+  return cols[0];
+}
+
 function parseOrcamentoCsv(text: string, _ignoradas: LinhaIgnorada[]): OrcamentoAnual[] {
   const records = csvObjects(text);
-  requireHeaders(records, ["N4", "NomeLB", "Ano", "Nome do Mês", "BG_Q3", "Rubrica"], "orcamento.csv");
+  const colCenario = detectarColunaCenario(records);
+  requireHeaders(records, ["N4", "NomeLB", "Ano", "Nome do Mês", colCenario, "Rubrica"], "orcamento.csv");
   const map = new Map<string, OrcamentoAnual>();
 
   for (const record of records) {
@@ -110,7 +121,7 @@ function parseOrcamentoCsv(text: string, _ignoradas: LinhaIgnorada[]): Orcamento
         meses2027: Array(3).fill(0), total2027: 0, totalGeral: 0 };
       map.set(key, item);
     }
-    const valor = toNumberOrNull(record.BG_Q3) ?? 0;
+    const valor = toNumberOrNull(record[colCenario]) ?? 0;
     if (ano === 2026) item.meses2026[mes] += valor;
     else if (mes <= 2) item.meses2027[mes] += valor;
   }
@@ -274,7 +285,7 @@ function buildProjetos(
     const aEmitirFonte = maxPorAno(real?.aEmitirValues);
     const deltaCaixaFonte = maxPorAno(real?.deltaCaixaValues);
 
-    // CORREÇÃO CENTRAL: BG_Q3 é a fonte primária do orçamento do dashboard.
+    // CORREÇÃO CENTRAL: A coluna de cenário (BG_Qn) é a fonte primária do orçamento do dashboard.
     const orcamento2026 = orc ? orc.total2026 : 0;
     const orcamento2027 = orc ? orc.total2027 : 0;
     const orcamentoPlurianual = orc ? orc.totalGeral : 0;

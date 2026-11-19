@@ -41,7 +41,7 @@ function textoUltimoCompromisso(meses: number | null, exercicio: number): string
 }
 
 const CRITERIO_BI_SALDO =
-  "Critério do BI (Saldo Projetos): orçamento BG Gov (BGQ3) − caixa do exercício − compromissos de RCs aprovadas no exercício. " +
+  "Critério do BI (Saldo Projetos): orçamento BG Gov (BGQ4) − caixa do exercício − compromissos de RCs aprovadas no exercício. " +
   "Difere do KPI 'A emitir', que usa Fechamento estimado e Compromisso 26. Compromissos de RCs anteriores ao exercício são desconsiderados (premissa).";
 
 /** Negativo que arredonda para zero viraria "R$ 0"; mostra "-R$ 1" para não ocultar o sinal. */

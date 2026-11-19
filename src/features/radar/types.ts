@@ -280,7 +280,7 @@ export interface SaldoProjetoLinha {
   nomeLB: string;
   rubrica: string;
   ano: number;
-  orcamento: number;              // Orcamento_Cenarios (BGQ3)
+  orcamento: number;              // Orcamento_Cenarios (BGQ4)
   caixa: number;                  // Realizado_Conecta_Ano (pago + pendente)
   deltaCaixa: number;             // DeltaCaixa_2026
   compromissoTotal: number;       // Compromisso_Conecta
