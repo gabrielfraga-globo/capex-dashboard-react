@@ -88,14 +88,15 @@ for (const r of realizadoRows) {
   csvComp2026 += parseCsvValue(r.Compromisso_Conecta);
 }
 
+const colCenario = Object.keys(orcamentoRows[0] ?? {}).find((c) => /^BG_?Q\d$/i.test(c.trim())) ?? "BG_Q4";
 let csvOrc2026 = 0;
 for (const r of orcamentoRows) {
   if (Number(r.Ano) !== 2026) continue;
-  csvOrc2026 += parseCsvValue(r.BG_Q3);
+  csvOrc2026 += parseCsvValue(r[colCenario]);
 }
 
 console.log("\n=== Totais diretos do CSV (2026) ===");
-console.log(`Orçamento (BG_Q3):    ${csvOrc2026.toFixed(2)}`);
+console.log(`Orçamento (${colCenario}):    ${csvOrc2026.toFixed(2)}`);
 console.log(`Realizado_Pago:       ${csvReal2026.toFixed(2)}`);
 console.log(`Realizado_Pendente:   ${csvPend2026.toFixed(2)}`);
 console.log(`Compromisso_Conecta:  ${csvComp2026.toFixed(2)}`);
@@ -133,7 +134,7 @@ for (const p of projetos) {
 const semBGQ3ComOrc = projetos.filter((p) => !p.origemOrcamento && (p.orcamento2026 ?? 0) !== 0);
 if (semBGQ3ComOrc.length > 0) {
   for (const p of semBGQ3ComOrc) {
-    fail(`Projeto "${p.nome}" sem BG_Q3 mas com orcamento2026=${p.orcamento2026} — fallback indevido`);
+    fail(`Projeto "${p.nome}" sem cenário BG mas com orcamento2026=${p.orcamento2026} — fallback indevido`);
   }
 }
 

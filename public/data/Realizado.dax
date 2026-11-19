@@ -10,7 +10,7 @@ VAR Resultado =
 
         // Cenário selecionado no BI
         TREATAS(
-            { "BGQ3" },
+            { "BGQ4" },
             dCenarios[Cenários]
         ),
 

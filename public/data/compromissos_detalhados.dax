@@ -5,8 +5,8 @@
 //  Saida esperada (carga de 25/09/2026):
 //      884 linhas | 754 RCs distintas | total R$ 55.185.044,92
 //
-//  ATENCAO AO CENARIO: o filtro abaixo esta preso em "BGQ3". Quando o
-//  ciclo virar para BGQ4, esta linha precisa ser atualizada a mao, ou a
+//  ATENCAO AO CENARIO: o filtro abaixo esta preso em "BGQ4". Quando o
+//  ciclo virar para BGQ1, esta linha precisa ser atualizada a mao, ou a
 //  carga passa a trazer um cenario antigo sem nenhum aviso.
 // =====================================================================
 
@@ -42,7 +42,7 @@ FILTER (
         fCompromisso[DATA_PROMETIDA],
 
         // Cenario orcamentario vigente -- revisar a cada ciclo
-        TREATAS ( { "BGQ3" }, dCenarios[Cenários] ),
+        TREATAS ( { "BGQ4" }, dCenarios[Cenários] ),
 
         // Escopo organizacional
         TREATAS ( { "Plataformas De Produção" }, dN4[N3 - Copiar] ),

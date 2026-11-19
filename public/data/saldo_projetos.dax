@@ -32,7 +32,7 @@ VAR Resultado =
         dRubricas[Rubrica],
 
         // Cenário
-        TREATAS( { "BGQ3" }, dCenarios[Cenários] ),
+        TREATAS( { "BGQ4" }, dCenarios[Cenários] ),
 
         // Exercício único (não incluir 2027: Realizado_Conecta_Ano fica em branco
         // e Compromisso valido passaria a contar RCs aprovadas em 2027)
